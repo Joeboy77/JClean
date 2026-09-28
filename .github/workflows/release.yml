@@ -1,6 +1,7 @@
 name: Release
 
-# Pushing a tag like v1.0.0 builds, signs and publishes a release (spec §14).
+# Pushing a tag like v1.0.0 builds the Mac and Windows apps, signs their
+# update packages, and publishes a release (spec §14).
 on:
   push:
     tags: ["v*"]
@@ -12,6 +13,8 @@ jobs:
   macos:
     name: macOS universal build
     runs-on: macos-latest
+    outputs:
+      release-id: ${{ steps.build.outputs.releaseId }}
     steps:
       - uses: actions/checkout@v4
 
@@ -63,7 +66,8 @@ jobs:
           done
 
       # Update packages are always signed.
-      - name: Build and publish (draft)
+      - name: Build and upload (draft)
+        id: build
         uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -76,9 +80,12 @@ jobs:
           releaseBody: |
             ## Download
 
-            **[JClean_macos_universal.dmg](https://github.com/Joeboy77/JClean/releases/latest/download/JClean_macos_universal.dmg)**. Works on Apple Silicon and Intel Macs with macOS 12 or later. Checksums are in `SHA256SUMS.txt`.
+            - **Mac: [JClean_macos_universal.dmg](https://github.com/Joeboy77/JClean/releases/latest/download/JClean_macos_universal.dmg)**. Apple Silicon and Intel, macOS 12 or later.
+            - **Windows: [JClean_windows_x64_setup.exe](https://github.com/Joeboy77/JClean/releases/latest/download/JClean_windows_x64_setup.exe)**. Windows 10 or 11, 64-bit. Installs for your account only, no administrator needed.
 
-            ## Opening JClean the first time
+            Checksums are in `SHA256SUMS.txt`.
+
+            ## Opening JClean the first time on a Mac
 
             This version isn't notarized by Apple yet, so macOS asks you to confirm once:
 
@@ -87,7 +94,11 @@ jobs:
             3. Open **System Settings → Privacy & Security**, scroll down to "JClean was blocked to protect your Mac", and click **Open Anyway**. Confirm with your password.
             4. JClean opens. From now on it opens normally.
 
-            JClean is open source, reads only file sizes and dates, and never sends anything off your Mac.
+            ## Installing on Windows
+
+            The installer isn't code-signed yet, so Windows SmartScreen may say it "protected your PC". Click **More info**, then **Run anyway**. You only see this when installing; updates install from inside JClean.
+
+            JClean is open source, reads only file sizes and dates, and never sends anything off your computer.
           releaseDraft: true
           prerelease: false
           includeUpdaterJson: true
@@ -95,16 +106,70 @@ jobs:
 
       # Stable names mean the website's download link never changes
       # (spec §12.2): /releases/latest/download/JClean_macos_universal.dmg.
-      - name: Stable asset names and checksums, then publish
+      - name: Upload the DMG under its stable name
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          bundle=target/universal-apple-darwin/release/bundle
-          cp "$(ls "$bundle"/dmg/*.dmg | head -n 1)" JClean_macos_universal.dmg
-          cp "$(ls "$bundle"/macos/*.app.tar.gz | head -n 1)" JClean_macos_universal.app.tar.gz
-          shasum -a 256 JClean_macos_universal.dmg JClean_macos_universal.app.tar.gz > SHA256SUMS.txt
+          cp "$(ls target/universal-apple-darwin/release/bundle/dmg/*.dmg | head -n 1)" JClean_macos_universal.dmg
+          gh release upload "$GITHUB_REF_NAME" JClean_macos_universal.dmg --clobber
+
+  # After the Mac build, so the two never race to update latest.json.
+  windows:
+    name: Windows x64 build
+    needs: macos
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - uses: Swatinem/rust-cache@v2
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      # Adds the Windows installer and its update package to the same draft.
+      - name: Build and upload (draft)
+        uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+        with:
+          projectPath: apps/desktop
+          releaseId: ${{ needs.macos.outputs.release-id }}
+          includeUpdaterJson: true
+
+      # /releases/latest/download/JClean_windows_x64_setup.exe (spec §14).
+      - name: Upload the installer under its stable name
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          cp "$(ls target/release/bundle/nsis/*-setup.exe | head -n 1)" JClean_windows_x64_setup.exe
+          gh release upload "$GITHUB_REF_NAME" JClean_windows_x64_setup.exe --clobber
+
+  publish:
+    name: Checksums and publish
+    needs: [macos, windows]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checksums, then publish
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          gh release download "$GITHUB_REF_NAME" -p JClean_macos_universal.dmg -p JClean_windows_x64_setup.exe
+          sha256sum JClean_macos_universal.dmg JClean_windows_x64_setup.exe > SHA256SUMS.txt
           cat SHA256SUMS.txt
-          gh release upload "$GITHUB_REF_NAME" JClean_macos_universal.dmg SHA256SUMS.txt --clobber
+          gh release upload "$GITHUB_REF_NAME" SHA256SUMS.txt --clobber
           gh release edit "$GITHUB_REF_NAME" --draft=false --latest
 
       - name: Rebuild the website
