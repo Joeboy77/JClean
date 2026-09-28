@@ -32,6 +32,9 @@ tauri-plugin-window-state = "2.5"
 tauri-plugin-autostart = "2.6"
 tauri-plugin-dialog = "2.8"
 tauri-plugin-opener = "2.6"
+# Signed auto-updates from GitHub Releases, and relaunching after one (spec §14).
+tauri-plugin-updater = "2.13"
+tauri-plugin-process = "2.4"
 
 # Native animated window resize for compact/expanded switching (spec §5.8).
 # Already in the dependency tree through Tauri, so this adds no size.

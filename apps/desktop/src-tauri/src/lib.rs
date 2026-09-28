@@ -10,6 +10,7 @@ mod engine;
 mod settings;
 mod system;
 mod tray;
+mod updater;
 mod volume;
 mod window;
 
@@ -81,6 +82,8 @@ pub fn specta_builder() -> Builder<tauri::Wry> {
         system::history_cleanups,
         system::history_actions,
         system::export_history,
+        updater::check_for_update,
+        updater::install_update,
     ])
 }
 
@@ -112,6 +115,9 @@ pub fn run() -> Result<(), Box<dyn std::error::Error>> {
         ))
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_opener::init())
+        .plugin(tauri_plugin_updater::Builder::new().build())
+        .plugin(tauri_plugin_process::init())
+        .manage(updater::PendingUpdate::default())
         .manage(window::LastExpandedWidth::default())
         .manage(engine)
         .invoke_handler(builder.invoke_handler())
