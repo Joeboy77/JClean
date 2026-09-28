@@ -5,7 +5,7 @@ import type { Method, Rule, StorageItem } from "../../data/types";
 import { formatAgo, formatBytes, tildify } from "../../lib/format";
 import { fade, spring } from "../../lib/motion";
 import { itemName, ruleLabel } from "../../state/selectors";
-import { revealItem } from "../../state/engine";
+import { reviewClean, revealItem } from "../../state/engine";
 import { useStore, type DrawerTarget } from "../../state/store";
 import { RISK_COPY } from "../../data/riskCopy";
 import { RiskBadge } from "../ui/RiskBadge";
@@ -127,6 +127,9 @@ export function DetailDrawer({ compact }: DetailDrawerProps) {
   const close = useStore((s) => s.closeDrawer);
   const rules = useStore((s) => s.rules);
   const home = useStore((s) => s.home);
+  const selected = useStore((s) => s.selected);
+  const setSelected = useStore((s) => s.setSelected);
+  const planning = useStore((s) => s.planning);
   const resolved = useMemo(
     () => (target ? resolve(rules, target, items, audience) : null),
     [rules, target, items, audience],
@@ -156,6 +159,10 @@ export function DetailDrawer({ compact }: DetailDrawerProps) {
   const blocked = resolved?.items.find((i) => i.blockedReason)?.blockedReason;
   const risk = resolved?.items[0]?.risk ?? resolved?.rule.risk ?? "safe";
   const shared = resolved?.items.some((i) => i.mayShareBlocks) ?? false;
+  const cleanable = resolved?.items.filter((i) => i.cleanable) ?? [];
+  const cleanableIds = cleanable.map((i) => i.id);
+  const cleanableBytes = cleanable.reduce((n, i) => n + i.bytes, 0);
+  const allSelected = cleanableIds.length > 0 && cleanableIds.every((id) => selected.has(id));
 
   return (
     <AnimatePresence>
@@ -249,6 +256,30 @@ export function DetailDrawer({ compact }: DetailDrawerProps) {
               </Field>
 
               <div className="flex flex-wrap gap-2 pt-1">
+                {cleanableIds.length > 0 && (
+                  <>
+                    <button
+                      type="button"
+                      disabled={planning}
+                      onClick={() => {
+                        close();
+                        void reviewClean(cleanableIds);
+                      }}
+                      className="tabular flex h-8 items-center rounded-control bg-accent px-3 font-medium text-white hover:brightness-110 disabled:opacity-50"
+                    >
+                      Clean {formatBytes(cleanableBytes)}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSelected(cleanableIds, !allSelected);
+                      }}
+                      className="flex h-8 items-center rounded-control border border-line bg-raised px-3 text-text hover:border-muted"
+                    >
+                      {allSelected ? "Unselect" : "Select"}
+                    </button>
+                  </>
+                )}
                 <button
                   type="button"
                   disabled={!resolved.items.some((i) => i.path)}

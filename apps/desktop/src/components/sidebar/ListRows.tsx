@@ -20,7 +20,7 @@ import { Tooltip } from "../ui/Tooltip";
 
 function rowClass(active: boolean): string {
   // The keyboard cursor only shows while the list has keyboard focus.
-  return `flex h-full items-center gap-3 rounded-row px-2 transition-colors hover:bg-raised/60 ${
+  return `flex h-full cursor-pointer items-center gap-3 rounded-row px-2 transition-colors hover:bg-raised/60 ${
     active
       ? "group-focus-visible/list:bg-raised group-focus-visible/list:ring-1 group-focus-visible/list:ring-accent"
       : ""

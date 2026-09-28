@@ -10,6 +10,7 @@ import {
   matchesFilters,
   matchesSearch,
   selectedBytes,
+  visibleItems,
   type GroupRow,
   type ListInput,
 } from "./selectors";
@@ -142,6 +143,11 @@ describe("buildRows", () => {
     expect(rows.filter((r) => r.kind === "locked").map((r) => r.key)).toEqual(["locked:npm"]);
     const empty = buildRows(input([], { locked: ["npm"] }));
     expect(empty.map((r) => r.key)).toEqual(["section:safe", "locked:npm"]);
+  });
+
+  it("lists exactly the items the rows show", () => {
+    const shown = visibleItems(input(items, { disabledRules: new Set(["npm"]), search: "b" }));
+    expect(shown.map((i) => i.id)).toEqual(["b"]);
   });
 
   it("hides disabled rules", () => {

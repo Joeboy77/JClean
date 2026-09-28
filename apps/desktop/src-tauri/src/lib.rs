@@ -102,11 +102,6 @@ pub fn run() -> Result<(), Box<dyn std::error::Error>> {
     let builder = specta_builder();
     let engine = Arc::new(engine::Engine::new()?);
 
-    #[cfg(debug_assertions)]
-    if let Err(err) = export_bindings(&builder) {
-        eprintln!("Couldn't export TypeScript bindings: {err}");
-    }
-
     tauri::Builder::default()
         .plugin(tauri_plugin_window_state::Builder::new().build())
         .plugin(tauri_plugin_autostart::init(

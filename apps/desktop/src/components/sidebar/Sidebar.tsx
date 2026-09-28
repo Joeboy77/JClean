@@ -8,6 +8,7 @@ import { ModeSwitch } from "./ModeSwitch";
 import { ResultPanel } from "./ResultPanel";
 import { RulesPanel } from "./RulesPanel";
 import { SearchField } from "./SearchField";
+import { SelectionBar } from "./SelectionBar";
 import { StatusCard } from "./StatusCard";
 import { StorageList } from "./StorageList";
 import { Tabs } from "./Tabs";
@@ -53,6 +54,7 @@ export const Sidebar = forwardRef<HTMLInputElement, SidebarProps>(function Sideb
               >
                 <FilterRow compact={compact} onToggleLayout={onToggleLayout} />
                 <SearchField ref={searchRef} />
+                <SelectionBar />
                 <StorageList />
               </div>
             ) : (

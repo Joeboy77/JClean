@@ -2,7 +2,13 @@ import { useVirtualizer } from "@tanstack/react-virtual";
 import { useMemo, useRef, useState, type KeyboardEvent } from "react";
 import { useShallow } from "zustand/react/shallow";
 import { formatBytes } from "../../lib/format";
-import { buildRows, type GroupRow, type ItemRow, type Row } from "../../state/selectors";
+import {
+  buildRows,
+  visibleItems,
+  type GroupRow,
+  type ItemRow,
+  type Row,
+} from "../../state/selectors";
 import { useStore } from "../../state/store";
 import {
   GroupRowView,
@@ -104,6 +110,15 @@ export function StorageList() {
   const onKeyDown = (e: KeyboardEvent<HTMLDivElement>) => {
     const row = rows[current];
     if (!row) return;
+    // ⌘A selects everything the list shows.
+    if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "a") {
+      const ids = visibleItems(s)
+        .filter((i) => i.cleanable)
+        .map((i) => i.id);
+      actions.setSelected(ids, true);
+      e.preventDefault();
+      return;
+    }
     const handled = (() => {
       switch (e.key) {
         case "ArrowDown":
@@ -203,6 +218,16 @@ export function StorageList() {
               data-row-key={row.key}
               onMouseDown={() => {
                 setActive(v.index);
+              }}
+              onClick={() => {
+                // Clicking a group opens it to pick single items; clicking an
+                // item ticks it. The checkbox, name and chevron handle their own clicks.
+                if (row.kind === "group") {
+                  if (row.expandable) actions.toggleExpanded(row.key);
+                  else toggleGroup(row);
+                } else if (row.kind === "item") {
+                  toggleItem(row);
+                }
               }}
               onMouseEnter={() => {
                 if (row.kind === "group")

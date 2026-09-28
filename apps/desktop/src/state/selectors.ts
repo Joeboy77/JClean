@@ -160,6 +160,21 @@ export function groupKey(risk: Risk, ruleId: string): string {
   return `group:${risk}:${ruleId}`;
 }
 
+/** The items the list shows right now: mode, switched-off rules, filters and search. */
+export function visibleItems(input: ListInput): StorageItem[] {
+  const { rules, audience, filters, search, disabledRules } = input;
+  return input.items.filter((item) => {
+    const rule = rules.get(item.ruleId);
+    return (
+      rule !== undefined &&
+      !disabledRules.has(rule.id) &&
+      visibleIn(rule, audience) &&
+      matchesFilters(item, filters) &&
+      matchesSearch(item, rule, search)
+    );
+  });
+}
+
 /** Flattens everything visible into rows for the virtual list. */
 export function buildRows(input: ListInput): Row[] {
   const { rules, audience, filters, search, selected, expanded, collapsed, disabledRules } = input;
