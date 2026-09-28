@@ -1,0 +1,87 @@
+name: Release
+
+# Pushing a tag like v1.0.0 builds, signs and publishes a release (spec §14).
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+jobs:
+  macos:
+    name: macOS universal build
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-apple-darwin,x86_64-apple-darwin
+
+      - uses: Swatinem/rust-cache@v2
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Tag matches the app version
+        run: |
+          version=$(sed -n '/^\[workspace.package\]/,/^\[/s/^version = "\(.*\)"/\1/p' Cargo.toml)
+          if [ "v$version" != "$GITHUB_REF_NAME" ]; then
+            echo "::error::Tag $GITHUB_REF_NAME doesn't match the workspace version $version"
+            exit 1
+          fi
+
+      # Signing and notarization happen only when the Apple secrets exist;
+      # without them the build is unsigned and the download page explains
+      # Gatekeeper's "Open Anyway". Update packages are always signed.
+      - name: Build and publish (draft)
+        uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+          APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        with:
+          projectPath: apps/desktop
+          tagName: ${{ github.ref_name }}
+          releaseName: JClean ${{ github.ref_name }}
+          releaseBody: |
+            Download **JClean_macos_universal.dmg** (Apple Silicon and Intel, macOS 12 or later).
+            Checksums are in SHA256SUMS.txt.
+          releaseDraft: true
+          prerelease: false
+          includeUpdaterJson: true
+          args: --target universal-apple-darwin
+
+      # Stable names mean the website's download link never changes
+      # (spec §12.2): /releases/latest/download/JClean_macos_universal.dmg.
+      - name: Stable asset names and checksums, then publish
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          bundle=target/universal-apple-darwin/release/bundle
+          cp "$(ls "$bundle"/dmg/*.dmg | head -n 1)" JClean_macos_universal.dmg
+          cp "$(ls "$bundle"/macos/*.app.tar.gz | head -n 1)" JClean_macos_universal.app.tar.gz
+          shasum -a 256 JClean_macos_universal.dmg JClean_macos_universal.app.tar.gz > SHA256SUMS.txt
+          cat SHA256SUMS.txt
+          gh release upload "$GITHUB_REF_NAME" JClean_macos_universal.dmg SHA256SUMS.txt --clobber
+          gh release edit "$GITHUB_REF_NAME" --draft=false --latest
+
+      - name: Rebuild the website
+        env:
+          DEPLOY_HOOK: ${{ secrets.CLOUDFLARE_DEPLOY_HOOK }}
+        run: |
+          if [ -n "$DEPLOY_HOOK" ]; then curl -fsS -X POST "$DEPLOY_HOOK"; else echo "No deploy hook configured."; fi
