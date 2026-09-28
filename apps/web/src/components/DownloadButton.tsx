@@ -1,7 +1,6 @@
 import { useState, useSyncExternalStore } from "react";
+import { detectPlatform as detect, prefersDeb, subscribe } from "../lib/platform";
 import type { Download } from "../lib/release";
-
-type Platform = "mac" | "windows" | "linux" | "mobile";
 
 interface Props {
   mac: Download;
@@ -12,22 +11,6 @@ interface Props {
   releasesUrl: string;
   size?: "large" | "normal";
 }
-
-/** Picks the right action for the visitor's device (spec §12.2). */
-function detect(): Platform {
-  const nav = navigator as Navigator & { userAgentData?: { platform?: string; mobile?: boolean } };
-  const hint = nav.userAgentData?.platform?.toLowerCase() ?? "";
-  const ua = navigator.userAgent.toLowerCase();
-  const touchMac = ua.includes("macintosh") && navigator.maxTouchPoints > 1; // iPadOS reports as Mac
-  if (nav.userAgentData?.mobile || /iphone|ipad|ipod|android/.test(ua) || touchMac) return "mobile";
-  if (hint.includes("mac") || ua.includes("mac os")) return "mac";
-  if (hint.includes("win") || ua.includes("windows")) return "windows";
-  if (hint.includes("linux") || ua.includes("linux") || ua.includes("x11")) return "linux";
-  return "mac";
-}
-
-// The device never changes while the page is open.
-const subscribe = () => () => undefined;
 
 const downloadIcon = (
   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
@@ -45,6 +28,16 @@ export function DownloadButton({ mac, windows, linux, releasesUrl, size = "large
   // Rendered as "mac" on the server and switched after load. Every variant is
   // one button and one short line, so nothing below it moves.
   const platform = useSyncExternalStore(subscribe, detect, () => "mac" as const);
+  const deb = useSyncExternalStore(subscribe, prefersDeb, () => false);
+  // On Debian-family systems the .deb comes first, the AppImage second.
+  const linuxMain =
+    linux && deb && linux.alternative
+      ? {
+          url: linux.alternative.url,
+          detail: ".deb for Ubuntu and Debian",
+          other: { url: linux.url, label: "AppImage" },
+        }
+      : linux && { url: linux.url, detail: linux.detail, other: linux.alternative };
   const [copied, setCopied] = useState(false);
 
   const big = size === "large";
@@ -68,8 +61,8 @@ export function DownloadButton({ mac, windows, linux, releasesUrl, size = "large
           Download for Windows
         </a>
       )}
-      {platform === "linux" && linux && (
-        <a href={linux.url} className={button}>
+      {platform === "linux" && linuxMain && (
+        <a href={linuxMain.url} className={button}>
           {downloadIcon}
           Download for Linux
         </a>
@@ -95,14 +88,14 @@ export function DownloadButton({ mac, windows, linux, releasesUrl, size = "large
       <p className="text-sm text-muted" aria-live="polite">
         {platform === "mac" && mac.detail}
         {platform === "windows" && windows?.detail}
-        {platform === "linux" && linux && (
+        {platform === "linux" && linuxMain && (
           <>
-            {linux.detail}
-            {linux.alternative && (
+            {linuxMain.detail}
+            {linuxMain.other && (
               <>
                 {" · or the "}
-                <a href={linux.alternative.url} className="text-accent hover:underline">
-                  {linux.alternative.label}
+                <a href={linuxMain.other.url} className="text-accent-text hover:underline">
+                  {linuxMain.other.label}
                 </a>
               </>
             )}
@@ -111,7 +104,7 @@ export function DownloadButton({ mac, windows, linux, releasesUrl, size = "large
         {comingSoon && "The Mac version is out now."}
         {platform === "mobile" && "Open this page on your computer to download."}
       </p>
-      <a href="/download" className="text-sm text-accent hover:underline">
+      <a href="/download" className="text-sm text-accent-text hover:underline">
         Other platforms and versions
       </a>
     </div>

@@ -3,7 +3,8 @@ import { animate, useReducedMotion } from "motion/react";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 
 // A sample Mac's storage (spec §12.2): the same treemap as the app, filling
-// in, lighting up what can be freed, then collapsing as the figure counts up.
+// in, lighting up what can be freed, then collapsing as the figure counts up,
+// over and over.
 interface Sample {
   id: string;
   label: string;
@@ -89,7 +90,9 @@ export function HeroMap() {
       setStage("found");
     });
     let stop: (() => void) | undefined;
-    at(found + 2200, () => {
+    let stopWaiting: (() => void) | undefined;
+    const cleaned = found + 2200;
+    at(cleaned, () => {
       setStage("cleaned");
       const controls = animate(0, FREEABLE, {
         duration: 1.4,
@@ -100,11 +103,35 @@ export function HeroMap() {
         controls.stop();
       };
     });
+    // Rest on the result, then scan again, forever. A hidden tab waits
+    // until it's visible, so the loop costs nothing in the background.
+    at(cleaned + 5000, () => {
+      const restart = () => {
+        setVisible(0);
+        setStage("scanning");
+        setFreed(0);
+        setRun((r) => r + 1);
+      };
+      if (!document.hidden) {
+        restart();
+        return;
+      }
+      const onVisible = () => {
+        if (document.hidden) return;
+        document.removeEventListener("visibilitychange", onVisible);
+        restart();
+      };
+      document.addEventListener("visibilitychange", onVisible);
+      stopWaiting = () => {
+        document.removeEventListener("visibilitychange", onVisible);
+      };
+    });
     return () => {
       timers.forEach((t) => {
         window.clearTimeout(t);
       });
       stop?.();
+      stopWaiting?.();
     };
   }, [reduce, run]);
 
@@ -120,14 +147,15 @@ export function HeroMap() {
       className="relative overflow-hidden rounded-card border border-line bg-surface p-3 shadow-2xl"
       aria-label="A sample Mac's storage in JClean"
     >
-      <div className="mb-3 flex items-center justify-between gap-3 px-1">
+      <div className="relative mb-3 flex h-7 items-center px-1">
         <span className="flex gap-1.5" aria-hidden="true">
           <span className="size-2.5 rounded-full bg-[#ee6b7e]/70" />
           <span className="size-2.5 rounded-full bg-[#edb548]/70" />
           <span className="size-2.5 rounded-full bg-[#4ccb9f]/70" />
         </span>
+        {/* Centred with a transform, so its changing text never moves anything. */}
         <span
-          className="tabular rounded-full border border-line bg-bg px-3 py-1 text-xs text-text"
+          className="tabular absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full border border-line bg-bg px-3 py-1 text-xs whitespace-nowrap text-text"
           role="status"
           aria-live="off"
         >
@@ -136,22 +164,6 @@ export function HeroMap() {
           />
           {pill}
         </span>
-        {stage === "cleaned" && !reduce ? (
-          <button
-            type="button"
-            onClick={() => {
-              setVisible(0);
-              setStage("scanning");
-              setFreed(0);
-              setRun((r) => r + 1);
-            }}
-            className="text-xs text-muted hover:text-text"
-          >
-            Replay
-          </button>
-        ) : (
-          <span className="w-10" />
-        )}
       </div>
       <div ref={box} className="relative aspect-[16/10] w-full overflow-hidden rounded-control">
         {size.width > 0 && (

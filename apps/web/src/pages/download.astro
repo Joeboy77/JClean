@@ -1,5 +1,5 @@
 ---
-import { DownloadButton } from "../components/DownloadButton";
+import { PlatformCards } from "../components/PlatformCards";
 import Base from "../layouts/Base.astro";
 import { RELEASES_URL, downloads, formatDate, latestRelease } from "../lib/release";
 
@@ -20,28 +20,7 @@ const others = [windows && "Windows", linux && "Linux"].filter(Boolean);
       · {others.length ? `for Mac (Apple Silicon and Intel), ${others.join(" and ")}.` : "one download for Apple Silicon and Intel Macs."}
     </p>
     <div class="mt-8">
-      <DownloadButton client:load mac={mac} windows={windows} linux={linux} releasesUrl={RELEASES_URL} />
-      {
-        others.length > 0 && (
-          <p class="mt-4 text-sm text-muted">
-            All downloads: <a href={mac.url} class="text-accent hover:underline">Mac</a>
-            {windows && (
-              <>
-                {" · "}
-                <a href={windows.url} class="text-accent hover:underline">Windows</a>
-              </>
-            )}
-            {linux && (
-              <>
-                {" · "}
-                <a href={linux.url} class="text-accent hover:underline">Linux AppImage</a>
-                {" · "}
-                <a href={linux.alternative?.url} class="text-accent hover:underline">Linux .deb</a>
-              </>
-            )}
-          </p>
-        )
-      }
+      <PlatformCards client:load mac={mac} windows={windows} linux={linux} releasesUrl={RELEASES_URL} />
     </div>
   </section>
 

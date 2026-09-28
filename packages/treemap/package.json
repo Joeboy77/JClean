@@ -6,6 +6,7 @@
   "description": "Squarified treemap layout and React component shared by the app and the website",
   "exports": {
     ".": "./src/index.ts",
+    "./layout": "./src/layout.ts",
     "./treemap.css": "./src/treemap.css"
   },
   "scripts": {

@@ -1,0 +1,103 @@
+---
+// A faint disk map behind every page that slowly rearranges itself: the
+// same squarified layout as the app, drawn in the category colours.
+// Decorative only: hidden from assistive tech, never interactive, moved
+// only with transforms (so it never counts as layout shift), paused in
+// hidden tabs, and still under reduced motion.
+const CELLS = 16;
+---
+
+<div class="ambient" aria-hidden="true">
+  {Array.from({ length: CELLS }, (_, i) => <span class="ambient-cell" data-i={i}></span>)}
+</div>
+
+<script>
+  import { layoutTreemap } from "@jclean/treemap/layout";
+
+  const CATEGORIES = ["apps", "developer", "system", "media", "documents", "other"];
+  const EVERY_MS = 7000;
+  const root = document.querySelector<HTMLElement>(".ambient");
+  const cells = root ? [...root.querySelectorAll<HTMLElement>(".ambient-cell")] : [];
+
+  // Sizes like a real disk: a few big folders and a long tail of small ones.
+  const sizes = () => cells.map((_, i) => (0.4 + Math.random()) * 60 / (i + 1.5));
+
+  cells.forEach((cell, i) => {
+    cell.style.background = `var(--cat-${CATEGORIES[i % CATEGORIES.length]})`;
+  });
+
+  function draw(values: number[]) {
+    if (!root) return;
+    const { width, height } = root.getBoundingClientRect();
+    const rects = layoutTreemap(
+      values.map((value, i) => ({ id: String(i), value })),
+      width,
+      height,
+      6,
+    );
+    for (const rect of rects) {
+      const cell = cells[Number(rect.id)];
+      if (!cell) continue;
+      // A 100 px square, placed and sized entirely by transform.
+      cell.style.transform = `translate(${rect.x}px, ${rect.y}px) scale(${rect.width / 100}, ${rect.height / 100})`;
+    }
+  }
+
+  let current = sizes();
+  draw(current);
+  // The first layout appears in place; only later changes animate.
+  requestAnimationFrame(() => root?.classList.add("ambient-live"));
+
+  const still = window.matchMedia("(prefers-reduced-motion: reduce)");
+  let timer = 0;
+  const tick = () => {
+    if (!document.hidden && !still.matches) {
+      current = sizes();
+      draw(current);
+    }
+    timer = window.setTimeout(tick, EVERY_MS);
+  };
+  timer = window.setTimeout(tick, EVERY_MS);
+
+  let resize = 0;
+  window.addEventListener("resize", () => {
+    window.clearTimeout(resize);
+    resize = window.setTimeout(() => {
+      draw(current);
+    }, 150);
+  });
+  window.addEventListener("pagehide", () => {
+    window.clearTimeout(timer);
+  });
+</script>
+
+<style>
+  .ambient {
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    overflow: hidden;
+    pointer-events: none;
+    contain: strict;
+    /* Strongest behind the header and hero, gone by the fold. */
+    mask-image: radial-gradient(130% 100% at 50% 0%, black 10%, transparent 85%);
+  }
+  .ambient-cell {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100px;
+    height: 100px;
+    transform-origin: 0 0;
+    opacity: 0.16;
+    will-change: transform;
+  }
+  .ambient-live .ambient-cell {
+    transition: transform 3.2s cubic-bezier(0.65, 0, 0.35, 1);
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .ambient-live .ambient-cell {
+      transition: none;
+    }
+  }
+</style>
