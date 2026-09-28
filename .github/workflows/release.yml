@@ -39,21 +39,36 @@ jobs:
             exit 1
           fi
 
-      # Signing and notarization happen only when the Apple secrets exist;
-      # without them the build is unsigned and the download page explains
-      # Gatekeeper's "Open Anyway". Update packages are always signed.
-      - name: Build and publish (draft)
-        uses: tauri-apps/tauri-action@v0
+      # Signing and notarization happen only when the Apple secrets exist.
+      # A missing secret still reaches the build as an empty variable, and
+      # Tauri then tries to import an empty certificate, so only non-empty
+      # values are passed on. Without them the app is ad-hoc signed and the
+      # release notes explain Gatekeeper's "Open Anyway".
+      - name: Use Apple signing only when it's set up
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
-          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
           APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
           APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
           APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
           APPLE_ID: ${{ secrets.APPLE_ID }}
           APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        run: |
+          for name in APPLE_CERTIFICATE APPLE_CERTIFICATE_PASSWORD APPLE_SIGNING_IDENTITY APPLE_ID APPLE_PASSWORD APPLE_TEAM_ID; do
+            value="${!name}"
+            if [ -n "$value" ]; then
+              delimiter="END_$(openssl rand -hex 8)"
+              { echo "$name<<$delimiter"; echo "$value"; echo "$delimiter"; } >> "$GITHUB_ENV"
+              echo "$name is set"
+            fi
+          done
+
+      # Update packages are always signed.
+      - name: Build and publish (draft)
+        uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
         with:
           projectPath: apps/desktop
           tagName: ${{ github.ref_name }}
