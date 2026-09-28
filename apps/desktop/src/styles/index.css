@@ -1,0 +1,106 @@
+@import "tailwindcss";
+@import "./fonts.css";
+@import "./tokens.css";
+
+/* Map the CSS-variable tokens onto Tailwind utilities (bg-surface, text-muted…). */
+@theme inline {
+  --color-*: initial;
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-raised: var(--raised);
+  --color-line: var(--line);
+  --color-text: var(--text);
+  --color-muted: var(--text-muted);
+  --color-accent: var(--accent);
+  --color-safe: var(--safe);
+  --color-review: var(--review);
+  --color-caution: var(--caution);
+  --color-cat-apps: var(--cat-apps);
+  --color-cat-developer: var(--cat-developer);
+  --color-cat-system: var(--cat-system);
+  --color-cat-media: var(--cat-media);
+  --color-cat-documents: var(--cat-documents);
+  --color-cat-other: var(--cat-other);
+  --color-cat-free: var(--cat-free);
+  --color-transparent: transparent;
+  --color-current: currentColor;
+}
+
+@theme {
+  --font-sans: "Instrument Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, monospace;
+
+  /* Type scale: 12 / 13 / 15 / 18 / 24 / 32 px. Body is 13 px. */
+  --text-*: initial;
+  --text-xs: 12px;
+  --text-xs--line-height: 16px;
+  --text-sm: 13px;
+  --text-sm--line-height: 18px;
+  --text-md: 15px;
+  --text-md--line-height: 20px;
+  --text-lg: 18px;
+  --text-lg--line-height: 24px;
+  --text-xl: 24px;
+  --text-xl--line-height: 30px;
+  --text-2xl: 32px;
+  --text-2xl--line-height: 38px;
+
+  /* Radius varies by hierarchy: cards/drawer, buttons/inputs, rows/chips, map cells. */
+  --radius-*: initial;
+  --radius-card: 12px;
+  --radius-control: 8px;
+  --radius-row: 6px;
+  --radius-cell: 2px;
+  --radius-full: 9999px;
+
+  /* Spacing stays on Tailwind's 4 px base (spacing-1 = 4 px). */
+  --spacing: 4px;
+
+  /* Motion (spec §5.8). */
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --duration-fade: 180ms;
+}
+
+@layer base {
+  html,
+  body,
+  #root {
+    height: 100%;
+  }
+
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font-sans);
+    font-size: var(--text-sm);
+    line-height: var(--text-sm--line-height);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    /* Native app feel: no text selection or rubber-band scroll by default. */
+    user-select: none;
+    -webkit-user-select: none;
+    overscroll-behavior: none;
+    cursor: default;
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+}
+
+@utility tabular {
+  font-variant-numeric: tabular-nums;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

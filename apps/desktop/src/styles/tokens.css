@@ -1,0 +1,29 @@
+/*
+ * Design tokens (spec §5.7). The desktop app is dark only.
+ *
+ * Category colours are non-text graphics (map cells, capacity bar) and are
+ * checked for at least 3:1 contrast against --bg, --surface and --raised.
+ */
+
+:root {
+  color-scheme: dark;
+
+  --bg: #16141f;
+  --surface: #1f1c2c;
+  --raised: #2a2640;
+  --line: #383252;
+  --text: #ece9f7;
+  --text-muted: #9d97b5;
+  --accent: #8b6cff;
+  --safe: #4ccb9f;
+  --review: #edb548;
+  --caution: #ee6b7e;
+
+  --cat-apps: #6f9fd8;
+  --cat-developer: #9a8ce0;
+  --cat-system: #6fa8a3;
+  --cat-media: #c98bb8;
+  --cat-documents: #c4a574;
+  --cat-other: #8e8aa3;
+  --cat-free: #2a2640;
+}
