@@ -67,6 +67,7 @@ cargo run -p jclean-cli -- fixture /tmp/jc   # safe fake home to scan/clean (pri
 pnpm lint && pnpm typecheck && pnpm test
 cargo test -p jclean-desktop         # also regenerates apps/desktop/src/bindings.ts (IPC types)
 cargo clippy --all-targets -- -D warnings && cargo fmt --check
+cargo clippy --workspace --all-targets --target x86_64-pc-windows-gnu -- -D warnings   # Windows check from a Mac (needs `rustup target add x86_64-pc-windows-gnu` and `brew install mingw-w64`); CI also tests natively on Windows
 ```
 
 Keep this section updated if commands change.
