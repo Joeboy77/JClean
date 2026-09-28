@@ -65,6 +65,22 @@ jobs:
             fi
           done
 
+      # docs/releases/<tag>.md (what's new, if written) above the notes every
+      # release shares (.github/release-notes.md). The website's changelog
+      # shows the same text.
+      - name: Release notes
+        id: notes
+        run: |
+          {
+            echo "body<<NOTES_END"
+            if [ -f "docs/releases/$GITHUB_REF_NAME.md" ]; then
+              cat "docs/releases/$GITHUB_REF_NAME.md"
+              echo
+            fi
+            cat .github/release-notes.md
+            echo "NOTES_END"
+          } >> "$GITHUB_OUTPUT"
+
       # Update packages are always signed.
       - name: Build and upload (draft)
         id: build
@@ -77,29 +93,7 @@ jobs:
           projectPath: apps/desktop
           tagName: ${{ github.ref_name }}
           releaseName: JClean ${{ github.ref_name }}
-          releaseBody: |
-            ## Download
-
-            - **Mac: [JClean_macos_universal.dmg](https://github.com/Joeboy77/JClean/releases/latest/download/JClean_macos_universal.dmg)**. Apple Silicon and Intel, macOS 12 or later.
-            - **Windows: [JClean_windows_x64_setup.exe](https://github.com/Joeboy77/JClean/releases/latest/download/JClean_windows_x64_setup.exe)**. Windows 10 or 11, 64-bit. Installs for your account only, no administrator needed.
-            - **Linux: [JClean_linux_x86_64.AppImage](https://github.com/Joeboy77/JClean/releases/latest/download/JClean_linux_x86_64.AppImage)** for any distribution (make it executable, then run it), or **[JClean_linux_amd64.deb](https://github.com/Joeboy77/JClean/releases/latest/download/JClean_linux_amd64.deb)** for Ubuntu, Debian and Mint. 64-bit.
-
-            Checksums are in `SHA256SUMS.txt`.
-
-            ## Opening JClean the first time on a Mac
-
-            This version isn't notarized by Apple yet, so macOS asks you to confirm once:
-
-            1. Open the DMG and drag **JClean** into **Applications**.
-            2. Open JClean. macOS says it can't verify the app. Click **Done** (not "Move to Trash").
-            3. Open **System Settings → Privacy & Security**, scroll down to "JClean was blocked to protect your Mac", and click **Open Anyway**. Confirm with your password.
-            4. JClean opens. From now on it opens normally.
-
-            ## Installing on Windows
-
-            The installer isn't code-signed yet, so Windows SmartScreen may say it "protected your PC". Click **More info**, then **Run anyway**. You only see this when installing; updates install from inside JClean.
-
-            JClean is open source, reads only file sizes and dates, and never sends anything off your computer.
+          releaseBody: ${{ steps.notes.outputs.body }}
           releaseDraft: true
           prerelease: false
           includeUpdaterJson: true
@@ -168,7 +162,7 @@ jobs:
       - name: System libraries
         run: |
           sudo apt-get update
-          sudo apt-get install -y libwebkit2gtk-4.1-dev libayatana-appindicator3-dev librsvg2-dev libxdo-dev libssl-dev
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libayatana-appindicator3-dev librsvg2-dev libxdo-dev libssl-dev patchelf file
 
       - uses: pnpm/action-setup@v4
 
