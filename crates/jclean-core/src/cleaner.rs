@@ -229,18 +229,18 @@ pub fn execute(
     }
 }
 
-const OSASCRIPT: &str = "/usr/bin/osascript";
 /// Long enough for someone to find and type their password.
 const ADMIN_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(300);
 
-/// Runs every administrator item after one password prompt. Paths are
-/// verified by the SafetyGuard first; only allowlisted tools run.
+/// Runs every administrator item after one approval (a password prompt on
+/// macOS, UAC on Windows). Paths are verified by the SafetyGuard first; only
+/// allowlisted tools run.
 fn run_admin<'p>(
     items: &[&'p PlanItem],
     ctx: &CleanContext<'_>,
     cancel: &CancelToken,
 ) -> Vec<(&'p PlanItem, Outcome, String)> {
-    use crate::platform::privileged::{PrivilegedOp, script, succeeded};
+    use crate::platform::privileged::{self, AdminError, PrivilegedOp};
 
     let mut done = Vec::new();
     // For each item still going ahead: its ops' indexes and its size.
@@ -290,7 +290,9 @@ fn run_admin<'p>(
                         continue;
                     }
                 };
-                if verified.is_dir && item.keep_root {
+                if verified.is_dir && item.keep_root && privileged::clears_contents_in_one_op() {
+                    ops.push(PrivilegedOp::ClearContents(verified.path.clone()));
+                } else if verified.is_dir && item.keep_root {
                     // Clear the contents, keep the folder: one op per entry inside.
                     let Ok(entries) = fs::read_dir(&verified.path) else {
                         done.push((
@@ -341,66 +343,48 @@ fn run_admin<'p>(
             .into_iter()
             .map(move |(i, _, _, logged)| (i, outcome.clone(), logged))
     };
-    let script = match script(
+    match privileged::run(
         &ops,
         "JClean needs your password to clean system files you selected.",
-    ) {
-        Ok(s) => s,
-        Err(e) => {
-            done.extend(fail_all(
-                pending,
-                Outcome::Failed {
-                    reason: e.to_string(),
-                },
-            ));
-            return done;
-        }
-    };
-    match ctx.runner.run(
-        Path::new(OSASCRIPT),
-        &["-e".to_string(), script],
+        ctx.runner,
         ADMIN_TIMEOUT,
     ) {
-        Ok(out) if out.success() => {
-            let ok = succeeded(&out.stdout, ops.len());
+        Ok(ok) => {
             for (item, range, bytes, logged) in pending {
                 let all_ok = range.clone().all(|n| ok.get(n).copied().unwrap_or(false));
                 let outcome = if all_ok {
                     Outcome::Cleaned { bytes }
                 } else {
                     Outcome::Failed {
-                        reason: "macOS didn't allow part of it to be removed".to_string(),
+                        reason: format!(
+                            "{} didn't allow part of it to be removed",
+                            privileged::os_name()
+                        ),
                     }
                 };
                 done.push((item, outcome, logged));
             }
         }
-        // AppleScript error -128: the password prompt was cancelled.
-        Ok(out) if out.stderr.contains("-128") => {
+        Err(AdminError::Cancelled) => {
             done.extend(fail_all(
                 pending,
-                skipped("You cancelled the password request"),
+                skipped(if cfg!(windows) {
+                    "You didn't approve the administrator request"
+                } else {
+                    "You cancelled the password request"
+                }),
             ));
         }
-        Ok(out) => {
-            let msg = out
-                .stderr
-                .lines()
-                .find(|l| !l.trim().is_empty())
-                .unwrap_or("it didn't finish")
-                .trim()
-                .to_string();
-            done.extend(fail_all(
-                pending,
-                Outcome::Failed {
-                    reason: format!("Administrator cleanup failed: {msg}"),
-                },
-            ));
-        }
-        Err(e) => done.extend(fail_all(
+        Err(AdminError::Refused(e)) => done.extend(fail_all(
             pending,
             Outcome::Failed {
                 reason: e.to_string(),
+            },
+        )),
+        Err(AdminError::Failed(msg)) => done.extend(fail_all(
+            pending,
+            Outcome::Failed {
+                reason: format!("Administrator cleanup failed: {msg}"),
             },
         )),
     }
@@ -511,17 +495,40 @@ fn remove(
 }
 
 /// The only permanent deletion in the codebase. A symlink is removed as a
-/// link; `remove_dir_all` never follows symlinks inside the tree.
+/// link; `remove_dir_all` never follows symlinks (or, on Windows, junctions)
+/// inside the tree.
 fn delete_entry(path: &Path) -> Result<(), String> {
     let meta = fs::symlink_metadata(path).map_err(|e| describe(&e))?;
     if meta.is_dir() {
         fs::remove_dir_all(path).map_err(|e| describe(&e))
+    } else if cfg!(windows) && meta.is_symlink() && fs::metadata(path).is_ok_and(|m| m.is_dir()) {
+        // A directory symlink or junction is removed as a folder link.
+        fs::remove_dir(path).map_err(|e| describe(&e))
     } else {
-        fs::remove_file(path).map_err(|e| describe(&e))
+        match fs::remove_file(path) {
+            // Windows won't delete a read-only file until it's made writable.
+            Err(e)
+                if cfg!(windows)
+                    && e.kind() == std::io::ErrorKind::PermissionDenied
+                    && meta.permissions().readonly() =>
+            {
+                let mut writable = meta.permissions();
+                #[allow(clippy::permissions_set_readonly_false)]
+                writable.set_readonly(false);
+                fs::set_permissions(path, writable)
+                    .and_then(|()| fs::remove_file(path))
+                    .map_err(|e| describe(&e))
+            }
+            result => result.map_err(|e| describe(&e)),
+        }
     }
 }
 
 fn describe(e: &std::io::Error) -> String {
+    // ERROR_SHARING_VIOLATION and ERROR_LOCK_VIOLATION: another app has it open.
+    if cfg!(windows) && matches!(e.raw_os_error(), Some(32 | 33)) {
+        return "It's in use by another app".to_string();
+    }
     match e.kind() {
         std::io::ErrorKind::PermissionDenied => {
             "JClean doesn't have permission to remove it".to_string()

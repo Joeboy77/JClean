@@ -71,14 +71,18 @@ pub fn resolve(pattern: &str, env: &Env) -> Result<Option<PathBuf>, PathError> {
     if path.components().any(|c| matches!(c, Component::ParentDir)) {
         return Err(PathError::ParentComponent(pattern.to_string()));
     }
-    if !path.is_absolute() {
-        return Err(PathError::Relative(pattern.to_string()));
-    }
-    // Literal system paths (no leading token) live under the environment root.
+    // Literal system paths (no leading token) live under the environment
+    // root. `/Library/Logs` counts as absolute on any host, so macOS rules
+    // resolve the same way when tests run on Windows.
     if pattern.starts_with('{') {
+        if !path.is_absolute() {
+            return Err(PathError::Relative(pattern.to_string()));
+        }
         Ok(Some(path))
-    } else {
+    } else if path.is_absolute() || out.starts_with('/') {
         Ok(Some(env.system_path(&path)))
+    } else {
+        Err(PathError::Relative(pattern.to_string()))
     }
 }
 

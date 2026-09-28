@@ -61,9 +61,19 @@ impl Env {
             .map(PathBuf::from)
             .filter(|p| p.is_absolute())
             .ok_or(EnvError::NoHome)?;
+        // System paths in rules are relative to the system drive on Windows.
+        let root = if cfg!(windows) {
+            let drive = vars
+                .iter()
+                .find(|(k, _)| k.eq_ignore_ascii_case("SystemDrive"))
+                .map_or_else(|| "C:".into(), |(_, v)| v.to_string_lossy().into_owned());
+            PathBuf::from(format!("{drive}\\"))
+        } else {
+            PathBuf::from("/")
+        };
         Ok(Self {
             home,
-            root: PathBuf::from("/"),
+            root,
             os: Os::current(),
             vars,
         })
@@ -98,8 +108,22 @@ impl Env {
         self.os
     }
 
+    /// An environment variable. Names are case-insensitive on Windows, as
+    /// they are there (`SystemRoot` and `SYSTEMROOT` are the same).
     pub fn var(&self, name: &str) -> Option<&OsStr> {
-        self.vars.get(name).map(OsString::as_os_str)
+        self.vars
+            .get(name)
+            .or_else(|| {
+                (self.os == Os::Windows)
+                    .then(|| {
+                        self.vars
+                            .iter()
+                            .find(|(k, _)| k.eq_ignore_ascii_case(name))
+                            .map(|(_, v)| v)
+                    })
+                    .flatten()
+            })
+            .map(OsString::as_os_str)
     }
 
     /// Maps an absolute system path (as written in a rule) under the root.

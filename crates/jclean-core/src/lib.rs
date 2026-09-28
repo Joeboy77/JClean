@@ -6,7 +6,9 @@
 //! Deletion happens in exactly one place, [`cleaner::execute`], and every path
 //! passes the [`safety::SafetyGuard`] first.
 
-#![forbid(unsafe_code)]
+// `unsafe` is denied everywhere except the Windows filesystem calls in
+// `platform::fs`, which are the only way to read allocated sizes there.
+#![deny(unsafe_code)]
 
 pub mod cancel;
 pub mod cleaner;

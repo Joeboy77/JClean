@@ -1,6 +1,6 @@
 use std::path::{Path, PathBuf};
 
-use super::{ProtectedPath, Scope};
+use super::{DEV_NAMES, ProtectedPath, Scope};
 use crate::env::Env;
 use crate::rules::Category;
 
@@ -112,32 +112,6 @@ pub(super) fn tool_dirs(env: &Env) -> Vec<PathBuf> {
 pub(super) fn app_data_dir(env: &Env) -> PathBuf {
     env.home().join("Library/Application Support/app.jclean")
 }
-
-/// Folders that are developer storage wherever they appear.
-const DEV_NAMES: &[&str] = &[
-    "node_modules",
-    ".npm",
-    ".yarn",
-    ".pnpm-store",
-    ".bun",
-    ".nvm",
-    ".volta",
-    ".cargo",
-    ".rustup",
-    ".gradle",
-    ".m2",
-    ".android",
-    ".pub-cache",
-    ".docker",
-    ".cache",
-    "go",
-    "Developer",
-    "target",
-    ".venv",
-    "venv",
-    "DerivedData",
-    "CoreSimulator",
-];
 
 pub(super) fn categorize(env: &Env, path: &Path, parent: Category) -> Category {
     let Ok(rel) = path.strip_prefix(env.home()) else {

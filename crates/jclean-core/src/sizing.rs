@@ -283,8 +283,8 @@ pub fn measure(
             files: 1,
             ..Measure::default()
         };
-        if hard_link_id(&meta).is_none_or(|id| inodes.first_sighting(id)) {
-            m.allocated = allocated_bytes(&meta);
+        if hard_link_id(path, &meta).is_none_or(|id| inodes.first_sighting(id)) {
+            m.allocated = allocated_bytes(path, &meta);
         }
         m.saw_mtime(own_mtime);
         return Ok(m);
@@ -323,7 +323,7 @@ struct Walk<'a> {
 impl Walk<'_> {
     fn dir(&self, dir: &Path, meta: &fs::Metadata) -> Measure {
         let mut m = Measure {
-            allocated: allocated_bytes(meta),
+            allocated: allocated_bytes(dir, meta),
             dirs: 1,
             ..Measure::default()
         };
@@ -423,12 +423,12 @@ impl Walk<'_> {
                     m.saw_mtime(t);
                     own.files += 1;
                     own.newest = Some(own.newest.map_or(t, |n| n.max(t)));
-                    let link = hard_link_id(&meta);
+                    let link = hard_link_id(&path, &meta);
                     // Hard-linked files must be counted once per scan, so
                     // their folder is always listed fresh.
                     shared_files |= link.is_some();
                     if link.is_none_or(|id| self.inodes.first_sighting(id)) {
-                        let size = allocated_bytes(&meta);
+                        let size = allocated_bytes(&path, &meta);
                         m.allocated += size;
                         own.allocated += size;
                     }

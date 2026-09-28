@@ -210,6 +210,30 @@ fn a_symlink_in_a_cache_is_removed_as_a_link() {
     assert!(w.f.path("Documents/important.txt").exists());
 }
 
+/// Junctions need no privileges on Windows, so they're the realistic way a
+/// cache could point into someone's files. They're removed as links.
+#[cfg(windows)]
+#[test]
+fn a_junction_in_a_cache_is_removed_as_a_link() {
+    let w = world();
+    w.f.junction(
+        "Library/Caches/com.example.editor/junction",
+        &w.f.path("Documents"),
+    )
+    .unwrap();
+    let runner = FakeRunner::none();
+    let result = scan(&w, &runner);
+    let editor = id(
+        "macos.system.app-caches",
+        &w.f.path("Library/Caches/com.example.editor"),
+    );
+    let plan = plan(&w, &result, &Selection::Ids(vec![editor]), &runner);
+    let report = run(&w, &plan, &runner, &NoProcesses, None, false);
+    assert_eq!(report.failed, 0, "{:#?}", report.outcomes);
+    assert!(!w.f.path("Library/Caches/com.example.editor").exists());
+    assert!(w.f.path("Documents/important.txt").exists());
+}
+
 #[test]
 fn keep_root_clears_contents_but_keeps_the_folder() {
     let w = world();

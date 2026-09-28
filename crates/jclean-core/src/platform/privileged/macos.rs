@@ -1,29 +1,14 @@
-//! Administrator operations (spec §7.4), kept to a minimum: one
-//! `do shell script … with administrator privileges` per clean, built only
-//! from allowlisted commands and SafetyGuard-verified paths, with every
-//! argument quoted for the shell and then escaped for AppleScript.
+//! macOS: one `do shell script … with administrator privileges` per clean,
+//! with every argument quoted for the shell and then escaped for AppleScript.
 
-use std::path::{Path, PathBuf};
+use std::path::Path;
+use std::time::Duration;
+
+use super::{AdminError, PrivilegedError, PrivilegedOp};
+use crate::tools::CommandRunner;
 
 /// Tools that may ever run as administrator.
 const ALLOWED_TOOLS: &[&str] = &["tmutil"];
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub enum PrivilegedOp {
-    /// An allowlisted tool, e.g. `tmutil deletelocalsnapshots 2024-05-01-120000`.
-    Command { program: PathBuf, args: Vec<String> },
-    /// Removes a path the SafetyGuard has just verified. `rm -rf` removes
-    /// symlinks as links and never follows them.
-    Remove(PathBuf),
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
-pub enum PrivilegedError {
-    #[error("{0} isn't allowed to run as administrator")]
-    NotAllowed(String),
-    #[error("the path isn't safe to pass to an administrator command")]
-    UnsafePath,
-}
 
 /// POSIX single-quoting: safe for any bytes except NUL.
 fn shell_quote(s: &str) -> String {
@@ -65,6 +50,17 @@ fn line(n: usize, op: &PrivilegedOp) -> Result<String, PrivilegedError> {
             }
             format!("/bin/rm -rf -- {}", shell_quote(p))
         }
+        PrivilegedOp::ClearContents(path) => {
+            let p = path.to_str().ok_or(PrivilegedError::UnsafePath)?;
+            if !path.is_absolute() || !clean_text(p) || path == Path::new("/") {
+                return Err(PrivilegedError::UnsafePath);
+            }
+            // `find` doesn't follow symlinks, and `rm -rf` removes them as links.
+            format!(
+                "/usr/bin/find {} -mindepth 1 -maxdepth 1 -exec /bin/rm -rf -- {{}} +",
+                shell_quote(p)
+            )
+        }
     };
     Ok(format!(
         "{cmd} >/dev/null 2>&1 && echo ok:{n} || echo fail:{n}"
@@ -73,7 +69,7 @@ fn line(n: usize, op: &PrivilegedOp) -> Result<String, PrivilegedError> {
 
 /// The AppleScript for `osascript -e`, running every op after one password
 /// prompt.
-pub fn script(ops: &[PrivilegedOp], prompt: &str) -> Result<String, PrivilegedError> {
+pub(super) fn script(ops: &[PrivilegedOp], prompt: &str) -> Result<String, PrivilegedError> {
     let lines: Vec<String> = ops
         .iter()
         .enumerate()
@@ -86,8 +82,38 @@ pub fn script(ops: &[PrivilegedOp], prompt: &str) -> Result<String, PrivilegedEr
     ))
 }
 
+const OSASCRIPT: &str = "/usr/bin/osascript";
+
+/// Runs `ops` after one password prompt.
+pub(super) fn run(
+    ops: &[PrivilegedOp],
+    prompt: &str,
+    runner: &dyn CommandRunner,
+    timeout: Duration,
+) -> Result<Vec<bool>, AdminError> {
+    let script = script(ops, prompt)?;
+    let out = runner
+        .run(Path::new(OSASCRIPT), &["-e".to_string(), script], timeout)
+        .map_err(|e| AdminError::Failed(e.to_string()))?;
+    if out.success() {
+        return Ok(succeeded(&out.stdout, ops.len()));
+    }
+    // AppleScript error -128: the password prompt was cancelled.
+    if out.stderr.contains("-128") {
+        return Err(AdminError::Cancelled);
+    }
+    Err(AdminError::Failed(
+        out.stderr
+            .lines()
+            .find(|l| !l.trim().is_empty())
+            .unwrap_or("it didn't finish")
+            .trim()
+            .to_string(),
+    ))
+}
+
 /// Which ops succeeded, from the script's output.
-pub fn succeeded(output: &str, count: usize) -> Vec<bool> {
+pub(super) fn succeeded(output: &str, count: usize) -> Vec<bool> {
     let mut ok = vec![false; count];
     for line in output.lines() {
         if let Some(n) = line
@@ -104,6 +130,8 @@ pub fn succeeded(output: &str, count: usize) -> Vec<bool> {
 
 #[cfg(test)]
 mod tests {
+    use std::path::PathBuf;
+
     use super::*;
 
     #[test]

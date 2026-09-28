@@ -57,14 +57,45 @@ impl Fixture {
         Ok(path)
     }
 
-    #[cfg(unix)]
+    /// On Windows this needs Developer Mode or an administrator (as on CI).
     pub fn symlink(&self, rel: &str, target: &Path) -> std::io::Result<PathBuf> {
         let path = self.path(rel);
         if let Some(parent) = path.parent() {
             fs::create_dir_all(parent)?;
         }
+        #[cfg(unix)]
         std::os::unix::fs::symlink(target, &path)?;
+        #[cfg(windows)]
+        if target.is_dir() {
+            std::os::windows::fs::symlink_dir(target, &path)?;
+        } else {
+            std::os::windows::fs::symlink_file(target, &path)?;
+        }
         Ok(path)
+    }
+
+    /// A directory junction (Windows): the link type that doesn't need any
+    /// privileges, and the one the cleaner must never follow.
+    #[cfg(windows)]
+    pub fn junction(&self, rel: &str, target: &Path) -> std::io::Result<PathBuf> {
+        let path = self.path(rel);
+        if let Some(parent) = path.parent() {
+            fs::create_dir_all(parent)?;
+        }
+        let status = std::process::Command::new("cmd")
+            .arg("/d")
+            .arg("/c")
+            .arg("mklink")
+            .arg("/J")
+            .arg(&path)
+            .arg(target)
+            .stdout(std::process::Stdio::null())
+            .status()?;
+        if status.success() {
+            Ok(path)
+        } else {
+            Err(std::io::Error::other("mklink /J failed"))
+        }
     }
 
     pub fn hard_link(&self, existing: &str, rel: &str) -> std::io::Result<PathBuf> {

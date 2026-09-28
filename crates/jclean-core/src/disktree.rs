@@ -117,7 +117,7 @@ impl Walk<'_> {
                 .file_name()
                 .map(|n| n.to_string_lossy().into_owned())
                 .unwrap_or_default(),
-            allocated: allocated_bytes(meta),
+            allocated: allocated_bytes(dir, meta),
             is_dir: true,
             children: Vec::new(),
             small_files: 0,
@@ -144,8 +144,9 @@ impl Walk<'_> {
                 subdirs.push((path, meta));
                 continue;
             }
-            let size = if hard_link_id(&meta).is_none_or(|id| self.inodes.first_sighting(id)) {
-                allocated_bytes(&meta)
+            let size = if hard_link_id(&path, &meta).is_none_or(|id| self.inodes.first_sighting(id))
+            {
+                allocated_bytes(&path, &meta)
             } else {
                 0
             };

@@ -7,6 +7,7 @@
 pub mod fs;
 mod macos;
 pub mod privileged;
+mod windows;
 
 use std::path::PathBuf;
 
@@ -19,6 +20,10 @@ pub enum Scope {
     Exact,
     /// The path, its ancestors, and everything inside it.
     Subtree,
+    /// Carves a cleanup target out of a protected subtree: what's inside
+    /// this folder may be cleaned, though an ancestor is `Subtree`. The
+    /// folder itself and its ancestors stay protected.
+    CleanInside,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -32,7 +37,8 @@ pub struct ProtectedPath {
 pub fn known_dir(env: &Env, token: &str) -> Option<PathBuf> {
     match env.os() {
         Os::Macos => macos::known_dir(env, token),
-        Os::Windows | Os::Linux => None,
+        Os::Windows => windows::known_dir(env, token),
+        Os::Linux => None,
     }
 }
 
@@ -40,7 +46,8 @@ pub fn known_dir(env: &Env, token: &str) -> Option<PathBuf> {
 pub fn protected_paths(env: &Env) -> Vec<ProtectedPath> {
     match env.os() {
         Os::Macos => macos::protected_paths(env),
-        Os::Windows | Os::Linux => vec![ProtectedPath {
+        Os::Windows => windows::protected_paths(env),
+        Os::Linux => vec![ProtectedPath {
             path: env.root().to_path_buf(),
             scope: Scope::Exact,
         }],
@@ -51,7 +58,8 @@ pub fn protected_paths(env: &Env) -> Vec<ProtectedPath> {
 pub fn cloud_dirs(env: &Env) -> Vec<PathBuf> {
     match env.os() {
         Os::Macos => macos::cloud_dirs(env),
-        Os::Windows | Os::Linux => Vec::new(),
+        Os::Windows => windows::cloud_dirs(env),
+        Os::Linux => Vec::new(),
     }
 }
 
@@ -60,7 +68,8 @@ pub fn cloud_dirs(env: &Env) -> Vec<PathBuf> {
 pub fn default_scan_exclusions(env: &Env) -> Vec<PathBuf> {
     match env.os() {
         Os::Macos => macos::default_scan_exclusions(env),
-        Os::Windows | Os::Linux => Vec::new(),
+        Os::Windows => windows::default_scan_exclusions(env),
+        Os::Linux => Vec::new(),
     }
 }
 
@@ -69,7 +78,8 @@ pub fn default_scan_exclusions(env: &Env) -> Vec<PathBuf> {
 pub fn tool_dirs(env: &Env) -> Vec<PathBuf> {
     match env.os() {
         Os::Macos => macos::tool_dirs(env),
-        Os::Windows | Os::Linux => Vec::new(),
+        Os::Windows => windows::tool_dirs(env),
+        Os::Linux => Vec::new(),
     }
 }
 
@@ -82,12 +92,14 @@ pub fn categorize(
 ) -> crate::rules::Category {
     match env.os() {
         Os::Macos => macos::categorize(env, path, parent),
-        Os::Windows | Os::Linux => parent,
+        Os::Windows => windows::categorize(env, path, parent),
+        Os::Linux => parent,
     }
 }
 
 /// Whether JClean has Full Disk Access (spec §11): tries to list a folder
 /// macOS only shows to apps that have it. Lists names only; opens no file.
+/// Windows has no equivalent, so it's always granted there.
 pub fn has_full_disk_access(env: &Env) -> bool {
     match env.os() {
         Os::Macos => macos::has_full_disk_access(env),
@@ -95,10 +107,49 @@ pub fn has_full_disk_access(env: &Env) -> bool {
     }
 }
 
-/// `~/Library/Application Support/app.jclean` on macOS (spec §10).
+/// `~/Library/Application Support/app.jclean` on macOS, and
+/// `%LOCALAPPDATA%\app.jclean` on Windows (spec §10).
 pub fn app_data_dir(env: &Env) -> PathBuf {
     match env.os() {
         Os::Macos => macos::app_data_dir(env),
-        Os::Windows | Os::Linux => env.home().join(".jclean"),
+        Os::Windows => windows::app_data_dir(env),
+        Os::Linux => env.home().join(".jclean"),
     }
 }
+
+/// The built-in rule for the Trash (macOS) or Recycle Bin (Windows), which
+/// "Empty Trash" cleans on its own.
+pub fn trash_rule_id(os: Os) -> &'static str {
+    match os {
+        Os::Macos => "macos.system.trash",
+        Os::Windows => "windows.system.recycle-bin",
+        Os::Linux => "linux.system.trash",
+    }
+}
+
+/// Folders that are developer storage wherever they appear, on any OS.
+const DEV_NAMES: &[&str] = &[
+    "node_modules",
+    ".npm",
+    ".yarn",
+    ".pnpm-store",
+    ".bun",
+    ".nvm",
+    ".volta",
+    ".cargo",
+    ".rustup",
+    ".gradle",
+    ".m2",
+    ".android",
+    ".pub-cache",
+    ".docker",
+    ".cache",
+    ".nuget",
+    "go",
+    "Developer",
+    "target",
+    ".venv",
+    "venv",
+    "DerivedData",
+    "CoreSimulator",
+];

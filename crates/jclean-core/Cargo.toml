@@ -19,8 +19,15 @@ jsonschema = { version = "0.58", default-features = false }
 rayon = "1.12"
 rusqlite = { version = "0.40", features = ["bundled"] }
 sysinfo = { version = "0.39", default-features = false, features = ["system"] }
-trash = { version = "5.2", default-features = false }
+# Windows moves to the Recycle Bin with IFileOperation, which needs COM
+# initialised apartment-threaded (spec §8.3); the feature does nothing elsewhere.
+trash = { version = "5.2", default-features = false, features = ["coinit_apartmentthreaded"] }
 filetime = { version = "0.2", optional = true }
+
+# Allocated sizes and hard-link identity on Windows (spec §4.2). Already in
+# the app's dependency tree through Tauri, so it adds no size.
+[target.'cfg(windows)'.dependencies]
+windows-sys = { version = "0.61", features = ["Win32_Foundation", "Win32_Security", "Win32_Storage_FileSystem"] }
 
 [dev-dependencies]
 # Enables `testing` (fixture homes) for this crate's own integration tests.

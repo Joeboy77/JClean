@@ -7,7 +7,7 @@ use std::process::{Command, Stdio};
 use std::thread;
 use std::time::{Duration, Instant};
 
-use crate::env::Env;
+use crate::env::{Env, Os};
 use crate::platform;
 
 pub const DEFAULT_TIMEOUT: Duration = Duration::from_secs(120);
@@ -63,9 +63,18 @@ pub fn find_tool(env: &Env, name: &str) -> Option<PathBuf> {
     if name.contains(['/', '\\']) {
         return None;
     }
+    // Windows tools are `docker.exe`, but also `npm.cmd` and `yarn.cmd`.
+    let names: Vec<String> = if env.os() == Os::Windows && !name.contains('.') {
+        [".exe", ".cmd", ".bat"]
+            .iter()
+            .map(|ext| format!("{name}{ext}"))
+            .collect()
+    } else {
+        vec![name.to_string()]
+    };
     platform::tool_dirs(env)
         .into_iter()
-        .map(|dir| dir.join(name))
+        .flat_map(|dir| names.iter().map(move |n| dir.join(n)))
         .find(|p| std::fs::metadata(p).is_ok_and(|m| m.is_file()))
 }
 
@@ -81,7 +90,15 @@ impl CommandRunner for SystemRunner {
         timeout: Duration,
     ) -> Result<CommandOutput, CommandError> {
         let name = program.display().to_string();
-        let mut child = Command::new(program)
+        let mut command = Command::new(program);
+        #[cfg(windows)]
+        {
+            use std::os::windows::process::CommandExt;
+            // A GUI app's child would otherwise open a console window.
+            const CREATE_NO_WINDOW: u32 = 0x0800_0000;
+            command.creation_flags(CREATE_NO_WINDOW);
+        }
+        let mut child = command
             .args(args)
             .stdin(Stdio::null())
             .stdout(Stdio::piped())
