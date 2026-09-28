@@ -3,29 +3,26 @@ import { DownloadButton } from "../components/DownloadButton";
 import { HeroMap } from "../components/HeroMap";
 import Base from "../layouts/Base.astro";
 import { RELEASES_URL, REPO, downloads, latestRelease } from "../lib/release";
-import { RULES } from "../lib/rules";
 
 const release = await latestRelease();
 const { mac, windows, linux } = downloads(release);
-const others = [windows && "Windows", linux && "Linux"].filter(Boolean);
-const platforms = others.length ? `Mac${others.length === 2 ? ", " : " and "}${others.join(" and ")}` : "macOS";
 
 const finds = [
-  { title: "Developer caches", body: "npm, Yarn, pnpm, pip, Gradle, Maven, Cargo, Go, Homebrew, CocoaPods and more." },
+  { title: "Developer caches", body: "npm, Yarn, pnpm, pip, Gradle, Maven, Cargo, Go, NuGet, Homebrew, Docker build cache and unused images, and more." },
   { title: "Old build folders", body: "node_modules, target, .next, .venv and friends, in projects you haven't touched in months." },
-  { title: "Xcode and simulators", body: "DerivedData, old device support files, archives, and simulators you can't run anymore." },
-  { title: "Docker", body: "Build cache and images no container uses, cleared by Docker itself." },
+  { title: "IDEs, SDKs and simulators", body: "Xcode build data and simulators, Visual Studio's installer cache, and old versions of JetBrains IDEs and Android Studio." },
+  { title: "System leftovers", body: "Windows Update downloads and old Windows versions, APT and DNF package caches, system logs, old Snap versions and Time Machine snapshots." },
   { title: "App and browser caches", body: "Leftovers from apps, Chrome, Safari, Firefox, Slack, Discord and others. Never your history or passwords." },
-  { title: "Forgotten files", body: "Old installers in Downloads, large files you haven't opened in months, iPhone backups and the Trash." },
+  { title: "Forgotten files", body: "Old installers in Downloads, large files you haven't opened in months, iPhone backups, and the Trash or Recycle Bin." },
 ];
 ---
 
 <Base>
   <section class="mx-auto grid max-w-6xl items-center gap-12 px-4 pt-14 pb-10 sm:px-6 lg:grid-cols-[1fr_1.15fr] lg:pt-20">
     <div class="text-center sm:text-left">
-      <p class="text-sm font-medium text-accent-text">Free and open source · for {platforms}</p>
+      <p class="text-sm font-medium text-accent-text">Free and open source · for Mac, Windows and Linux</p>
       <h1 class="mt-3 text-2xl font-semibold tracking-tight text-text sm:text-[44px] sm:leading-[52px]">
-        See what's filling your {others.length ? "computer" : "Mac"}, and clear it safely.
+        See what's filling your computer, and clear it safely.
       </h1>
       <p class="mt-4 max-w-xl text-md text-muted">
         JClean finds the storage you didn't know you were using: developer caches, old build folders, app leftovers, old installers and logs. It explains each one in plain language and lets you decide what goes.
@@ -59,7 +56,7 @@ const finds = [
   <section class="mx-auto max-w-6xl px-4 pt-20 sm:px-6" aria-labelledby="finds">
     <div class="flex flex-wrap items-end justify-between gap-3">
       <h2 id="finds" class="text-xl font-semibold text-text">What it finds</h2>
-      <a href="/rules" class="text-sm text-accent hover:underline">All {RULES.length} things JClean looks for</a>
+      <a href="/rules" class="text-sm text-accent hover:underline">Everything JClean looks for</a>
     </div>
     <ul class="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
       {

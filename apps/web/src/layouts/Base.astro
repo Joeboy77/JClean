@@ -12,9 +12,9 @@ interface Props {
 }
 const {
   title,
-  description = "JClean finds the storage you didn't know you were using, like developer caches, old build folders and leftovers, and clears it safely. Free, open source, and nothing leaves your Mac.",
+  description = "JClean finds the storage you didn't know you were using, like developer caches, old build folders and leftovers, and clears it safely. Free and open source for Mac, Windows and Linux, and nothing leaves your computer.",
 } = Astro.props;
-const fullTitle = title ? `${title} · JClean` : "JClean: see what's filling your Mac, and clear it safely";
+const fullTitle = title ? `${title} · JClean` : "JClean: see what's filling your computer, and clear it safely";
 const canonical = new URL(Astro.url.pathname, Astro.site);
 const ogImage = new URL("/og.png", Astro.site);
 const nav = [

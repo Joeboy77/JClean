@@ -3,15 +3,16 @@ import Base from "../layouts/Base.astro";
 
 const levels = [
   { color: "text-safe", name: "Safe to clean", body: "Comes back on its own when needed, like package caches and build folders of projects you haven't touched. Cleaning it loses nothing. Only these are ever ticked for you." },
-  { color: "text-review", name: "Needs review", body: "Probably fine to clean, but take a look first: old installers, large files, projects you're still working on. Your own files go to the Trash so you can put them back." },
+  { color: "text-review", name: "Needs review", body: "Probably fine to clean, but take a look first: old installers, large files, projects you're still working on. Your own files go to the Trash or Recycle Bin so you can put them back." },
   { color: "text-caution", name: "Caution", body: "May hold data that can't be recovered, like iPhone backups or Docker volumes. JClean always asks a second time and spells out what you'd lose." },
   { color: "text-muted", name: "For your information", body: "Shown so you can see where space goes, like your Photos library. JClean never cleans these." },
 ];
 const never = [
-  "The top level of Documents, Desktop, Downloads, Pictures, Music, Movies and Library",
-  "Your SSH, GPG, AWS and Kubernetes keys, and your Keychain",
-  "Mail, and anything inside a Git repository's .git folder",
-  "macOS itself: /System, /usr, /bin, /etc, and your Applications",
+  "Your home folder and the top level of Documents, Desktop, Downloads, Pictures, Music and Videos",
+  "Your SSH, GPG, AWS and Kubernetes keys, and where passwords are kept: the Keychain on Mac, Credential Manager on Windows, keyrings on Linux",
+  "Mail, browser profiles, and anything inside a Git repository's .git folder",
+  "The system itself: macOS's /System and /usr, the Windows folder and Program Files, and Linux's /usr, /etc and /var (except package caches, which apt and dnf clear themselves)",
+  "Files that are only in iCloud or OneDrive: they're never opened, so they're never downloaded",
   "Anything in a folder containing a file named .jclean-keep",
 ];
 ---

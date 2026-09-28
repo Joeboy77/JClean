@@ -2,7 +2,7 @@ import { Treemap, type TreemapCell } from "@jclean/treemap";
 import { animate, useReducedMotion } from "motion/react";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 
-// A sample Mac's storage (spec §12.2): the same treemap as the app, filling
+// A sample computer's storage (spec §12.2): the same treemap as the app, filling
 // in, lighting up what can be freed, then collapsing as the figure counts up,
 // over and over.
 interface Sample {
@@ -145,7 +145,7 @@ export function HeroMap() {
   return (
     <figure
       className="relative overflow-hidden rounded-card border border-line bg-surface p-3 shadow-2xl"
-      aria-label="A sample Mac's storage in JClean"
+      aria-label="A sample computer's storage in JClean"
     >
       <div className="relative mb-3 flex h-7 items-center px-1">
         <span className="flex gap-1.5" aria-hidden="true">
