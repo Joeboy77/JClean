@@ -140,6 +140,7 @@ fn excluded_paths_are_left_out() {
     let opts = MeasureOptions {
         cross_filesystems: false,
         exclude: [f.path("c/claimed")].into_iter().collect(),
+        ..MeasureOptions::default()
     };
     let m = measure(&f.path("c"), &opts, &InodeSet::new(), &CancelToken::new()).unwrap();
     assert!(m.allocated < 1_200_000, "{}", m.allocated);
@@ -543,4 +544,84 @@ fn probes_report_tool_managed_storage() {
             .iter()
             .any(|n| n.rule_id.as_deref() == Some("macos.simulator.unavailable"))
     );
+}
+
+#[test]
+fn size_cache_matches_fresh_measurement_and_notices_changes() {
+    use jclean_core::sizing::SizeCache;
+    use std::sync::Arc;
+    let tmp = tempfile::tempdir().unwrap();
+    let f = Fixture::standard(tmp.path()).unwrap();
+    let target = f.path("code");
+    let fresh = |cache: Option<Arc<SizeCache>>| {
+        measure(
+            &target,
+            &MeasureOptions {
+                cache,
+                ..MeasureOptions::default()
+            },
+            &InodeSet::new(),
+            &CancelToken::new(),
+        )
+        .unwrap()
+    };
+
+    let first = Arc::new(SizeCache::default());
+    let uncached = fresh(Some(Arc::clone(&first)));
+    // Round-trip through the file format, as between launches.
+    let file = tmp.path().join("size-cache.tsv");
+    SizeCache::save(&first.fresh(), &file).unwrap();
+    let loaded = Arc::new(SizeCache::load(&file));
+    assert_eq!(loaded.fresh().len(), 0);
+    let cached = fresh(Some(Arc::clone(&loaded)));
+    assert_eq!(cached.allocated, uncached.allocated);
+    assert_eq!(cached.files, uncached.files);
+    assert_eq!(cached.newest_mtime, uncached.newest_mtime);
+    assert_eq!(cached.contains_git, uncached.contains_git);
+
+    // A new file changes its folder's time, so that folder is re-read.
+    f.file("code/old-site/node_modules/react/new.js", 1_000_000)
+        .unwrap();
+    let after = fresh(Some(loaded));
+    assert!(
+        after.allocated >= uncached.allocated + 1_000_000,
+        "{} vs {}",
+        after.allocated,
+        uncached.allocated
+    );
+    assert_eq!(after.allocated, fresh(None).allocated);
+}
+
+#[test]
+fn quick_scans_with_the_cache_report_the_same_items() {
+    use jclean_core::sizing::SizeCache;
+    use std::sync::Arc;
+    let tmp = tempfile::tempdir().unwrap();
+    let f = Fixture::standard(tmp.path()).unwrap();
+    let rules = RuleSet::builtin(Os::Macos).unwrap();
+    let env = f.env();
+    let runner = FakeRunner::none();
+    let scanner = Scanner {
+        env: &env,
+        rules: &rules,
+        runner: &runner,
+    };
+    let run = |cache: Option<Arc<SizeCache>>| {
+        let mut opts = ScanOptions::new(ScanMode::Quick, Audience::Developer);
+        opts.run_probes = false;
+        opts.size_cache = cache;
+        let mut items: Vec<(String, u64)> = scanner
+            .scan(&opts, &CancelToken::new(), &|_| {})
+            .items
+            .into_iter()
+            .map(|i| (i.id, i.bytes))
+            .collect();
+        items.sort();
+        items
+    };
+    let warm = Arc::new(SizeCache::default());
+    let plain = run(Some(Arc::clone(&warm)));
+    let reused = run(Some(Arc::new(SizeCache::new(warm.fresh()))));
+    assert_eq!(plain, reused);
+    assert_eq!(plain, run(None));
 }

@@ -15,6 +15,7 @@ use jclean_core::planner::CleanPlan;
 use jclean_core::platform;
 use jclean_core::rules::{Audience, Category, Method, Risk, RuleSet};
 use jclean_core::scanner::{ScanEvent, ScanItem, ScanMode, ScanOptions, ScanResult, Scanner};
+use jclean_core::sizing::SizeCache;
 use jclean_core::time::now_secs;
 use jclean_core::tools::{CommandRunner, SystemRunner};
 
@@ -403,7 +404,10 @@ pub fn start_scan(
                 Mode::Quick => ScanMode::Quick,
                 Mode::Full => ScanMode::Full,
             };
-            let opts = engine.scan_options(mode);
+            let mut opts = engine.scan_options(mode);
+            let cache_path = platform::app_data_dir(&engine.env).join("size-cache.tsv");
+            let cache = (mode == ScanMode::Quick).then(|| Arc::new(SizeCache::load(&cache_path)));
+            opts.size_cache = cache.clone();
             let rules = engine.rules();
             let scanner = Scanner {
                 env: &engine.env,
@@ -442,6 +446,9 @@ pub fn start_scan(
             };
             let result = Arc::new(result);
             if !result.cancelled {
+                if let Some(cache) = &cache {
+                    let _ = SizeCache::save(&cache.fresh(), &cache_path);
+                }
                 save_cache(&engine, &result);
                 if let Some(h) = &engine.history {
                     let total = result.items.iter().map(|i| i.bytes).sum();

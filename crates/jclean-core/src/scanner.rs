@@ -6,8 +6,8 @@ use std::collections::{BTreeMap, HashMap, HashSet};
 use std::fs;
 use std::ops::Bound;
 use std::path::{Path, PathBuf};
-use std::sync::Mutex;
 use std::sync::atomic::{AtomicUsize, Ordering};
+use std::sync::{Arc, Mutex};
 
 use rayon::prelude::*;
 use serde::{Deserialize, Serialize};
@@ -22,7 +22,7 @@ use crate::rules::{
     Audience, Category, Detect, Method, Risk, Rule, RuleSet, UnusedBasis, keep, paths,
 };
 use crate::safety::{Refusal, Root, SafetyGuard, Snapshot};
-use crate::sizing::{InodeSet, Measure, MeasureOptions, SizeError, measure};
+use crate::sizing::{InodeSet, Measure, MeasureOptions, SizeCache, SizeError, measure};
 use crate::time::{DAY_SECS, now_secs};
 use crate::tools::CommandRunner;
 
@@ -50,6 +50,8 @@ pub struct ScanOptions {
     pub now: i64,
     /// Rules switched off in Settings.
     pub disabled_rules: HashSet<String>,
+    /// Folder totals from the last scan; used by quick scans only.
+    pub size_cache: Option<Arc<SizeCache>>,
 }
 
 impl ScanOptions {
@@ -64,6 +66,7 @@ impl ScanOptions {
             quick_project_depth: 6,
             now: now_secs(),
             disabled_rules: HashSet::new(),
+            size_cache: None,
         }
     }
 }
@@ -398,6 +401,11 @@ impl Scanner<'_> {
                 let opts_m = MeasureOptions {
                     cross_filesystems: c.rule.cross_filesystems,
                     exclude: c.exclude.iter().cloned().collect(),
+                    cache: if opts.mode == ScanMode::Quick {
+                        opts.size_cache.clone()
+                    } else {
+                        None
+                    },
                 };
                 match measure(&c.path, &opts_m, &inodes, cancel) {
                     Ok(m) => {

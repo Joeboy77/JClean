@@ -182,6 +182,8 @@ impl SafetyGuard {
             let opts = MeasureOptions {
                 cross_filesystems: target.cross_filesystems,
                 exclude,
+                // Always measure fresh right before cleaning: never the cache.
+                cache: None,
             };
             let now = measure(&canonical, &opts, &InodeSet::new(), cancel)
                 .map_err(|_| Refusal::NotFound)?;

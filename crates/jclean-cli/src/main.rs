@@ -12,6 +12,7 @@
 mod output;
 
 use std::path::{Path, PathBuf};
+use std::sync::Arc;
 use std::time::{Duration, Instant};
 
 use anyhow::{Context, bail};
@@ -25,6 +26,7 @@ use jclean_core::platform;
 use jclean_core::rules::{self, Audience, RuleSet};
 use jclean_core::safety::{SafetyGuard, SystemProcesses};
 use jclean_core::scanner::{ScanMode, ScanOptions, ScanResult, Scanner};
+use jclean_core::sizing::SizeCache;
 use jclean_core::testing::Fixture;
 use jclean_core::tools::{CommandError, CommandOutput, CommandRunner, SystemRunner};
 
@@ -91,6 +93,9 @@ struct ScanArgs {
     /// Print JSON instead of a table.
     #[arg(long)]
     json: bool,
+    /// Measure everything fresh instead of reusing unchanged folder totals.
+    #[arg(long)]
+    no_cache: bool,
 }
 
 #[derive(Clone, Copy, ValueEnum)]
@@ -166,17 +171,28 @@ impl Session {
         };
         let mut opts = ScanOptions::new(mode, self.audience);
         opts.run_probes = !args.no_probes && !self.fixture;
+        // Share the app's folder-size cache so repeat quick scans are fast.
+        let cache_path = platform::app_data_dir(&self.env).join("size-cache.tsv");
+        let cache = (mode == ScanMode::Quick && !args.no_cache)
+            .then(|| Arc::new(SizeCache::load(&cache_path)));
+        opts.size_cache = cache.clone();
         let scanner = Scanner {
             env: &self.env,
             rules: &self.rules,
             runner: self.runner.as_ref(),
         };
         let show_progress = !args.json;
-        scanner.scan(&opts, &CancelToken::new(), &|event| {
+        let result = scanner.scan(&opts, &CancelToken::new(), &|event| {
             if show_progress {
                 output::progress(&event);
             }
-        })
+        });
+        if let Some(cache) = cache
+            && !result.cancelled
+        {
+            let _ = SizeCache::save(&cache.fresh(), &cache_path);
+        }
+        result
     }
 }
 
