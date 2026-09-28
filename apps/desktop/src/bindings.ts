@@ -6,176 +6,211 @@ import { invoke as __TAURI_INVOKE, Channel } from "@tauri-apps/api/core";
 
 /** Commands */
 export const commands = {
-	appInfo: () => __TAURI_INVOKE<AppInfo>("app_info"),
-	/**
-	 *  Dev builds only: prints a message from the UI to the terminal (used by
-	 *  the frame-rate probe). Does nothing in release builds.
-	 */
-	devLog: (message: string) => __TAURI_INVOKE<void>("dev_log", { message }),
-	setWindowMode: (mode: WindowMode) => typedError<null, string>(__TAURI_INVOKE("set_window_mode", { mode })),
-	/**  `"mica"` when the window has a translucent backdrop, otherwise nothing. */
-	windowBackdrop: () => __TAURI_INVOKE<string | null>("window_backdrop"),
-	/**
-	 *  Starts a scan on a background thread. Results stream through `on_update`;
-	 *  the call returns immediately.
-	 */
-	startScan: (mode: Mode, onUpdate: Channel<ScanUpdate>) => typedError<null, string>(__TAURI_INVOKE("start_scan", { mode, onUpdate })),
-	/**  Stops the running scan; what was found so far is kept. */
-	cancelScan: () => __TAURI_INVOKE<void>("cancel_scan"),
-	/**  One level of the full scan's folder map. `""` is the top level. */
-	mapLevel: (id: string) => typedError<MapCellDto[], string>(__TAURI_INVOKE("map_level", { id })),
-	volumeInfo: () => __TAURI_INVOKE<{
-	name: string,
-	total: number,
-	/**  What Finder calls available: includes purgeable space. */
-	available: number,
-	/**  Space macOS frees on its own when it needs it. */
-	purgeable: number,
-} | null>("volume_info"),
-	/**
-	 *  The last completed scan, shown instantly at launch until a fresh one
-	 *  finishes (spec §10).
-	 */
-	cachedScan: () => __TAURI_INVOKE<{
-	/**  Unix seconds. */
-	savedAt: number,
-	items: ItemDto[],
-	needsAccess: string[],
-} | null>("cached_scan"),
-	/**  Builds the plan for the selected items and keeps it for `run_clean`. */
-	planClean: (itemIds: string[]) => typedError<PlanDto, string>(__TAURI_INVOKE("plan_clean", { itemIds })),
-	/**
-	 *  Runs the confirmed plan on a background thread. Failures never stop the
-	 *  rest of the plan (spec §9, 6).
-	 */
-	runClean: (onUpdate: Channel<CleanUpdate>) => typedError<null, string>(__TAURI_INVOKE("run_clean", { onUpdate })),
-	/**
-	 *  Empties the Trash (or Recycle Bin) through the same guard and log as any
-	 *  clean: finds what's in it with the platform's trash rule and deletes it.
-	 */
-	emptyTrash: () => typedError<EmptyTrashResult, string>(__TAURI_INVOKE("empty_trash")),
-	getSettings: () => __TAURI_INVOKE<Settings>("get_settings"),
-	/**  Saves settings and applies them: rules, menu bar icon, launch at login. */
-	saveSettings: (settings: Settings) => typedError<Settings, string>(__TAURI_INVOKE("save_settings", { settings })),
-	/**  Adds a folder chosen in Settings → Rules (spec §6.4). */
-	addCustomFolder: (path: string, name: string, risk: CustomRisk) => typedError<Settings, string>(__TAURI_INVOKE("add_custom_folder", { path, name, risk })),
-	/**
-	 *  Adds a rule pack after checking it against the schema and the custom-rule
-	 *  limits (spec §6.4).
-	 */
-	addRulePack: (name: string, json: string) => typedError<Settings, string>(__TAURI_INVOKE("add_rule_pack", { name, json })),
-	/**  Removes a custom folder or a rule pack by the rule ID it produced. */
-	removeCustomRule: (ruleId: string) => typedError<Settings, string>(__TAURI_INVOKE("remove_custom_rule", { ruleId })),
-	/**  Whether JClean can see folders macOS guards with Full Disk Access. */
-	fullDiskAccess: () => __TAURI_INVOKE<boolean>("full_disk_access"),
-	openLink: (link: Link) => typedError<null, string>(__TAURI_INVOKE("open_link", { link })),
-	/**  Shows a scanned item in Finder. Only paths from the scan can be revealed. */
-	revealItem: (itemId: string) => typedError<null, string>(__TAURI_INVOKE("reveal_item", { itemId })),
-	/**  Asks for a folder, e.g. for a custom rule or a project root. */
-	pickFolder: () => __TAURI_INVOKE<string | null>("pick_folder"),
-	/**
-	 *  Asks for a rule pack (JSON) and reads it. Only this user-chosen file is
-	 *  read, never anything found by a scan.
-	 */
-	pickRulePack: () => typedError<{
-	name: string,
-	text: string,
-} | null, string>(__TAURI_INVOKE("pick_rule_pack")),
-	/**  Every rule in force, built-in and custom. */
-	getRules: () => __TAURI_INVOKE<RuleDto[]>("get_rules"),
-	/**  Past cleanups, newest first (spec §5.4, History). */
-	historyCleanups: () => typedError<CleanupDto[], string>(__TAURI_INVOKE("history_cleanups")),
-	/**  The deletion log of one cleanup (spec §7.5). */
-	historyActions: (cleanupId: number) => typedError<ActionDto[], string>(__TAURI_INVOKE("history_actions", { cleanupId })),
-	/**  Saves the whole deletion log as CSV where the user chooses. */
-	exportHistory: () => typedError<boolean, string>(__TAURI_INVOKE("export_history")),
-	/**
-	 *  Checks for a newer version and downloads it. `None` if JClean is up to
-	 *  date or update checks are off in Settings.
-	 */
-	checkForUpdate: () => typedError<{
-	version: string,
-	notes: string | null,
-} | null, string>(__TAURI_INVOKE("check_for_update")),
-	/**  Installs the downloaded update and restarts JClean. */
-	installUpdate: () => typedError<null, string>(__TAURI_INVOKE("install_update")),
+  appInfo: () => __TAURI_INVOKE<AppInfo>("app_info"),
+  /**
+   *  Dev builds only: prints a message from the UI to the terminal (used by
+   *  the frame-rate probe). Does nothing in release builds.
+   */
+  devLog: (message: string) => __TAURI_INVOKE<void>("dev_log", { message }),
+  setWindowMode: (mode: WindowMode) =>
+    typedError<null, string>(__TAURI_INVOKE("set_window_mode", { mode })),
+  /**  `"mica"` when the window has a translucent backdrop, otherwise nothing. */
+  windowBackdrop: () => __TAURI_INVOKE<string | null>("window_backdrop"),
+  /**
+   *  Starts a scan on a background thread. Results stream through `on_update`;
+   *  the call returns immediately.
+   */
+  startScan: (mode: Mode, onUpdate: Channel<ScanUpdate>) =>
+    typedError<null, string>(__TAURI_INVOKE("start_scan", { mode, onUpdate })),
+  /**  Stops the running scan; what was found so far is kept. */
+  cancelScan: () => __TAURI_INVOKE<void>("cancel_scan"),
+  /**  One level of the full scan's folder map. `""` is the top level. */
+  mapLevel: (id: string) => typedError<MapCellDto[], string>(__TAURI_INVOKE("map_level", { id })),
+  volumeInfo: () =>
+    __TAURI_INVOKE<{
+      name: string;
+      total: number;
+      /**  What Finder calls available: includes purgeable space. */
+      available: number;
+      /**  Space macOS frees on its own when it needs it. */
+      purgeable: number;
+    } | null>("volume_info"),
+  /**
+   *  The last completed scan, shown instantly at launch until a fresh one
+   *  finishes (spec §10).
+   */
+  cachedScan: () =>
+    __TAURI_INVOKE<{
+      /**  Unix seconds. */
+      savedAt: number;
+      items: ItemDto[];
+      needsAccess: string[];
+    } | null>("cached_scan"),
+  /**  Builds the plan for the selected items and keeps it for `run_clean`. */
+  planClean: (itemIds: string[]) =>
+    typedError<PlanDto, string>(__TAURI_INVOKE("plan_clean", { itemIds })),
+  /**
+   *  Runs the confirmed plan on a background thread. Failures never stop the
+   *  rest of the plan (spec §9, 6).
+   */
+  runClean: (onUpdate: Channel<CleanUpdate>) =>
+    typedError<null, string>(__TAURI_INVOKE("run_clean", { onUpdate })),
+  /**
+   *  Empties the Trash (or Recycle Bin) through the same guard and log as any
+   *  clean: finds what's in it with the platform's trash rule and deletes it.
+   */
+  emptyTrash: () => typedError<EmptyTrashResult, string>(__TAURI_INVOKE("empty_trash")),
+  getSettings: () => __TAURI_INVOKE<Settings>("get_settings"),
+  /**  Saves settings and applies them: rules, menu bar icon, launch at login. */
+  saveSettings: (settings: Settings) =>
+    typedError<Settings, string>(__TAURI_INVOKE("save_settings", { settings })),
+  /**  Adds a folder chosen in Settings → Rules (spec §6.4). */
+  addCustomFolder: (path: string, name: string, risk: CustomRisk) =>
+    typedError<Settings, string>(__TAURI_INVOKE("add_custom_folder", { path, name, risk })),
+  /**
+   *  Adds a rule pack after checking it against the schema and the custom-rule
+   *  limits (spec §6.4).
+   */
+  addRulePack: (name: string, json: string) =>
+    typedError<Settings, string>(__TAURI_INVOKE("add_rule_pack", { name, json })),
+  /**  Removes a custom folder or a rule pack by the rule ID it produced. */
+  removeCustomRule: (ruleId: string) =>
+    typedError<Settings, string>(__TAURI_INVOKE("remove_custom_rule", { ruleId })),
+  /**  Whether JClean can see folders macOS guards with Full Disk Access. */
+  fullDiskAccess: () => __TAURI_INVOKE<boolean>("full_disk_access"),
+  openLink: (link: Link) => typedError<null, string>(__TAURI_INVOKE("open_link", { link })),
+  /**  Shows a scanned item in Finder. Only paths from the scan can be revealed. */
+  revealItem: (itemId: string) =>
+    typedError<null, string>(__TAURI_INVOKE("reveal_item", { itemId })),
+  /**  Asks for a folder, e.g. for a custom rule or a project root. */
+  pickFolder: () => __TAURI_INVOKE<string | null>("pick_folder"),
+  /**
+   *  Asks for a rule pack (JSON) and reads it. Only this user-chosen file is
+   *  read, never anything found by a scan.
+   */
+  pickRulePack: () =>
+    typedError<
+      {
+        name: string;
+        text: string;
+      } | null,
+      string
+    >(__TAURI_INVOKE("pick_rule_pack")),
+  /**  Every rule in force, built-in and custom. */
+  getRules: () => __TAURI_INVOKE<RuleDto[]>("get_rules"),
+  /**  Past cleanups, newest first (spec §5.4, History). */
+  historyCleanups: () => typedError<CleanupDto[], string>(__TAURI_INVOKE("history_cleanups")),
+  /**  The deletion log of one cleanup (spec §7.5). */
+  historyActions: (cleanupId: number) =>
+    typedError<ActionDto[], string>(__TAURI_INVOKE("history_actions", { cleanupId })),
+  /**  Saves the whole deletion log as CSV where the user chooses. */
+  exportHistory: () => typedError<boolean, string>(__TAURI_INVOKE("export_history")),
+  /**
+   *  Checks for a newer version and downloads it. `None` if JClean is up to
+   *  date or update checks are off in Settings.
+   */
+  checkForUpdate: () =>
+    typedError<
+      {
+        version: string;
+        notes: string | null;
+      } | null,
+      string
+    >(__TAURI_INVOKE("check_for_update")),
+  /**  Installs the downloaded update and restarts JClean. */
+  installUpdate: () => typedError<null, string>(__TAURI_INVOKE("install_update")),
 };
 
 /* Types */
 export type ActionDto = {
-	time: number,
-	ruleId: string,
-	path: string,
-	method: string,
-	bytes: number,
-	outcome: string,
-	error: string | null,
+  time: number;
+  ruleId: string;
+  path: string;
+  method: string;
+  bytes: number;
+  outcome: string;
+  error: string | null;
 };
 
 export type AppInfo = {
-	version: string,
-	coreVersion: string,
-	platform: string,
-	/**  The user's home folder, for showing paths as `~/…`. */
-	home: string,
+  version: string;
+  coreVersion: string;
+  platform: string;
+  /**  The user's home folder, for showing paths as `~/…`. */
+  home: string;
 };
 
 export type AudienceDto = "everyday" | "developer";
 
 export type CachedScan = {
-	/**  Unix seconds. */
-	savedAt: number,
-	items: ItemDto[],
-	needsAccess: string[],
+  /**  Unix seconds. */
+  savedAt: number;
+  items: ItemDto[];
+  needsAccess: string[];
 };
 
 export type CategoryDto = "apps" | "developer" | "system" | "media" | "documents" | "other";
 
 export type CleanSummary = {
-	/**  Measured just before cleaning, from the plan's items. */
-	cleanedBytes: number,
-	/**  Of that, moved to the Trash: frees nothing until it's emptied. */
-	trashedBytes: number,
-	/**  Change in the volume's free space, when it could be read (spec §9, 5). */
-	measuredFreed: number | null,
-	failed: number,
-	skipped: number,
+  /**  Measured just before cleaning, from the plan's items. */
+  cleanedBytes: number;
+  /**  Of that, moved to the Trash: frees nothing until it's emptied. */
+  trashedBytes: number;
+  /**  Change in the volume's free space, when it could be read (spec §9, 5). */
+  measuredFreed: number | null;
+  failed: number;
+  skipped: number;
 };
 
-export type CleanUpdate = ({ kind: "started"; total: number }) & { bytes?: never; itemId?: never; method?: never; outcome?: never; reason?: never } | ({ kind: "item"; itemId: string; 
-/**  `cleaned`, `skipped` or `failed`. */
-outcome: string; bytes: number; reason: string | null; method: MethodDto }) & { total?: never } | {
-	kind: "finished",
-} & CleanSummary;
+export type CleanUpdate =
+  | ({ kind: "started"; total: number } & {
+      bytes?: never;
+      itemId?: never;
+      method?: never;
+      outcome?: never;
+      reason?: never;
+    })
+  | ({
+      kind: "item";
+      itemId: string;
+      /**  `cleaned`, `skipped` or `failed`. */
+      outcome: string;
+      bytes: number;
+      reason: string | null;
+      method: MethodDto;
+    } & { total?: never })
+  | ({
+      kind: "finished";
+    } & CleanSummary);
 
 export type CleanupDto = {
-	id: number,
-	time: number,
-	plannedBytes: number,
-	freedBytes: number | null,
-	dryRun: boolean,
+  id: number;
+  time: number;
+  plannedBytes: number;
+  freedBytes: number | null;
+  dryRun: boolean;
 };
 
 /**  A folder added in Settings → Rules. Always moved to the Trash (spec §6.4). */
 export type CustomFolder = {
-	id: string,
-	name: string,
-	path: string,
-	risk: CustomRisk,
+  id: string;
+  name: string;
+  path: string;
+  risk: CustomRisk;
 };
 
 export type CustomRisk = "safe" | "review" | "caution";
 
 export type DescriptionDto = {
-	what: string,
-	ifCleared: string,
+  what: string;
+  ifCleared: string;
 };
 
 export type EmptyTrashResult = {
-	freed: number,
-	failed: number,
-	/**  Set when the Trash couldn't be read (usually missing Full Disk Access). */
-	note: string | null,
+  freed: number;
+  failed: number;
+  /**  Set when the Trash couldn't be read (usually missing Full Disk Access). */
+  note: string | null;
 };
 
 /**
@@ -184,175 +219,185 @@ export type EmptyTrashResult = {
  *  TypeScript type a plain `number`: these values are never NaN.
  */
 export type ItemDto = {
-	id: string,
-	ruleId: string,
-	name: string | null,
-	path: string | null,
-	bytes: number,
-	bytesKnown: boolean,
-	lastUsed: number | null,
-	risk: RiskDto,
-	category: CategoryDto,
-	method: MethodDto,
-	cleanable: boolean,
-	blockedReason: string | null,
-	preselected: boolean,
-	mayShareBlocks: boolean,
-	project: ProjectDto | null,
+  id: string;
+  ruleId: string;
+  name: string | null;
+  path: string | null;
+  bytes: number;
+  bytesKnown: boolean;
+  lastUsed: number | null;
+  risk: RiskDto;
+  category: CategoryDto;
+  method: MethodDto;
+  cleanable: boolean;
+  blockedReason: string | null;
+  preselected: boolean;
+  mayShareBlocks: boolean;
+  project: ProjectDto | null;
 };
 
 export type LabelsDto = {
-	developer: string,
-	everyday: string,
+  developer: string;
+  everyday: string;
 };
 
 /**  The only places JClean links out to. */
-export type Link = 
-/**  System Settings → Privacy & Security → Full Disk Access. */
-"fullDiskAccessSettings" | "repository" | "releases";
+export type Link =
+  /**  System Settings → Privacy & Security → Full Disk Access. */
+  "fullDiskAccessSettings" | "repository" | "releases";
 
 export type MapCellDto = {
-	id: string,
-	name: string,
-	bytes: number,
-	category: CategoryDto,
-	reclaimable: number,
-	itemId: string | null,
-	hasChildren: boolean,
-	other: boolean,
+  id: string;
+  name: string;
+  bytes: number;
+  category: CategoryDto;
+  reclaimable: number;
+  itemId: string | null;
+  hasChildren: boolean;
+  other: boolean;
 };
 
 export type MethodDto = "delete" | "trash" | "command" | "none";
 
 export type MethodTotalDto = {
-	method: MethodDto,
-	items: number,
-	bytes: number,
+  method: MethodDto;
+  items: number;
+  bytes: number;
 };
 
 export type Mode = "quick" | "full";
 
 export type PickedFile = {
-	name: string,
-	text: string,
+  name: string;
+  text: string;
 };
 
 /**  What the confirmation sheet shows (spec §5.4). */
 export type PlanDto = {
-	totalBytes: number,
-	items: PlanItemDto[],
-	skipped: SkippedDto[],
-	byMethod: MethodTotalDto[],
-	/**  Tools that will run their own cleanup, e.g. "docker", "brew". */
-	tools: string[],
-	/**  `caution` items need an explicit second confirmation (spec §7.3). */
-	needsSecondConfirmation: boolean,
-	/**  Related apps that are running now; their items will be skipped. */
-	runningApps: string[],
+  totalBytes: number;
+  items: PlanItemDto[];
+  skipped: SkippedDto[];
+  byMethod: MethodTotalDto[];
+  /**  Tools that will run their own cleanup, e.g. "docker", "brew". */
+  tools: string[];
+  /**  `caution` items need an explicit second confirmation (spec §7.3). */
+  needsSecondConfirmation: boolean;
+  /**  Related apps that are running now; their items will be skipped. */
+  runningApps: string[];
 };
 
 export type PlanItemDto = {
-	itemId: string,
-	bytes: number,
-	method: MethodDto,
-	risk: RiskDto,
-	/**  e.g. `npm cache clean --force`. */
-	command: string | null,
-	requiresAdmin: boolean,
+  itemId: string;
+  bytes: number;
+  method: MethodDto;
+  risk: RiskDto;
+  /**  e.g. `npm cache clean --force`. */
+  command: string | null;
+  requiresAdmin: boolean;
 };
 
 export type ProjectDto = {
-	name: string,
-	root: string,
-	active: boolean,
+  name: string;
+  root: string;
+  active: boolean;
 };
 
 export type RiskDto = "safe" | "review" | "caution" | "info";
 
 /**  A rule as the UI shows it (spec §6). */
 export type RuleDto = {
-	id: string,
-	group: string,
-	labels: LabelsDto,
-	description: DescriptionDto,
-	icon: string,
-	category: CategoryDto,
-	risk: RiskDto,
-	regenerates: boolean,
-	method: MethodDto,
-	command: string | null,
-	audience: AudienceDto[],
-	docs: string | null,
-	/**  Added by the user; shows a "Custom" badge (spec §6.4). */
-	custom: boolean,
+  id: string;
+  group: string;
+  labels: LabelsDto;
+  description: DescriptionDto;
+  icon: string;
+  category: CategoryDto;
+  risk: RiskDto;
+  regenerates: boolean;
+  method: MethodDto;
+  command: string | null;
+  audience: AudienceDto[];
+  docs: string | null;
+  /**  Added by the user; shows a "Custom" badge (spec §6.4). */
+  custom: boolean;
 };
 
 /**  An imported rule pack, kept as the JSON it came from. */
 export type RulePack = {
-	name: string,
-	json: string,
+  name: string;
+  json: string;
 };
 
-export type ScanUpdate = { kind: "stage"; label: string } | { kind: "progress"; fraction: number } | { kind: "item"; item: ItemDto } | { kind: "finished"; partial: boolean; notes: string[]; hasTree: boolean; 
-/**  Rules whose locations need Full Disk Access (spec §11). */
-needsAccess: string[] };
+export type ScanUpdate =
+  | { kind: "stage"; label: string }
+  | { kind: "progress"; fraction: number }
+  | { kind: "item"; item: ItemDto }
+  | {
+      kind: "finished";
+      partial: boolean;
+      notes: string[];
+      hasTree: boolean;
+      /**  Rules whose locations need Full Disk Access (spec §11). */
+      needsAccess: string[];
+    };
 
 export type Settings = {
-	version: number,
-	/**  First-launch onboarding is done (spec §5.9). */
-	onboarded: boolean,
-	mode: UserMode,
-	scanOnLaunch: boolean,
-	menuBarIcon: boolean,
-	/**  Show free space as text next to the menu bar icon. */
-	menuBarFreeSpace: boolean,
-	launchAtLogin: boolean,
-	/**  Where to look for projects and large files. Empty means the home folder. */
-	projectRoots: string[],
-	excludedFolders: string[],
-	/**  30, 60, 90, 180 or 365 (spec §4.4). */
-	inactiveAfterDays: number,
-	includeExternalDrives: boolean,
-	/**  Delete user files that need review instead of moving them to the Trash. */
-	deleteUserFiles: boolean,
-	/**  Ask before cleaning. Always on for caution items. */
-	confirmBeforeCleaning: boolean,
-	disabledRules: string[],
-	customFolders: CustomFolder[],
-	rulePacks: RulePack[],
-	checkForUpdates: boolean,
+  version: number;
+  /**  First-launch onboarding is done (spec §5.9). */
+  onboarded: boolean;
+  mode: UserMode;
+  scanOnLaunch: boolean;
+  menuBarIcon: boolean;
+  /**  Show free space as text next to the menu bar icon. */
+  menuBarFreeSpace: boolean;
+  launchAtLogin: boolean;
+  /**  Where to look for projects and large files. Empty means the home folder. */
+  projectRoots: string[];
+  excludedFolders: string[];
+  /**  30, 60, 90, 180 or 365 (spec §4.4). */
+  inactiveAfterDays: number;
+  includeExternalDrives: boolean;
+  /**  Delete user files that need review instead of moving them to the Trash. */
+  deleteUserFiles: boolean;
+  /**  Ask before cleaning. Always on for caution items. */
+  confirmBeforeCleaning: boolean;
+  disabledRules: string[];
+  customFolders: CustomFolder[];
+  rulePacks: RulePack[];
+  checkForUpdates: boolean;
 };
 
 export type SkippedDto = {
-	itemId: string,
-	reason: string,
+  itemId: string;
+  reason: string;
 };
 
 export type UpdateInfo = {
-	version: string,
-	notes: string | null,
+  version: string;
+  notes: string | null;
 };
 
 export type UserMode = "everyday" | "developer";
 
 export type VolumeInfo = {
-	name: string,
-	total: number,
-	/**  What Finder calls available: includes purgeable space. */
-	available: number,
-	/**  Space macOS frees on its own when it needs it. */
-	purgeable: number,
+  name: string;
+  total: number;
+  /**  What Finder calls available: includes purgeable space. */
+  available: number;
+  /**  Space macOS frees on its own when it needs it. */
+  purgeable: number;
 };
 
 export type WindowMode = "compact" | "expanded";
 
 /* Tauri Specta runtime */
-async function typedError<T, E>(result: Promise<T>): Promise<{ status: "ok"; data: T } | { status: "error"; error: E }> {
-    try {
-        return { status: "ok", data: await result };
-    } catch (e) {
-        if (e instanceof Error) throw e;
-        return { status: "error", error: e as any };
-    }
+async function typedError<T, E>(
+  result: Promise<T>,
+): Promise<{ status: "ok"; data: T } | { status: "error"; error: E }> {
+  try {
+    return { status: "ok", data: await result };
+  } catch (e) {
+    if (e instanceof Error) throw e;
+    return { status: "error", error: e as any };
+  }
 }
-
