@@ -1865,9 +1865,11 @@ name = "jclean-desktop"
 version = "0.1.0"
 dependencies = [
  "jclean-core",
+ "objc2",
  "objc2-app-kit",
  "objc2-foundation",
  "serde",
+ "serde_json",
  "specta",
  "specta-typescript",
  "tauri",

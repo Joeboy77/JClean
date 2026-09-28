@@ -5,7 +5,11 @@ use serde::Serialize;
 use specta::Type;
 use tauri_specta::{Builder, collect_commands};
 
+mod engine;
+mod volume;
 mod window;
+
+use std::sync::Arc;
 
 /// Where the generated IPC bindings are written, relative to this crate.
 const BINDINGS_PATH: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../src/bindings.ts");
@@ -16,22 +20,45 @@ pub struct AppInfo {
     pub version: String,
     pub core_version: String,
     pub platform: String,
+    /// The user's home folder, for showing paths as `~/…`.
+    pub home: String,
 }
 
 #[tauri::command]
 #[specta::specta]
-fn app_info(app: tauri::AppHandle) -> AppInfo {
+fn app_info(app: tauri::AppHandle, engine: tauri::State<'_, Arc<engine::Engine>>) -> AppInfo {
     AppInfo {
+        home: engine::home(&engine),
         version: app.package_info().version.to_string(),
         core_version: jclean_core::VERSION.to_string(),
         platform: std::env::consts::OS.to_string(),
     }
 }
 
+/// Dev builds only: prints a message from the UI to the terminal (used by
+/// the frame-rate probe). Does nothing in release builds.
+#[tauri::command]
+#[specta::specta]
+fn dev_log(message: String) {
+    #[cfg(debug_assertions)]
+    eprintln!("[ui] {message}");
+    #[cfg(not(debug_assertions))]
+    let _ = message;
+}
+
 /// All commands and events exposed to the frontend. The TypeScript bindings
 /// are generated from this, so frontend and backend can't drift.
 pub fn specta_builder() -> Builder<tauri::Wry> {
-    Builder::<tauri::Wry>::new().commands(collect_commands![app_info, window::set_window_mode])
+    Builder::<tauri::Wry>::new().commands(collect_commands![
+        app_info,
+        dev_log,
+        window::set_window_mode,
+        engine::start_scan,
+        engine::cancel_scan,
+        engine::map_level,
+        engine::volume_info,
+        engine::cached_scan,
+    ])
 }
 
 /// Writes `src/bindings.ts` for the frontend.
@@ -45,8 +72,9 @@ pub fn export_bindings(builder: &Builder<tauri::Wry>) -> Result<(), String> {
         .map_err(|err| err.to_string())
 }
 
-pub fn run() -> tauri::Result<()> {
+pub fn run() -> Result<(), Box<dyn std::error::Error>> {
     let builder = specta_builder();
+    let engine = Arc::new(engine::Engine::new()?);
 
     #[cfg(debug_assertions)]
     if let Err(err) = export_bindings(&builder) {
@@ -56,12 +84,14 @@ pub fn run() -> tauri::Result<()> {
     tauri::Builder::default()
         .plugin(tauri_plugin_window_state::Builder::new().build())
         .manage(window::LastExpandedWidth::default())
+        .manage(engine)
         .invoke_handler(builder.invoke_handler())
         .setup(move |app| {
             builder.mount_events(app);
             Ok(())
         })
-        .run(tauri::generate_context!())
+        .run(tauri::generate_context!())?;
+    Ok(())
 }
 
 #[cfg(test)]
