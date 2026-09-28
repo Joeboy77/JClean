@@ -63,7 +63,7 @@ pub struct Verified {
     pub allocated: u64,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, thiserror::Error, Serialize)]
+#[derive(Debug, Clone, PartialEq, Eq, thiserror::Error, Serialize, Deserialize)]
 #[serde(tag = "kind", rename_all = "kebab-case")]
 pub enum Refusal {
     #[error("The path isn't valid: {0}")]

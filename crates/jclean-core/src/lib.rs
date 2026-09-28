@@ -13,6 +13,7 @@ pub mod cleaner;
 pub mod disktree;
 pub mod env;
 pub mod history;
+pub mod map;
 pub mod planner;
 pub mod platform;
 pub mod probes;

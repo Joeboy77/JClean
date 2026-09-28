@@ -72,6 +72,19 @@ pub fn tool_dirs(env: &Env) -> Vec<PathBuf> {
     }
 }
 
+/// Colour bucket for a folder in the full-scan disk map. Falls back to the
+/// parent's category, so everything under `~/Pictures` stays media.
+pub fn categorize(
+    env: &Env,
+    path: &std::path::Path,
+    parent: crate::rules::Category,
+) -> crate::rules::Category {
+    match env.os() {
+        Os::Macos => macos::categorize(env, path, parent),
+        Os::Windows | Os::Linux => parent,
+    }
+}
+
 /// `~/Library/Application Support/app.jclean` on macOS (spec §10).
 pub fn app_data_dir(env: &Env) -> PathBuf {
     match env.os() {

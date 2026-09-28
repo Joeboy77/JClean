@@ -2,6 +2,7 @@ use std::path::{Path, PathBuf};
 
 use super::{ProtectedPath, Scope};
 use crate::env::Env;
+use crate::rules::Category;
 
 pub(super) fn known_dir(env: &Env, token: &str) -> Option<PathBuf> {
     let home = env.home();
@@ -110,4 +111,62 @@ pub(super) fn tool_dirs(env: &Env) -> Vec<PathBuf> {
 
 pub(super) fn app_data_dir(env: &Env) -> PathBuf {
     env.home().join("Library/Application Support/app.jclean")
+}
+
+/// Folders that are developer storage wherever they appear.
+const DEV_NAMES: &[&str] = &[
+    "node_modules",
+    ".npm",
+    ".yarn",
+    ".pnpm-store",
+    ".bun",
+    ".nvm",
+    ".volta",
+    ".cargo",
+    ".rustup",
+    ".gradle",
+    ".m2",
+    ".android",
+    ".pub-cache",
+    ".docker",
+    ".cache",
+    "go",
+    "Developer",
+    "target",
+    ".venv",
+    "venv",
+    "DerivedData",
+    "CoreSimulator",
+];
+
+pub(super) fn categorize(env: &Env, path: &Path, parent: Category) -> Category {
+    let Ok(rel) = path.strip_prefix(env.home()) else {
+        return if path.starts_with(env.system_path(Path::new("/Applications"))) {
+            Category::Apps
+        } else {
+            Category::System
+        };
+    };
+    let name = path
+        .file_name()
+        .and_then(|n| n.to_str())
+        .unwrap_or_default();
+    if DEV_NAMES.contains(&name) {
+        return Category::Developer;
+    }
+    let mut parts = rel
+        .components()
+        .map(|c| c.as_os_str().to_str().unwrap_or_default());
+    match (parts.next(), parts.next()) {
+        (Some("Pictures" | "Movies" | "Music"), None) => Category::Media,
+        (Some("Documents" | "Desktop" | "Downloads"), None) => Category::Documents,
+        (Some("Library"), Some("Mobile Documents" | "CloudStorage")) => Category::Documents,
+        (
+            Some("Library"),
+            Some("Caches" | "Application Support" | "Containers" | "Group Containers" | "Logs"),
+        ) => Category::Apps,
+        (Some("Library"), None) => Category::System,
+        (Some(".Trash"), None) => Category::Other,
+        _ => parent,
+    }
 }

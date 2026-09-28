@@ -10,7 +10,7 @@ use std::sync::Mutex;
 use std::sync::atomic::{AtomicUsize, Ordering};
 
 use rayon::prelude::*;
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 
 use crate::cancel::CancelToken;
 use crate::disktree::{self, DEFAULT_FILE_THRESHOLD, LargeFile, TreeNode, TreeOptions};
@@ -26,7 +26,7 @@ use crate::sizing::{InodeSet, Measure, MeasureOptions, SizeError, measure};
 use crate::time::{DAY_SECS, now_secs};
 use crate::tools::CommandRunner;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub enum ScanMode {
     Quick,
@@ -65,7 +65,7 @@ impl ScanOptions {
     }
 }
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ScanItem {
     /// Stable within a scan: `<rule id>:<path or probe key>`.
@@ -101,7 +101,7 @@ pub struct ScanItem {
     pub tool_paths: Vec<PathBuf>,
 }
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ProjectRef {
     pub root: PathBuf,
@@ -110,7 +110,7 @@ pub struct ProjectRef {
 }
 
 /// Why an item is shown but can't be cleaned.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(tag = "kind", rename_all = "kebab-case")]
 pub enum Blocked {
     Safety { reason: Refusal },
@@ -126,14 +126,14 @@ impl Blocked {
     }
 }
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ScanNote {
     pub rule_id: Option<String>,
     pub message: String,
 }
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ScanResult {
     pub mode: ScanMode,
@@ -147,7 +147,7 @@ pub struct ScanResult {
     /// Results are partial.
     pub cancelled: bool,
     /// Full scan only: the disk map of the scan roots.
-    #[serde(skip_serializing_if = "Vec::is_empty")]
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub tree: Vec<TreeNode>,
 }
 
@@ -373,35 +373,41 @@ impl Scanner<'_> {
         let done = AtomicUsize::new(0);
         let found = Mutex::new(Vec::with_capacity(total));
         let unreadable_total = AtomicUsize::new(0);
-        candidates.par_iter().for_each(|c| {
-            if cancel.is_cancelled() {
-                return;
-            }
-            let opts_m = MeasureOptions {
-                cross_filesystems: c.rule.cross_filesystems,
-                exclude: c.exclude.iter().cloned().collect(),
-            };
-            match measure(&c.path, &opts_m, &inodes, cancel) {
-                Ok(m) => {
-                    unreadable_total.fetch_add(
-                        usize::try_from(m.unreadable_dirs).unwrap_or(usize::MAX),
-                        Ordering::Relaxed,
-                    );
-                    if let Some(item) = self.item(c, &m, &projects, opts, &guard) {
-                        on_event(ScanEvent::Item(&item));
-                        if let Ok(mut f) = found.lock() {
-                            f.push(item);
+        // Known locations first so results show up fast; project folders,
+        // usually the bulk of the files, come second.
+        let (fixed, project): (Vec<&Candidate<'_>>, Vec<&Candidate<'_>>) =
+            candidates.iter().partition(|c| c.project.is_none());
+        for batch in [fixed, project] {
+            batch.par_iter().for_each(|c| {
+                if cancel.is_cancelled() {
+                    return;
+                }
+                let opts_m = MeasureOptions {
+                    cross_filesystems: c.rule.cross_filesystems,
+                    exclude: c.exclude.iter().cloned().collect(),
+                };
+                match measure(&c.path, &opts_m, &inodes, cancel) {
+                    Ok(m) => {
+                        unreadable_total.fetch_add(
+                            usize::try_from(m.unreadable_dirs).unwrap_or(usize::MAX),
+                            Ordering::Relaxed,
+                        );
+                        if let Some(item) = self.item(c, &m, &projects, opts, &guard) {
+                            on_event(ScanEvent::Item(&item));
+                            if let Ok(mut f) = found.lock() {
+                                f.push(item);
+                            }
                         }
                     }
+                    Err(SizeError::NotFound(_) | SizeError::Cancelled) => {}
+                    Err(SizeError::Io { .. }) => {
+                        unreadable_total.fetch_add(1, Ordering::Relaxed);
+                    }
                 }
-                Err(SizeError::NotFound(_) | SizeError::Cancelled) => {}
-                Err(SizeError::Io { .. }) => {
-                    unreadable_total.fetch_add(1, Ordering::Relaxed);
-                }
-            }
-            let n = done.fetch_add(1, Ordering::Relaxed) + 1;
-            on_event(ScanEvent::Progress { done: n, total });
-        });
+                let n = done.fetch_add(1, Ordering::Relaxed) + 1;
+                on_event(ScanEvent::Progress { done: n, total });
+            });
+        }
         items.extend(found.into_inner().unwrap_or_default());
         items.sort_by(|a, b| b.bytes.cmp(&a.bytes).then_with(|| a.id.cmp(&b.id)));
         unreadable += u64::try_from(unreadable_total.into_inner()).unwrap_or(u64::MAX);

@@ -8,13 +8,13 @@ use std::path::{Path, PathBuf};
 use std::sync::Mutex;
 
 use rayon::prelude::*;
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 
 use crate::cancel::CancelToken;
 use crate::platform::fs::{allocated_bytes, device, hard_link_id, mtime_secs};
 use crate::sizing::{InodeSet, MeasureOptions, measure};
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct TreeNode {
     pub name: String,
@@ -29,7 +29,7 @@ pub struct TreeNode {
     pub summarized: bool,
 }
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct LargeFile {
     pub path: PathBuf,

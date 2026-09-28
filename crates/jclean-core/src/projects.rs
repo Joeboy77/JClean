@@ -7,7 +7,7 @@ use std::path::{Path, PathBuf};
 
 use globset::{GlobSet, GlobSetBuilder};
 use rayon::prelude::*;
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 
 use crate::cancel::CancelToken;
 use crate::platform::fs::{device, mtime_secs};
@@ -50,7 +50,7 @@ impl<'a> ArtifactRule<'a> {
     }
 }
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Project {
     pub root: PathBuf,
@@ -60,7 +60,7 @@ pub struct Project {
     pub artifacts: Vec<Artifact>,
 }
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Artifact {
     pub rule_id: String,

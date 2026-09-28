@@ -20,6 +20,18 @@ unsafe_code = "deny"
 unwrap_used = "deny"
 expect_used = "deny"
 
+# Keep debug builds small: line tables for our code, no debug info for
+# dependencies. Full debug info for Tauri's tree is several gigabytes.
+[profile.dev]
+debug = "line-tables-only"
+
+[profile.dev.package."*"]
+debug = false
+
+# The engine walks millions of files; unoptimized it makes dev scans crawl.
+[profile.dev.package.jclean-core]
+opt-level = 2
+
 [profile.release]
 codegen-units = 1
 lto = true
