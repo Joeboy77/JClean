@@ -90,4 +90,16 @@ jobs:
 
       # Runs natively, so junctions, NTFS sizes and hard links are real.
       - name: Rust tests
-        run: cargo test --workspace
+        shell: bash
+        run: |
+          set -o pipefail
+          cargo test --workspace 2>&1 | tee test-output.txt
+
+      # Puts failures on the run's summary page, where they're readable
+      # without opening the log.
+      - name: Summarize test failures
+        if: failure()
+        shell: bash
+        run: |
+          summary=$(grep -E -A6 "panicked at|^error(\[E[0-9]+\])?:" test-output.txt | head -120 | sed ':a;N;$!ba;s/%/%25/g;s/\r//g;s/\n/%0A/g')
+          echo "::error title=Rust test failures on Windows::${summary}"
