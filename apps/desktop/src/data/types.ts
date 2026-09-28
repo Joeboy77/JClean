@@ -44,6 +44,8 @@ export interface StorageItem {
   name: string | null;
   path: string | null;
   bytes: number;
+  /** False when a tool can't report the size (e.g. local snapshots). */
+  bytesKnown: boolean;
   /** Unix seconds. */
   lastUsed: number | null;
   risk: Risk;
@@ -59,11 +61,27 @@ export interface StorageItem {
 export interface Volume {
   name: string;
   total: number;
+  /** What Finder shows as available: includes purgeable space. */
   available: number;
   /** Space macOS frees on its own when needed. */
   purgeable: number;
-  /** Used space by category. */
-  used: Record<Category, number>;
 }
+
+/** A cell of the disk map, from either map view. */
+export interface MapCellView {
+  id: string;
+  name: string;
+  bytes: number;
+  category: Category;
+  reclaimable: number;
+  /** Set when the cell is exactly one list item. */
+  itemId: string | null;
+  drillable: boolean;
+  /** The merged "Other small items" cell. */
+  other: boolean;
+}
+
+/** "found": what JClean found, by category → rule → item. "folders": the full scan's folder tree. */
+export type MapView = "found" | "folders";
 
 export type ScanPhase = "idle" | "scanning" | "results" | "cleaning" | "done";

@@ -40,6 +40,8 @@ export function StorageList() {
       audience: st.audience,
       disabledRules: st.disabledRules,
       volume: st.volume,
+      home: st.home,
+      source: st.source,
     })),
   );
   const actions = useStore(
@@ -48,6 +50,7 @@ export function StorageList() {
       toggleExpanded: st.toggleExpanded,
       toggleSection: st.toggleSection,
       openDrawer: st.openDrawer,
+      setHover: st.setHover,
     })),
   );
 
@@ -152,7 +155,11 @@ export function StorageList() {
     return (
       <EmptyState
         title="Your Mac is tidy"
-        body={`Nothing to clean right now. ${formatBytes(s.volume.available)} free.`}
+        body={
+          s.volume
+            ? `Nothing to clean right now. ${formatBytes(s.volume.available)} free.`
+            : "Nothing to clean right now."
+        }
       />
     );
   }
@@ -184,8 +191,18 @@ export function StorageList() {
               {...(row.kind === "group" && row.expandable ? { "aria-expanded": row.expanded } : {})}
               {...(row.kind === "section" ? { "aria-expanded": !row.collapsed } : {})}
               data-active={isActive}
+              data-row-key={row.key}
               onMouseDown={() => {
                 setActive(v.index);
+              }}
+              onMouseEnter={() => {
+                if (row.kind === "group")
+                  actions.setHover({ rowKey: row.key, itemIds: row.items.map((i) => i.id) });
+                else if (row.kind === "item")
+                  actions.setHover({ rowKey: row.key, itemIds: [row.item.id] });
+              }}
+              onMouseLeave={() => {
+                actions.setHover(null);
               }}
               className="absolute inset-x-0 top-0 py-0.5"
               style={{ height: v.size, transform: `translateY(${String(v.start)}px)` }}
@@ -204,6 +221,7 @@ export function StorageList() {
                   row={row}
                   active={isActive}
                   audience={s.audience}
+                  home={s.home}
                   onToggleCheck={() => {
                     toggleGroup(row);
                   }}
@@ -220,6 +238,7 @@ export function StorageList() {
                   row={row}
                   active={isActive}
                   audience={s.audience}
+                  home={s.home}
                   onToggleCheck={() => {
                     toggleItem(row);
                   }}

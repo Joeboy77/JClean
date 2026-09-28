@@ -39,6 +39,7 @@ function item(id: string, ruleId: string, overrides: Partial<StorageItem> = {}):
     name: null,
     path: `/Users/me/${id}`,
     bytes: 1e6,
+    bytesKnown: true,
     lastUsed: null,
     risk: "safe",
     category: "developer",

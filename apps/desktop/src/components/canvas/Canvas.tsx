@@ -1,15 +1,20 @@
 import { Minus, Plus } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
-import { useMemo } from "react";
+import { Profiler, useMemo } from "react";
+import { onRender } from "../../dev/profile";
 import { formatBytes } from "../../lib/format";
 import { fade } from "../../lib/motion";
-import { startScan } from "../../state/mockEngine";
+import { startScan } from "../../state/engine";
 import { useStore } from "../../state/store";
 import { LogoMark } from "../LogoMark";
+import { MapArea } from "./MapArea";
+
+const ZOOMS = [1, 1.5, 2, 3];
 
 function StatePill() {
   const phase = useStore((s) => s.phase);
   const progress = useStore((s) => s.progress);
+  const stage = useStore((s) => s.stage);
   const items = useStore((s) => s.items);
   const freed = useStore((s) => s.freed);
   const reclaimable = useMemo(
@@ -19,7 +24,7 @@ function StatePill() {
 
   const text = {
     idle: "Not scanned",
-    scanning: `Scanning · ${String(Math.round(progress * 100))}%`,
+    scanning: `${stage || "Scanning"} · ${String(Math.round(progress * 100))}%`,
     results: `Ready · ${formatBytes(reclaimable)} can be freed`,
     cleaning: "Cleaning…",
     done: `Freed ${formatBytes(freed)}`,
@@ -55,27 +60,41 @@ function StatePill() {
   );
 }
 
-/** Placeholder blocks behind the scan sweep until the real map lands (phase 3). */
-function BlockField({ sweeping }: { sweeping: boolean }) {
-  const blocks = [
-    "col-span-5 row-span-4",
-    "col-span-3 row-span-2",
-    "col-span-4 row-span-3",
-    "col-span-3 row-span-2",
-    "col-span-2 row-span-3",
-    "col-span-2 row-span-1",
-    "col-span-3 row-span-2",
-    "col-span-4 row-span-2",
-    "col-span-2 row-span-2",
-  ];
+function ZoomControl() {
+  const zoom = useStore((s) => s.zoom);
+  const setZoom = useStore((s) => s.setZoom);
+  const phase = useStore((s) => s.phase);
+  const i = ZOOMS.indexOf(zoom);
+  const off = phase === "idle";
   return (
-    <div className="relative h-full w-full overflow-hidden rounded-card" aria-hidden="true">
-      <div className="grid h-full grid-cols-12 grid-rows-6 gap-1 opacity-60">
-        {blocks.map((b, i) => (
-          <div key={i} className={`${b} skeleton rounded-cell`} />
-        ))}
-      </div>
-      {sweeping && <div className="scan-sweep absolute inset-y-0 w-1/3" />}
+    <div
+      className="flex items-center rounded-control border border-line bg-surface"
+      role="group"
+      aria-label="Zoom"
+    >
+      <button
+        type="button"
+        disabled={off || i <= 0}
+        onClick={() => {
+          setZoom(ZOOMS[i - 1] ?? 1);
+        }}
+        aria-label="Zoom out"
+        className="grid size-7 place-items-center text-muted hover:text-text disabled:opacity-40"
+      >
+        <Minus size={14} aria-hidden="true" />
+      </button>
+      <span className="tabular w-9 text-center text-xs text-muted">{Math.round(zoom * 100)}%</span>
+      <button
+        type="button"
+        disabled={off || i >= ZOOMS.length - 1}
+        onClick={() => {
+          setZoom(ZOOMS[i + 1] ?? zoom);
+        }}
+        aria-label="Zoom in"
+        className="grid size-7 place-items-center text-muted hover:text-text disabled:opacity-40"
+      >
+        <Plus size={14} aria-hidden="true" />
+      </button>
     </div>
   );
 }
@@ -90,28 +109,7 @@ export function Canvas() {
       >
         <StatePill />
         <div className="absolute top-3 right-5 flex items-center gap-4">
-          <div
-            className="flex items-center rounded-control border border-line bg-surface"
-            aria-label="Zoom"
-          >
-            <button
-              type="button"
-              disabled
-              aria-label="Zoom out"
-              className="grid size-7 place-items-center text-muted disabled:opacity-40"
-            >
-              <Minus size={14} aria-hidden="true" />
-            </button>
-            <span className="h-3 w-px bg-line" />
-            <button
-              type="button"
-              disabled
-              aria-label="Zoom in"
-              className="grid size-7 place-items-center text-muted disabled:opacity-40"
-            >
-              <Plus size={14} aria-hidden="true" />
-            </button>
-          </div>
+          <ZoomControl />
           <span className="flex items-center gap-2 text-accent">
             <LogoMark size={18} />
             <span className="font-semibold text-text">JClean</span>
@@ -119,7 +117,7 @@ export function Canvas() {
         </div>
       </div>
 
-      <div className="relative min-h-0 flex-1 p-6 pt-4">
+      <div className="relative min-h-0 flex-1 px-6 pt-2 pb-6">
         <AnimatePresence mode="wait" initial={false}>
           {phase === "idle" ? (
             <motion.div
@@ -161,7 +159,9 @@ export function Canvas() {
               </div>
               <button
                 type="button"
-                onClick={startScan}
+                onClick={() => {
+                  startScan("quick");
+                }}
                 className="h-9 rounded-control bg-accent px-5 font-medium text-white hover:brightness-110"
               >
                 Scan this Mac
@@ -176,11 +176,12 @@ export function Canvas() {
               exit={{ opacity: 0 }}
               transition={fade}
             >
-              <BlockField sweeping={phase === "scanning" || phase === "cleaning"} />
-              {(phase === "results" || phase === "done") && (
-                <p className="absolute inset-x-0 bottom-3 text-center text-xs text-muted">
-                  The interactive disk map fills this space in the next update.
-                </p>
+              {import.meta.env.DEV && import.meta.env.VITE_DEMO === "fps" ? (
+                <Profiler id="map" onRender={onRender}>
+                  <MapArea />
+                </Profiler>
+              ) : (
+                <MapArea />
               )}
             </motion.div>
           )}

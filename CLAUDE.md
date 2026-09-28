@@ -56,7 +56,8 @@ jclean/
 ```
 pnpm install
 pnpm tauri dev                       # run desktop app (from apps/desktop)
-VITE_DEMO=drawer VITE_MOCK_ROWS=5000 pnpm tauri dev   # dev-only: replay a UI state (scan|drawer|compact|expanded)
+VITE_DEMO=drawer VITE_MOCK_ROWS=5000 pnpm tauri dev   # dev-only: replay a state (scan|full|drawer|compact|expanded|fps)
+VITE_NO_AUTOSCAN=1 pnpm tauri dev    # dev-only: skip the quick scan on launch
 pnpm --filter web dev                # run website
 cargo test -p jclean-core
 cargo run -p jclean-cli -- scan --dry-run --mode quick

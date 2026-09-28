@@ -15,14 +15,6 @@ export const MOCK_VOLUME: Volume = {
   total: 494.4 * GB,
   available: 142.3 * GB,
   purgeable: 6.2 * GB,
-  used: {
-    apps: 58.3 * GB,
-    developer: 141.6 * GB,
-    system: 71.2 * GB,
-    media: 38.4 * GB,
-    documents: 29.1 * GB,
-    other: 13.5 * GB,
-  },
 };
 
 /** Small deterministic PRNG so mock data is stable between runs. */
@@ -259,6 +251,7 @@ export function mockItems(extraProjects = 0): StorageItem[] {
       name: seed.project?.name ?? seed.name ?? null,
       path,
       bytes: Math.round(seed.bytes),
+      bytesKnown: true,
       lastUsed: seed.days === null ? null : NOW - seed.days * DAY,
       risk,
       category: rule.category,

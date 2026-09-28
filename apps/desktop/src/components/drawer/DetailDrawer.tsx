@@ -2,7 +2,6 @@ import { FolderOpen, X } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { RULES_BY_ID } from "../../data/catalog";
-import { MOCK_HOME } from "../../data/mock";
 import type { Method, Rule, StorageItem } from "../../data/types";
 import { formatAgo, formatBytes, tildify } from "../../lib/format";
 import { fade, spring } from "../../lib/motion";
@@ -61,7 +60,15 @@ function Field({ label, children }: { label: string; children: ReactNode }) {
   );
 }
 
-function Locations({ items, developer }: { items: StorageItem[]; developer: boolean }) {
+function Locations({
+  items,
+  developer,
+  home,
+}: {
+  items: StorageItem[];
+  developer: boolean;
+  home: string;
+}) {
   const [shown, setShown] = useState(developer);
   const withPaths = items.filter((i) => i.path);
   if (withPaths.length === 0)
@@ -86,7 +93,7 @@ function Locations({ items, developer }: { items: StorageItem[]; developer: bool
         <li key={item.id}>
           <div className="flex items-center gap-2">
             <span className="min-w-0 flex-1 truncate font-mono text-xs" title={item.path ?? ""}>
-              {tildify(item.path ?? "", MOCK_HOME)}
+              {tildify(item.path ?? "", home)}
             </span>
             <span className="tabular shrink-0 text-xs text-muted">{formatBytes(item.bytes)}</span>
           </div>
@@ -117,6 +124,7 @@ export function DetailDrawer({ compact }: DetailDrawerProps) {
   const items = useStore((s) => s.items);
   const audience = useStore((s) => s.audience);
   const close = useStore((s) => s.closeDrawer);
+  const home = useStore((s) => s.home);
   const resolved = useMemo(
     () => (target ? resolve(target, items, audience) : null),
     [target, items, audience],
@@ -231,7 +239,11 @@ export function DetailDrawer({ compact }: DetailDrawerProps) {
                     : "Location"
                 }
               >
-                <Locations items={resolved.items} developer={audience === "developer"} />
+                <Locations
+                  items={resolved.items}
+                  developer={audience === "developer"}
+                  home={home}
+                />
               </Field>
 
               <div className="flex flex-wrap gap-2 pt-1">

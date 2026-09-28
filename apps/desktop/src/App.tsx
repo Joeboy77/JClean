@@ -1,15 +1,26 @@
 import { AnimatePresence, MotionConfig, motion } from "motion/react";
 import { useEffect, useRef } from "react";
 import { Canvas } from "./components/canvas/Canvas";
+import { ConnectorLine } from "./components/ConnectorLine";
 import { DetailDrawer } from "./components/drawer/DetailDrawer";
 import { Sidebar } from "./components/sidebar/Sidebar";
 import { useWindowMode } from "./lib/windowMode";
+import { init } from "./state/engine";
 import { useStore } from "./state/store";
 
 export function App() {
   const { compact, showCanvas, toggle, onCanvasHidden } = useWindowMode();
   const searchRef = useRef<HTMLInputElement>(null);
   const setTab = useStore((s) => s.setTab);
+
+  // Show the last scan right away, then refresh it (spec §4.1, §10).
+  useEffect(() => {
+    const autoScan = !(
+      import.meta.env.DEV &&
+      (import.meta.env.VITE_NO_AUTOSCAN || import.meta.env.VITE_DEMO)
+    );
+    void init({ autoScan });
+  }, []);
 
   // ⌘F focuses search.
   useEffect(() => {
@@ -49,6 +60,7 @@ export function App() {
             </motion.div>
           )}
         </AnimatePresence>
+        {showCanvas && <ConnectorLine />}
       </div>
     </MotionConfig>
   );

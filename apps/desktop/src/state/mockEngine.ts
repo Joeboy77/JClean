@@ -16,7 +16,7 @@ function stop() {
 export function startScan() {
   stop();
   const store = useStore.getState();
-  store.beginScan();
+  store.beginScan("quick");
   const target = mockRowTarget();
   const all = mockItems(target ? Math.ceil(target / 2.75) : 0);
   const batches = 24;
@@ -36,7 +36,7 @@ export function startScan() {
     s.setProgress(Math.min(1, sent / all.length));
     if (sent >= all.length) {
       stop();
-      s.finishScan(false);
+      s.finishScan({ partial: false, source: "mock" });
     }
   }, 100);
 }
@@ -44,7 +44,7 @@ export function startScan() {
 /** Stops the scan and keeps what was found so far. */
 export function cancelScan() {
   stop();
-  useStore.getState().finishScan(true);
+  useStore.getState().finishScan({ partial: true, source: "mock" });
 }
 
 export function startClean() {

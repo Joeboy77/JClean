@@ -2,7 +2,6 @@ import { ChevronRight, Info } from "lucide-react";
 import { motion } from "motion/react";
 import type { Audience } from "../../data/types";
 import { formatAgo, formatBytes, speakBytes, tildify } from "../../lib/format";
-import { MOCK_HOME } from "../../data/mock";
 import { spring } from "../../lib/motion";
 import {
   countLabel,
@@ -69,7 +68,7 @@ export function SectionHeader({ row, active, onToggle }: SectionProps) {
   );
 }
 
-function secondaryForGroup(row: GroupRow, audience: Audience): string {
+function secondaryForGroup(row: GroupRow, audience: Audience, home: string): string {
   const parts: string[] = [];
   const only = row.items.length === 1 ? row.items[0] : undefined;
   // The count comes first so it never gets cut off in narrow windows.
@@ -82,7 +81,7 @@ function secondaryForGroup(row: GroupRow, audience: Audience): string {
   } else if (only?.name) {
     parts.push(only.name);
   } else if (only && audience === "developer" && only.path) {
-    parts.push(tildify(only.path, MOCK_HOME));
+    parts.push(tildify(only.path, home));
   }
   return parts.join(" · ");
 }
@@ -95,6 +94,7 @@ interface GroupProps {
   row: GroupRow;
   active: boolean;
   audience: Audience;
+  home: string;
   onToggleCheck: () => void;
   onToggleExpand: () => void;
   onOpen: () => void;
@@ -104,6 +104,7 @@ export function GroupRowView({
   row,
   active,
   audience,
+  home,
   onToggleCheck,
   onToggleExpand,
   onOpen,
@@ -137,7 +138,7 @@ export function GroupRowView({
           {label}
         </button>
         <span className="block truncate text-xs text-muted">
-          {secondaryForGroup(row, audience)}
+          {secondaryForGroup(row, audience, home)}
         </span>
       </span>
       <span className={`tabular shrink-0 ${row.disabled ? "text-muted" : "text-text"}`}>
@@ -167,18 +168,19 @@ interface ItemProps {
   row: ItemRow;
   active: boolean;
   audience: Audience;
+  home: string;
   onToggleCheck: () => void;
   onOpen: () => void;
 }
 
-export function ItemRowView({ row, active, audience, onToggleCheck, onOpen }: ItemProps) {
+export function ItemRowView({ row, active, audience, home, onToggleCheck, onOpen }: ItemProps) {
   const { item } = row;
   const name = itemName(item);
   const detail = [
     item.lastUsed !== null ? `Last used ${formatAgo(item.lastUsed)}` : null,
     item.blockedReason,
     item.project?.active ? "active project" : null,
-    audience === "developer" && item.path ? tildify(item.path, MOCK_HOME) : null,
+    audience === "developer" && item.path ? tildify(item.path, home) : null,
   ]
     .filter(Boolean)
     .join(" · ");
