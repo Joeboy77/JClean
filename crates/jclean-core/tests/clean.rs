@@ -234,6 +234,67 @@ fn a_junction_in_a_cache_is_removed_as_a_link() {
     assert!(w.f.path("Documents/important.txt").exists());
 }
 
+/// Windows: one UAC prompt through PowerShell, with results in the exit code.
+#[cfg(windows)]
+#[test]
+fn administrator_items_share_one_uac_prompt_and_respect_cancel() {
+    use jclean_core::tools::CommandOutput;
+    let w = world();
+    w.f.system_file("Library/Logs/SomeDaemon/log.txt", 300_000)
+        .unwrap();
+    std::fs::create_dir_all(w.f.root.join("private/var/log")).unwrap();
+    let result = scan(&w, &FakeRunner::none());
+    let logs = id(
+        "macos.system.system-logs",
+        &w.f.root.join(jclean_core::testing::native("Library/Logs")),
+    );
+    assert!(result.item(&logs).is_some(), "system logs found");
+
+    let exit = |code: i32| {
+        let mut runner = FakeRunner::none();
+        runner.tools.insert(
+            "powershell.exe".to_string(),
+            CommandOutput {
+                status: Some(code),
+                stdout: String::new(),
+                stderr: String::new(),
+            },
+        );
+        runner
+    };
+    // Every op reported done (the report bit, no failure bits).
+    let approved = exit(0x1000_0000);
+    let plan = plan(&w, &result, &Selection::Ids(vec![logs]), &approved);
+    assert!(plan.needs_admin);
+    let report = run(&w, &plan, &approved, &NoProcesses, None, false);
+    assert!(
+        matches!(report.outcomes[0].outcome, Outcome::Cleaned { .. }),
+        "{:?}",
+        report.outcomes
+    );
+    let calls = approved.calls();
+    assert_eq!(calls.len(), 1, "one UAC prompt for everything");
+    assert!(calls[0].1.iter().any(|a| a.contains("-Verb RunAs")));
+    // The folder is cleared in place, and nothing was really removed here.
+    assert!(
+        w.f.root
+            .join("Library")
+            .join("Logs")
+            .join("SomeDaemon")
+            .exists()
+    );
+
+    // Declining UAC (ERROR_CANCELLED) skips the item with a plain reason.
+    let declined = exit(1223);
+    let report = run(&w, &plan, &declined, &NoProcesses, None, false);
+    assert_eq!(
+        report.outcomes[0].outcome,
+        Outcome::Skipped {
+            reason: "You didn't approve the administrator request".to_string()
+        }
+    );
+}
+
 #[test]
 fn keep_root_clears_contents_but_keeps_the_folder() {
     let w = world();
@@ -512,6 +573,8 @@ fn deleting_user_files_is_opt_in_and_never_applies_to_caution_items() {
     assert!(delete.needs_second_confirmation);
 }
 
+/// macOS: one `osascript` password prompt.
+#[cfg(not(windows))]
 #[test]
 fn administrator_items_share_one_prompt_and_respect_cancel() {
     use jclean_core::tools::CommandOutput;

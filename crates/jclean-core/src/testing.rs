@@ -46,7 +46,7 @@ impl Fixture {
 
     /// Writes a file under the fixture root (a "system" location).
     pub fn system_file(&self, rel: &str, bytes: usize) -> std::io::Result<PathBuf> {
-        let path = self.root.join(rel);
+        let path = self.root.join(native(rel));
         write_file(&path, bytes)?;
         Ok(path)
     }

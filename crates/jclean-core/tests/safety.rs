@@ -411,9 +411,9 @@ proptest! {
         let path = parts.iter().fold(base, |p, c| p.join(c));
 
         if let Ok(canonical) = s.guard.check_path(&path, &inside(&root)) {
-            let canonical_root = fs::canonicalize(&root).unwrap();
+            let canonical_root = jclean_core::platform::fs::canonicalize(&root).unwrap();
             prop_assert!(canonical.starts_with(&canonical_root) && canonical != canonical_root, "{} approved", path.display());
-            let resolved_parent = fs::canonicalize(canonical.parent().unwrap()).unwrap();
+            let resolved_parent = jclean_core::platform::fs::canonicalize(canonical.parent().unwrap()).unwrap();
             prop_assert!(resolved_parent.starts_with(&canonical_root), "{} resolves outside", path.display());
         }
     }
