@@ -58,3 +58,36 @@ jobs:
 
       - name: IPC bindings are up to date
         run: git diff --exit-code apps/desktop/src/bindings.ts
+
+  windows:
+    name: Rust lint and test (Windows)
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy
+
+      - uses: Swatinem/rust-cache@v2
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      # Tauri embeds the built frontend, so it has to exist to compile.
+      - name: Frontend build
+        run: pnpm --filter desktop build
+
+      - name: Rust lint
+        run: cargo clippy --all-targets -- -D warnings
+
+      # Runs natively, so junctions, NTFS sizes and hard links are real.
+      - name: Rust tests
+        run: cargo test --workspace
