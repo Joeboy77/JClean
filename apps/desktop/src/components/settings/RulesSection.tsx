@@ -96,7 +96,7 @@ export function RulesSection() {
                       if (!e) setDraft(null);
                     });
                   }}
-                  className="h-8 rounded-control bg-accent px-3 font-medium text-white disabled:opacity-50"
+                  className="h-8 rounded-control bg-accent-strong px-3 font-medium text-white disabled:opacity-50"
                 >
                   Add folder
                 </button>

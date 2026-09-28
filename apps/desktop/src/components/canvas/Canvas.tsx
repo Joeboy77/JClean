@@ -162,7 +162,7 @@ export function Canvas() {
                 onClick={() => {
                   startScan("quick");
                 }}
-                className="h-9 rounded-control bg-accent px-5 font-medium text-white hover:brightness-110"
+                className="h-9 rounded-control bg-accent-strong px-5 font-medium text-white hover:brightness-110"
               >
                 Scan this Mac
               </button>

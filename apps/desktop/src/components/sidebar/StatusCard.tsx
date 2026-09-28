@@ -156,7 +156,7 @@ export function StatusCard() {
       onClick={primary.onClick}
       disabled={primary.disabled}
       {...(primary.aria ? { "aria-label": primary.aria } : {})}
-      className="tabular relative h-9 w-full overflow-hidden rounded-control bg-accent px-4 font-medium text-white transition-[filter] hover:brightness-110 disabled:cursor-default disabled:opacity-50 disabled:hover:brightness-100"
+      className="tabular relative h-9 w-full overflow-hidden rounded-control bg-accent-strong px-4 font-medium text-white transition-[filter] hover:brightness-110 disabled:cursor-default disabled:opacity-50 disabled:hover:brightness-100"
     >
       {(phase === "scanning" || phase === "cleaning") && (
         <span

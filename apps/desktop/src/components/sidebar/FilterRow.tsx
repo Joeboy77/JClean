@@ -59,7 +59,7 @@ export function FilterRow({ compact, onToggleLayout }: FilterRowProps) {
                     exit={{ scale: 0.6, opacity: 0 }}
                     transition={{ duration: 0.15 }}
                     aria-hidden="true"
-                    className="tabular absolute -top-1.5 -right-1.5 grid h-4 min-w-4 place-items-center rounded-full bg-accent px-1 text-[10px] font-semibold text-white"
+                    className="tabular absolute -top-1.5 -right-1.5 grid h-4 min-w-4 place-items-center rounded-full bg-accent-strong px-1 text-[10px] font-semibold text-white"
                   >
                     {counts[key]}
                   </motion.span>

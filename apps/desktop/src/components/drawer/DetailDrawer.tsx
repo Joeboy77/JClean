@@ -265,7 +265,7 @@ export function DetailDrawer({ compact }: DetailDrawerProps) {
                         close();
                         void reviewClean(cleanableIds);
                       }}
-                      className="tabular flex h-8 items-center rounded-control bg-accent px-3 font-medium text-white hover:brightness-110 disabled:opacity-50"
+                      className="tabular flex h-8 items-center rounded-control bg-accent-strong px-3 font-medium text-white hover:brightness-110 disabled:opacity-50"
                     >
                       Clean {formatBytes(cleanableBytes)}
                     </button>

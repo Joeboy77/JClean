@@ -96,7 +96,7 @@ export function Onboarding() {
                     onClick={() => {
                       setStep("who");
                     }}
-                    className="mt-8 h-10 w-full rounded-control bg-accent font-medium text-white hover:brightness-110"
+                    className="mt-8 h-10 w-full rounded-control bg-accent-strong font-medium text-white hover:brightness-110"
                   >
                     Get started
                   </button>
@@ -148,7 +148,7 @@ export function Onboarding() {
                     onClick={() => {
                       setStep("access");
                     }}
-                    className="mt-6 h-10 w-full rounded-control bg-accent font-medium text-white hover:brightness-110"
+                    className="mt-6 h-10 w-full rounded-control bg-accent-strong font-medium text-white hover:brightness-110"
                   >
                     Continue
                   </button>
@@ -179,7 +179,7 @@ export function Onboarding() {
                     onClick={() => {
                       openLink("fullDiskAccessSettings");
                     }}
-                    className="mt-6 h-10 w-full rounded-control bg-accent font-medium text-white hover:brightness-110"
+                    className="mt-6 h-10 w-full rounded-control bg-accent-strong font-medium text-white hover:brightness-110"
                   >
                     Open System Settings
                   </button>

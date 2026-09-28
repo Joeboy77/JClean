@@ -233,7 +233,7 @@ function Sheet({ plan }: { plan: PlanDto }) {
             onClick={go}
             disabled={plan.items.length === 0}
             className={`tabular h-9 rounded-control px-4 font-medium text-white hover:brightness-110 disabled:opacity-50 ${
-              step === "caution" ? "bg-caution" : "bg-accent"
+              step === "caution" ? "bg-caution-strong" : "bg-accent-strong"
             }`}
           >
             {step === "caution" ? `Clean anyway · ${total}` : `Clean ${total}`}

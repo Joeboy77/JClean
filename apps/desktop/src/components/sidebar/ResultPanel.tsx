@@ -113,7 +113,7 @@ export function ResultPanel() {
       <button
         type="button"
         onClick={dismiss}
-        className="h-9 w-full rounded-control bg-accent font-medium text-white hover:brightness-110"
+        className="h-9 w-full rounded-control bg-accent-strong font-medium text-white hover:brightness-110"
       >
         Done
       </button>

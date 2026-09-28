@@ -76,7 +76,7 @@ export function SelectionBar() {
             onClick={() => {
               void reviewClean(chosen.map((i) => i.id));
             }}
-            className="tabular rounded-row bg-accent px-2.5 py-1 font-medium text-white hover:brightness-110 disabled:opacity-50"
+            className="tabular rounded-row bg-accent-strong px-2.5 py-1 font-medium text-white hover:brightness-110 disabled:opacity-50"
           >
             Clean {formatBytes(bytes)}
           </button>
