@@ -1,0 +1,337 @@
+[
+  {
+    "id": "macos.xcode.derived-data",
+    "version": 1,
+    "platforms": ["macos"],
+    "audience": ["developer"],
+    "category": "developer",
+    "group": "Xcode",
+    "labels": {
+      "developer": "Xcode DerivedData",
+      "everyday": "Temporary files from Xcode"
+    },
+    "description": {
+      "what": "Build products, indexes and logs Xcode keeps for each project.",
+      "ifCleared": "Xcode rebuilds and re-indexes the project next time you open it."
+    },
+    "icon": "hammer",
+    "risk": "safe",
+    "regenerates": true,
+    "detect": {
+      "kind": "fixed",
+      "paths": ["{home}/Library/Developer/Xcode/DerivedData"],
+      "eachChild": true,
+      "exclude": [".*"]
+    },
+    "unused": {
+      "basis": "newest-mtime",
+      "minAgeDays": 0
+    },
+    "cleanup": {
+      "method": "delete"
+    },
+    "relatedApps": ["Xcode"],
+    "mayShareBlocks": true
+  },
+  {
+    "id": "macos.xcode.previews",
+    "version": 1,
+    "platforms": ["macos"],
+    "audience": ["developer"],
+    "category": "developer",
+    "group": "Xcode",
+    "labels": {
+      "developer": "Xcode previews",
+      "everyday": "Preview files from Xcode"
+    },
+    "description": {
+      "what": "Data SwiftUI previews use.",
+      "ifCleared": "Previews are rebuilt the next time you use them."
+    },
+    "icon": "hammer",
+    "risk": "safe",
+    "regenerates": true,
+    "detect": {
+      "kind": "fixed",
+      "paths": ["{home}/Library/Developer/Xcode/UserData/Previews"]
+    },
+    "unused": {
+      "basis": "newest-mtime",
+      "minAgeDays": 0
+    },
+    "cleanup": {
+      "method": "delete"
+    },
+    "relatedApps": ["Xcode"]
+  },
+  {
+    "id": "macos.xcode.archives",
+    "version": 1,
+    "platforms": ["macos"],
+    "audience": ["developer"],
+    "category": "developer",
+    "group": "Xcode",
+    "labels": {
+      "developer": "Xcode archives",
+      "everyday": "App archives from Xcode"
+    },
+    "description": {
+      "what": "Archived builds of your apps, including the debug symbols needed to read crash reports.",
+      "ifCleared": "They move to the Trash. Once emptied, you can't symbolicate crash reports for those builds."
+    },
+    "icon": "archive",
+    "risk": "caution",
+    "regenerates": false,
+    "detect": {
+      "kind": "fixed",
+      "paths": ["{home}/Library/Developer/Xcode/Archives/*/*.xcarchive"]
+    },
+    "unused": {
+      "basis": "newest-mtime",
+      "minAgeDays": 0
+    },
+    "cleanup": {
+      "method": "trash"
+    }
+  },
+  {
+    "id": "macos.xcode.device-support",
+    "version": 1,
+    "platforms": ["macos"],
+    "audience": ["developer"],
+    "category": "developer",
+    "group": "Xcode",
+    "labels": {
+      "developer": "Device support files",
+      "everyday": "Support files for connected devices"
+    },
+    "description": {
+      "what": "Files Xcode copies from each iOS, watchOS, tvOS or visionOS version you've debugged on. The newest per platform is kept.",
+      "ifCleared": "Xcode copies them again the next time you connect a device with that version."
+    },
+    "icon": "smartphone",
+    "risk": "review",
+    "regenerates": true,
+    "detect": {
+      "kind": "fixed",
+      "paths": [
+        "{home}/Library/Developer/Xcode/iOS DeviceSupport/*",
+        "{home}/Library/Developer/Xcode/watchOS DeviceSupport/*",
+        "{home}/Library/Developer/Xcode/tvOS DeviceSupport/*",
+        "{home}/Library/Developer/Xcode/visionOS DeviceSupport/*"
+      ]
+    },
+    "unused": {
+      "basis": "newest-mtime",
+      "minAgeDays": 0
+    },
+    "cleanup": {
+      "method": "delete"
+    },
+    "relatedApps": ["Xcode"],
+    "keep": {
+      "newest": 1,
+      "groupBy": "parent"
+    }
+  },
+  {
+    "id": "macos.simulator.unavailable",
+    "version": 1,
+    "platforms": ["macos"],
+    "audience": ["developer"],
+    "category": "developer",
+    "group": "Simulators",
+    "labels": {
+      "developer": "Unavailable simulators",
+      "everyday": "Simulators you can't use anymore"
+    },
+    "description": {
+      "what": "Simulators for iOS versions no longer installed. They can't run.",
+      "ifCleared": "Nothing: they can't be used anyway."
+    },
+    "icon": "smartphone",
+    "risk": "safe",
+    "regenerates": true,
+    "detect": {
+      "kind": "probe",
+      "probe": "simctl-unavailable"
+    },
+    "unused": {
+      "basis": "newest-mtime",
+      "minAgeDays": 0
+    },
+    "cleanup": {
+      "method": "command",
+      "command": {
+        "tool": "xcrun",
+        "args": ["simctl", "delete", "unavailable"]
+      }
+    },
+    "relatedApps": ["Simulator"]
+  },
+  {
+    "id": "macos.simulator.devices",
+    "version": 1,
+    "platforms": ["macos"],
+    "audience": ["developer"],
+    "category": "developer",
+    "group": "Simulators",
+    "labels": {
+      "developer": "Simulator devices",
+      "everyday": "Simulated iPhones and iPads"
+    },
+    "description": {
+      "what": "Each simulated device, with the apps and data installed on it.",
+      "ifCleared": "The device and everything installed on it are removed. You can add it again in Xcode."
+    },
+    "icon": "smartphone",
+    "risk": "review",
+    "regenerates": true,
+    "detect": {
+      "kind": "fixed",
+      "paths": ["{home}/Library/Developer/CoreSimulator/Devices"],
+      "eachChild": true,
+      "exclude": ["*.plist", ".*"]
+    },
+    "unused": {
+      "basis": "newest-mtime",
+      "minAgeDays": 0
+    },
+    "cleanup": {
+      "method": "command",
+      "command": {
+        "tool": "xcrun",
+        "args": ["simctl", "delete", "{item}"]
+      }
+    },
+    "relatedApps": ["Simulator"]
+  },
+  {
+    "id": "macos.simulator.caches",
+    "version": 1,
+    "platforms": ["macos"],
+    "audience": ["developer"],
+    "category": "developer",
+    "group": "Simulators",
+    "labels": {
+      "developer": "Simulator caches",
+      "everyday": "Temporary files from simulators"
+    },
+    "description": {
+      "what": "Caches the simulator runtime keeps.",
+      "ifCleared": "They're rebuilt the next time a simulator starts."
+    },
+    "icon": "smartphone",
+    "risk": "safe",
+    "regenerates": true,
+    "detect": {
+      "kind": "fixed",
+      "paths": ["{home}/Library/Developer/CoreSimulator/Caches"]
+    },
+    "unused": {
+      "basis": "newest-mtime",
+      "minAgeDays": 0
+    },
+    "cleanup": {
+      "method": "delete",
+      "keepRoot": true
+    },
+    "relatedApps": ["Simulator"]
+  },
+  {
+    "id": "macos.apple.dependency-caches",
+    "version": 1,
+    "platforms": ["macos"],
+    "audience": ["developer"],
+    "category": "developer",
+    "group": "Package caches",
+    "labels": {
+      "developer": "CocoaPods, Carthage and SwiftPM caches",
+      "everyday": "Downloaded packages (iOS tools)"
+    },
+    "description": {
+      "what": "Libraries downloaded by CocoaPods, Carthage and Swift Package Manager.",
+      "ifCleared": "They're downloaded again on the next install or build."
+    },
+    "icon": "package",
+    "risk": "safe",
+    "regenerates": true,
+    "detect": {
+      "kind": "fixed",
+      "paths": [
+        "{caches}/CocoaPods",
+        "{caches}/org.carthage.CarthageKit",
+        "{caches}/org.swift.swiftpm"
+      ]
+    },
+    "unused": {
+      "basis": "newest-mtime",
+      "minAgeDays": 0
+    },
+    "cleanup": {
+      "method": "delete"
+    }
+  },
+  {
+    "id": "macos.apple.project-pods",
+    "version": 1,
+    "platforms": ["macos"],
+    "audience": ["developer"],
+    "category": "developer",
+    "group": "Project build folders",
+    "labels": {
+      "developer": "Pods folders",
+      "everyday": "Installed iOS libraries in old projects"
+    },
+    "description": {
+      "what": "Libraries CocoaPods installed into a project. Some teams commit this folder, so check first.",
+      "ifCleared": "Run pod install before working on the project again."
+    },
+    "icon": "folder-tree",
+    "risk": "review",
+    "regenerates": true,
+    "detect": {
+      "kind": "project-artifact",
+      "markers": ["Podfile"],
+      "folders": ["Pods"]
+    },
+    "unused": {
+      "basis": "project-activity",
+      "minAgeDays": 0
+    },
+    "cleanup": {
+      "method": "delete"
+    }
+  },
+  {
+    "id": "macos.apple.project-output",
+    "version": 1,
+    "platforms": ["macos"],
+    "audience": ["developer"],
+    "category": "developer",
+    "group": "Project build folders",
+    "labels": {
+      "developer": "Xcode project build folders",
+      "everyday": "Build output in old Xcode projects"
+    },
+    "description": {
+      "what": "A build folder next to an Xcode project. Some projects keep other files here, so check first.",
+      "ifCleared": "The next build recreates it. Anything that wasn't generated by the build is lost."
+    },
+    "icon": "folder-output",
+    "risk": "review",
+    "regenerates": true,
+    "detect": {
+      "kind": "project-artifact",
+      "markers": ["*.xcodeproj", "*.xcworkspace"],
+      "folders": ["build"]
+    },
+    "unused": {
+      "basis": "project-activity",
+      "minAgeDays": 0
+    },
+    "cleanup": {
+      "method": "delete"
+    }
+  }
+]

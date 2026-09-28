@@ -1,0 +1,249 @@
+[
+  {
+    "id": "macos.browsers.safari",
+    "version": 1,
+    "platforms": ["macos"],
+    "audience": ["everyday", "developer"],
+    "category": "apps",
+    "group": "Browser caches",
+    "labels": {
+      "developer": "Safari cache",
+      "everyday": "Safari's saved web data"
+    },
+    "description": {
+      "what": "Copies of web pages and images Safari keeps to load sites faster. Needs Full Disk Access to measure.",
+      "ifCleared": "The browser downloads pages and images again as you visit sites. You stay signed in, and your history, bookmarks and passwords aren't touched."
+    },
+    "icon": "compass",
+    "risk": "safe",
+    "regenerates": true,
+    "detect": {
+      "kind": "fixed",
+      "paths": [
+        "{caches}/com.apple.Safari",
+        "{home}/Library/Containers/com.apple.Safari/Data/Library/Caches"
+      ]
+    },
+    "unused": {
+      "basis": "newest-mtime",
+      "minAgeDays": 0
+    },
+    "cleanup": {
+      "method": "delete",
+      "keepRoot": true
+    },
+    "relatedApps": ["Safari"]
+  },
+  {
+    "id": "macos.browsers.chrome",
+    "version": 1,
+    "platforms": ["macos"],
+    "audience": ["everyday", "developer"],
+    "category": "apps",
+    "group": "Browser caches",
+    "labels": {
+      "developer": "Chrome cache",
+      "everyday": "Chrome's saved web data"
+    },
+    "description": {
+      "what": "Copies of web pages, scripts and images Chrome keeps to load sites faster.",
+      "ifCleared": "The browser downloads pages and images again as you visit sites. You stay signed in, and your history, bookmarks and passwords aren't touched."
+    },
+    "icon": "globe",
+    "risk": "safe",
+    "regenerates": true,
+    "detect": {
+      "kind": "fixed",
+      "paths": [
+        "{caches}/Google/Chrome",
+        "{appSupport}/Google/Chrome/*/Code Cache",
+        "{appSupport}/Google/Chrome/*/GPUCache",
+        "{appSupport}/Google/Chrome/*/Service Worker/CacheStorage"
+      ]
+    },
+    "unused": {
+      "basis": "newest-mtime",
+      "minAgeDays": 0
+    },
+    "cleanup": {
+      "method": "delete",
+      "keepRoot": true
+    },
+    "relatedApps": ["Google Chrome"]
+  },
+  {
+    "id": "macos.browsers.edge",
+    "version": 1,
+    "platforms": ["macos"],
+    "audience": ["everyday", "developer"],
+    "category": "apps",
+    "group": "Browser caches",
+    "labels": {
+      "developer": "Edge cache",
+      "everyday": "Edge's saved web data"
+    },
+    "description": {
+      "what": "Copies of web pages, scripts and images Edge keeps to load sites faster.",
+      "ifCleared": "The browser downloads pages and images again as you visit sites. You stay signed in, and your history, bookmarks and passwords aren't touched."
+    },
+    "icon": "globe",
+    "risk": "safe",
+    "regenerates": true,
+    "detect": {
+      "kind": "fixed",
+      "paths": [
+        "{caches}/Microsoft Edge",
+        "{appSupport}/Microsoft Edge/*/Code Cache",
+        "{appSupport}/Microsoft Edge/*/GPUCache",
+        "{appSupport}/Microsoft Edge/*/Service Worker/CacheStorage"
+      ]
+    },
+    "unused": {
+      "basis": "newest-mtime",
+      "minAgeDays": 0
+    },
+    "cleanup": {
+      "method": "delete",
+      "keepRoot": true
+    },
+    "relatedApps": ["Microsoft Edge"]
+  },
+  {
+    "id": "macos.browsers.brave",
+    "version": 1,
+    "platforms": ["macos"],
+    "audience": ["everyday", "developer"],
+    "category": "apps",
+    "group": "Browser caches",
+    "labels": {
+      "developer": "Brave cache",
+      "everyday": "Brave's saved web data"
+    },
+    "description": {
+      "what": "Copies of web pages, scripts and images Brave keeps to load sites faster.",
+      "ifCleared": "The browser downloads pages and images again as you visit sites. You stay signed in, and your history, bookmarks and passwords aren't touched."
+    },
+    "icon": "globe",
+    "risk": "safe",
+    "regenerates": true,
+    "detect": {
+      "kind": "fixed",
+      "paths": [
+        "{caches}/BraveSoftware/Brave-Browser",
+        "{appSupport}/BraveSoftware/Brave-Browser/*/Code Cache",
+        "{appSupport}/BraveSoftware/Brave-Browser/*/GPUCache",
+        "{appSupport}/BraveSoftware/Brave-Browser/*/Service Worker/CacheStorage"
+      ]
+    },
+    "unused": {
+      "basis": "newest-mtime",
+      "minAgeDays": 0
+    },
+    "cleanup": {
+      "method": "delete",
+      "keepRoot": true
+    },
+    "relatedApps": ["Brave Browser"]
+  },
+  {
+    "id": "macos.browsers.arc",
+    "version": 1,
+    "platforms": ["macos"],
+    "audience": ["everyday", "developer"],
+    "category": "apps",
+    "group": "Browser caches",
+    "labels": {
+      "developer": "Arc cache",
+      "everyday": "Arc's saved web data"
+    },
+    "description": {
+      "what": "Copies of web pages, scripts and images Arc keeps to load sites faster.",
+      "ifCleared": "The browser downloads pages and images again as you visit sites. You stay signed in, and your history, bookmarks and passwords aren't touched."
+    },
+    "icon": "globe",
+    "risk": "safe",
+    "regenerates": true,
+    "detect": {
+      "kind": "fixed",
+      "paths": [
+        "{caches}/Arc",
+        "{appSupport}/Arc/User Data/*/Code Cache",
+        "{appSupport}/Arc/User Data/*/GPUCache",
+        "{appSupport}/Arc/User Data/*/Service Worker/CacheStorage"
+      ]
+    },
+    "unused": {
+      "basis": "newest-mtime",
+      "minAgeDays": 0
+    },
+    "cleanup": {
+      "method": "delete",
+      "keepRoot": true
+    },
+    "relatedApps": ["Arc"]
+  },
+  {
+    "id": "macos.browsers.firefox",
+    "version": 1,
+    "platforms": ["macos"],
+    "audience": ["everyday", "developer"],
+    "category": "apps",
+    "group": "Browser caches",
+    "labels": {
+      "developer": "Firefox cache (cache2)",
+      "everyday": "Firefox's saved web data"
+    },
+    "description": {
+      "what": "Copies of web pages and images Firefox keeps to load sites faster.",
+      "ifCleared": "The browser downloads pages and images again as you visit sites. You stay signed in, and your history, bookmarks and passwords aren't touched."
+    },
+    "icon": "globe",
+    "risk": "safe",
+    "regenerates": true,
+    "detect": {
+      "kind": "fixed",
+      "paths": ["{caches}/Firefox/Profiles/*/cache2"]
+    },
+    "unused": {
+      "basis": "newest-mtime",
+      "minAgeDays": 0
+    },
+    "cleanup": {
+      "method": "delete",
+      "keepRoot": true
+    },
+    "relatedApps": ["firefox"]
+  },
+  {
+    "id": "macos.browsers.opera",
+    "version": 1,
+    "platforms": ["macos"],
+    "audience": ["everyday", "developer"],
+    "category": "apps",
+    "group": "Browser caches",
+    "labels": {
+      "developer": "Opera cache",
+      "everyday": "Opera's saved web data"
+    },
+    "description": {
+      "what": "Copies of web pages, scripts and images Opera keeps to load sites faster.",
+      "ifCleared": "The browser downloads pages and images again as you visit sites. You stay signed in, and your history, bookmarks and passwords aren't touched."
+    },
+    "icon": "globe",
+    "risk": "safe",
+    "regenerates": true,
+    "detect": {
+      "kind": "fixed",
+      "paths": ["{caches}/com.operasoftware.Opera"]
+    },
+    "unused": {
+      "basis": "newest-mtime",
+      "minAgeDays": 0
+    },
+    "cleanup": {
+      "method": "delete",
+      "keepRoot": true
+    },
+    "relatedApps": ["Opera"]
+  }
+]

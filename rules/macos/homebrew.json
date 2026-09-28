@@ -1,0 +1,37 @@
+[
+  {
+    "id": "macos.homebrew.cache",
+    "version": 1,
+    "platforms": ["macos"],
+    "audience": ["developer"],
+    "category": "developer",
+    "group": "Package caches",
+    "labels": {
+      "developer": "Homebrew cache and old versions",
+      "everyday": "Downloaded packages (Homebrew)"
+    },
+    "description": {
+      "what": "Downloads and outdated versions Homebrew keeps after upgrading.",
+      "ifCleared": "Homebrew downloads things again if you reinstall them."
+    },
+    "icon": "beer",
+    "risk": "safe",
+    "regenerates": true,
+    "detect": {
+      "kind": "fixed",
+      "paths": ["{caches}/Homebrew"]
+    },
+    "unused": {
+      "basis": "newest-mtime",
+      "minAgeDays": 0
+    },
+    "cleanup": {
+      "method": "command",
+      "command": {
+        "tool": "brew",
+        "args": ["cleanup", "-s"]
+      },
+      "fallback": "delete"
+    }
+  }
+]

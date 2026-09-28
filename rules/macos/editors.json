@@ -1,0 +1,223 @@
+[
+  {
+    "id": "macos.jetbrains.old-caches",
+    "version": 1,
+    "platforms": ["macos"],
+    "audience": ["developer"],
+    "category": "developer",
+    "group": "Editors and IDEs",
+    "labels": {
+      "developer": "JetBrains caches and logs from old versions",
+      "everyday": "Leftovers from old JetBrains IDE versions"
+    },
+    "description": {
+      "what": "Caches and logs from IDE versions you've upgraded from. The newest version of each IDE is kept.",
+      "ifCleared": "Nothing: those versions aren't used anymore."
+    },
+    "icon": "code",
+    "risk": "safe",
+    "regenerates": true,
+    "detect": {
+      "kind": "fixed",
+      "paths": ["{caches}/JetBrains/*", "{logs}/JetBrains/*"]
+    },
+    "unused": {
+      "basis": "newest-mtime",
+      "minAgeDays": 0
+    },
+    "cleanup": {
+      "method": "delete"
+    },
+    "keep": {
+      "newest": 1,
+      "groupBy": "name"
+    }
+  },
+  {
+    "id": "macos.jetbrains.old-settings",
+    "version": 1,
+    "platforms": ["macos"],
+    "audience": ["developer"],
+    "category": "developer",
+    "group": "Editors and IDEs",
+    "labels": {
+      "developer": "JetBrains settings from old versions",
+      "everyday": "Settings from old JetBrains IDE versions"
+    },
+    "description": {
+      "what": "Settings and plugins from IDE versions you've upgraded from. The newest version of each IDE is kept.",
+      "ifCleared": "They move to the Trash. Old versions of the IDE lose their settings."
+    },
+    "icon": "code",
+    "risk": "review",
+    "regenerates": false,
+    "detect": {
+      "kind": "fixed",
+      "paths": ["{appSupport}/JetBrains/*"]
+    },
+    "unused": {
+      "basis": "newest-mtime",
+      "minAgeDays": 0
+    },
+    "cleanup": {
+      "method": "trash"
+    },
+    "keep": {
+      "newest": 1,
+      "groupBy": "name"
+    }
+  },
+  {
+    "id": "macos.editors.vscode-caches",
+    "version": 1,
+    "platforms": ["macos"],
+    "audience": ["developer"],
+    "category": "developer",
+    "group": "Editors and IDEs",
+    "labels": {
+      "developer": "VS Code caches and logs",
+      "everyday": "Temporary files from VS Code"
+    },
+    "description": {
+      "what": "Caches, downloaded extension packages and logs VS Code keeps.",
+      "ifCleared": "VS Code rebuilds them. Your settings, extensions and projects aren't touched."
+    },
+    "icon": "code",
+    "risk": "safe",
+    "regenerates": true,
+    "detect": {
+      "kind": "fixed",
+      "paths": [
+        "{appSupport}/Code/Cache",
+        "{appSupport}/Code/CachedData",
+        "{appSupport}/Code/CachedExtensionVSIXs",
+        "{appSupport}/Code/Code Cache",
+        "{appSupport}/Code/logs"
+      ]
+    },
+    "unused": {
+      "basis": "newest-mtime",
+      "minAgeDays": 0
+    },
+    "cleanup": {
+      "method": "delete",
+      "keepRoot": true
+    },
+    "relatedApps": ["Code"]
+  },
+  {
+    "id": "macos.editors.cursor-caches",
+    "version": 1,
+    "platforms": ["macos"],
+    "audience": ["developer"],
+    "category": "developer",
+    "group": "Editors and IDEs",
+    "labels": {
+      "developer": "Cursor caches and logs",
+      "everyday": "Temporary files from Cursor"
+    },
+    "description": {
+      "what": "Caches, downloaded extension packages and logs Cursor keeps.",
+      "ifCleared": "Cursor rebuilds them. Your settings, extensions and projects aren't touched."
+    },
+    "icon": "code",
+    "risk": "safe",
+    "regenerates": true,
+    "detect": {
+      "kind": "fixed",
+      "paths": [
+        "{appSupport}/Cursor/Cache",
+        "{appSupport}/Cursor/CachedData",
+        "{appSupport}/Cursor/CachedExtensionVSIXs",
+        "{appSupport}/Cursor/Code Cache",
+        "{appSupport}/Cursor/logs"
+      ]
+    },
+    "unused": {
+      "basis": "newest-mtime",
+      "minAgeDays": 0
+    },
+    "cleanup": {
+      "method": "delete",
+      "keepRoot": true
+    },
+    "relatedApps": ["Cursor"]
+  },
+  {
+    "id": "macos.editors.windsurf-caches",
+    "version": 1,
+    "platforms": ["macos"],
+    "audience": ["developer"],
+    "category": "developer",
+    "group": "Editors and IDEs",
+    "labels": {
+      "developer": "Windsurf caches and logs",
+      "everyday": "Temporary files from Windsurf"
+    },
+    "description": {
+      "what": "Caches, downloaded extension packages and logs Windsurf keeps.",
+      "ifCleared": "Windsurf rebuilds them. Your settings, extensions and projects aren't touched."
+    },
+    "icon": "code",
+    "risk": "safe",
+    "regenerates": true,
+    "detect": {
+      "kind": "fixed",
+      "paths": [
+        "{appSupport}/Windsurf/Cache",
+        "{appSupport}/Windsurf/CachedData",
+        "{appSupport}/Windsurf/CachedExtensionVSIXs",
+        "{appSupport}/Windsurf/Code Cache",
+        "{appSupport}/Windsurf/logs"
+      ]
+    },
+    "unused": {
+      "basis": "newest-mtime",
+      "minAgeDays": 0
+    },
+    "cleanup": {
+      "method": "delete",
+      "keepRoot": true
+    },
+    "relatedApps": ["Windsurf"]
+  },
+  {
+    "id": "macos.editors.old-extensions",
+    "version": 1,
+    "platforms": ["macos"],
+    "audience": ["developer"],
+    "category": "developer",
+    "group": "Editors and IDEs",
+    "labels": {
+      "developer": "Old editor extension versions",
+      "everyday": "Old versions of editor extensions"
+    },
+    "description": {
+      "what": "Older copies of extensions left behind after updates. The newest version of each is kept.",
+      "ifCleared": "Nothing: the editor uses the newest version."
+    },
+    "icon": "puzzle",
+    "risk": "safe",
+    "regenerates": true,
+    "detect": {
+      "kind": "fixed",
+      "paths": [
+        "{home}/.vscode/extensions/*",
+        "{home}/.cursor/extensions/*",
+        "{home}/.windsurf/extensions/*"
+      ]
+    },
+    "unused": {
+      "basis": "newest-mtime",
+      "minAgeDays": 0
+    },
+    "cleanup": {
+      "method": "delete"
+    },
+    "relatedApps": ["Code", "Cursor", "Windsurf"],
+    "keep": {
+      "newest": 1,
+      "groupBy": "name"
+    }
+  }
+]

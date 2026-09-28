@@ -1,0 +1,67 @@
+[
+  {
+    "id": "macos.rust.cargo-registry",
+    "version": 1,
+    "platforms": ["macos"],
+    "audience": ["developer"],
+    "category": "developer",
+    "group": "Package caches",
+    "labels": {
+      "developer": "Cargo registry and git checkouts",
+      "everyday": "Downloaded packages (Cargo)"
+    },
+    "description": {
+      "what": "Crates Cargo has downloaded, and dependencies fetched from git.",
+      "ifCleared": "Cargo downloads them again the next time you install or build. Nothing in your projects changes."
+    },
+    "icon": "package",
+    "risk": "safe",
+    "regenerates": true,
+    "detect": {
+      "kind": "fixed",
+      "paths": [
+        "{home}/.cargo/registry/cache",
+        "{home}/.cargo/registry/src",
+        "{home}/.cargo/git/checkouts"
+      ]
+    },
+    "unused": {
+      "basis": "newest-mtime",
+      "minAgeDays": 0
+    },
+    "cleanup": {
+      "method": "delete"
+    }
+  },
+  {
+    "id": "macos.rust.project-target",
+    "version": 1,
+    "platforms": ["macos"],
+    "audience": ["developer"],
+    "category": "developer",
+    "group": "Project build folders",
+    "labels": {
+      "developer": "Cargo target folders",
+      "everyday": "Build output in old Rust projects"
+    },
+    "description": {
+      "what": "Everything Cargo compiles for a project. Often the biggest folder in it.",
+      "ifCleared": "The next build recompiles everything, which can take a while."
+    },
+    "icon": "folder-output",
+    "risk": "safe",
+    "regenerates": true,
+    "detect": {
+      "kind": "project-artifact",
+      "markers": ["Cargo.toml"],
+      "folders": ["target"]
+    },
+    "unused": {
+      "basis": "project-activity",
+      "minAgeDays": 0
+    },
+    "cleanup": {
+      "method": "delete"
+    }
+  }
+]

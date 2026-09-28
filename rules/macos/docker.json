@@ -1,0 +1,134 @@
+[
+  {
+    "id": "macos.docker.build-cache",
+    "version": 1,
+    "platforms": ["macos"],
+    "audience": ["developer"],
+    "category": "developer",
+    "group": "Docker",
+    "labels": {
+      "developer": "Docker build cache",
+      "everyday": "Docker build files"
+    },
+    "description": {
+      "what": "Layers Docker keeps to speed up image builds.",
+      "ifCleared": "The next build is slower while Docker fills the cache again."
+    },
+    "icon": "container",
+    "risk": "safe",
+    "regenerates": true,
+    "detect": {
+      "kind": "probe",
+      "probe": "docker-build-cache"
+    },
+    "unused": {
+      "basis": "newest-mtime",
+      "minAgeDays": 0
+    },
+    "cleanup": {
+      "method": "command",
+      "command": {
+        "tool": "docker",
+        "args": ["builder", "prune", "-f"]
+      }
+    }
+  },
+  {
+    "id": "macos.docker.unused-images",
+    "version": 1,
+    "platforms": ["macos"],
+    "audience": ["developer"],
+    "category": "developer",
+    "group": "Docker",
+    "labels": {
+      "developer": "Unused Docker images",
+      "everyday": "Docker images no container uses"
+    },
+    "description": {
+      "what": "Images not used by any container, including ones you pulled and never ran.",
+      "ifCleared": "Docker downloads or rebuilds an image the next time you need it."
+    },
+    "icon": "container",
+    "risk": "review",
+    "regenerates": true,
+    "detect": {
+      "kind": "probe",
+      "probe": "docker-images"
+    },
+    "unused": {
+      "basis": "newest-mtime",
+      "minAgeDays": 0
+    },
+    "cleanup": {
+      "method": "command",
+      "command": {
+        "tool": "docker",
+        "args": ["image", "prune", "-a", "-f"]
+      }
+    }
+  },
+  {
+    "id": "macos.docker.unused-volumes",
+    "version": 1,
+    "platforms": ["macos"],
+    "audience": ["developer"],
+    "category": "developer",
+    "group": "Docker",
+    "labels": {
+      "developer": "Unused Docker volumes",
+      "everyday": "Docker data no container uses"
+    },
+    "description": {
+      "what": "Volumes not attached to any container. They can hold databases and other data you meant to keep.",
+      "ifCleared": "The data in these volumes is deleted permanently."
+    },
+    "icon": "database",
+    "risk": "caution",
+    "regenerates": false,
+    "detect": {
+      "kind": "probe",
+      "probe": "docker-volumes"
+    },
+    "unused": {
+      "basis": "newest-mtime",
+      "minAgeDays": 0
+    },
+    "cleanup": {
+      "method": "command",
+      "command": {
+        "tool": "docker",
+        "args": ["volume", "prune", "-f"]
+      }
+    }
+  },
+  {
+    "id": "macos.docker.disk-image",
+    "version": 1,
+    "platforms": ["macos"],
+    "audience": ["developer"],
+    "category": "developer",
+    "group": "Docker",
+    "labels": {
+      "developer": "Docker Desktop disk image (Docker.raw)",
+      "everyday": "Docker's storage file"
+    },
+    "description": {
+      "what": "The single file Docker Desktop stores all images, containers and volumes in. Pruning frees space inside it, and Docker Desktop hands that space back to macOS over time.",
+      "ifCleared": "JClean never removes this file. Clean Docker's images and build cache instead."
+    },
+    "icon": "hard-drive",
+    "risk": "info",
+    "regenerates": false,
+    "detect": {
+      "kind": "fixed",
+      "paths": ["{home}/Library/Containers/com.docker.docker/Data/vms/0/data/Docker.raw"]
+    },
+    "unused": {
+      "basis": "newest-mtime",
+      "minAgeDays": 0
+    },
+    "cleanup": {
+      "method": "none"
+    }
+  }
+]

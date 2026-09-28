@@ -1,0 +1,286 @@
+[
+  {
+    "id": "macos.system.app-caches",
+    "version": 1,
+    "platforms": ["macos"],
+    "audience": ["everyday", "developer"],
+    "category": "apps",
+    "group": "App caches",
+    "labels": {
+      "developer": "App caches (~/Library/Caches)",
+      "everyday": "Leftover files from apps"
+    },
+    "description": {
+      "what": "Files apps keep so they open and load faster. Each app has its own folder.",
+      "ifCleared": "Apps rebuild these as you use them. Some may feel slower the first time they open."
+    },
+    "icon": "app-window",
+    "risk": "safe",
+    "regenerates": true,
+    "detect": {
+      "kind": "fixed",
+      "paths": ["{caches}"],
+      "eachChild": true,
+      "exclude": ["com.apple.*", "CloudKit", "FamilyCircle", "Metadata", ".*"]
+    },
+    "unused": { "basis": "newest-mtime", "minAgeDays": 7 },
+    "cleanup": { "method": "delete" }
+  },
+  {
+    "id": "macos.system.app-logs",
+    "version": 1,
+    "platforms": ["macos"],
+    "audience": ["everyday", "developer"],
+    "category": "system",
+    "group": "Logs",
+    "labels": {
+      "developer": "~/Library/Logs",
+      "everyday": "App activity logs"
+    },
+    "description": {
+      "what": "Records apps write about what they've been doing, mostly useful for troubleshooting.",
+      "ifCleared": "Apps start new logs. You lose the history of past activity."
+    },
+    "icon": "scroll-text",
+    "risk": "safe",
+    "regenerates": true,
+    "detect": { "kind": "fixed", "paths": ["{logs}"], "eachChild": true, "exclude": [".*"] },
+    "unused": { "basis": "newest-mtime", "minAgeDays": 7 },
+    "cleanup": { "method": "delete" }
+  },
+  {
+    "id": "macos.system.crash-reports",
+    "version": 1,
+    "platforms": ["macos"],
+    "audience": ["everyday", "developer"],
+    "category": "system",
+    "group": "Logs",
+    "labels": {
+      "developer": "Crash reports (DiagnosticReports)",
+      "everyday": "Crash reports"
+    },
+    "description": {
+      "what": "Reports saved when an app quits unexpectedly.",
+      "ifCleared": "Old reports are gone. New ones are saved if an app crashes again."
+    },
+    "icon": "file-warning",
+    "risk": "safe",
+    "regenerates": true,
+    "detect": { "kind": "fixed", "paths": ["{logs}/DiagnosticReports"] },
+    "unused": { "basis": "newest-mtime", "minAgeDays": 0 },
+    "cleanup": { "method": "delete", "keepRoot": true }
+  },
+  {
+    "id": "macos.system.system-logs",
+    "version": 1,
+    "platforms": ["macos"],
+    "audience": ["everyday", "developer"],
+    "category": "system",
+    "group": "Logs",
+    "labels": {
+      "developer": "System logs (/Library/Logs, /private/var/log)",
+      "everyday": "System activity logs"
+    },
+    "description": {
+      "what": "Logs written by macOS and background services.",
+      "ifCleared": "macOS starts new logs. Clearing them needs an administrator password."
+    },
+    "icon": "scroll-text",
+    "risk": "review",
+    "regenerates": true,
+    "detect": { "kind": "fixed", "paths": ["/Library/Logs", "/private/var/log"] },
+    "unused": { "basis": "newest-mtime", "minAgeDays": 0 },
+    "cleanup": { "method": "delete", "requiresAdmin": true, "keepRoot": true }
+  },
+  {
+    "id": "macos.system.trash",
+    "version": 1,
+    "platforms": ["macos"],
+    "audience": ["everyday", "developer"],
+    "category": "other",
+    "group": "Trash",
+    "labels": {
+      "developer": "Trash (~/.Trash)",
+      "everyday": "Trash"
+    },
+    "description": {
+      "what": "Things you've moved to the Trash. They still take up space until the Trash is emptied.",
+      "ifCleared": "These items are deleted permanently and can't be put back."
+    },
+    "icon": "trash",
+    "risk": "safe",
+    "regenerates": false,
+    "detect": {
+      "kind": "fixed",
+      "paths": ["{home}/.Trash"],
+      "eachChild": true,
+      "exclude": [".DS_Store"]
+    },
+    "unused": { "basis": "none" },
+    "cleanup": { "method": "delete" }
+  },
+  {
+    "id": "macos.downloads.old-installers",
+    "version": 1,
+    "platforms": ["macos"],
+    "audience": ["everyday", "developer"],
+    "category": "other",
+    "group": "Downloads",
+    "labels": {
+      "developer": "Old installers in ~/Downloads",
+      "everyday": "Old installers in Downloads"
+    },
+    "description": {
+      "what": "Disk images, packages and archives in Downloads that are more than 30 days old. Usually installers for apps that are already installed.",
+      "ifCleared": "They move to the Trash, so you can put them back until you empty it."
+    },
+    "icon": "package-open",
+    "risk": "review",
+    "regenerates": false,
+    "detect": {
+      "kind": "query",
+      "paths": ["{home}/Downloads"],
+      "names": ["*.dmg", "*.pkg", "*.iso", "*.xip", "*.zip"],
+      "olderThanDays": 30
+    },
+    "unused": { "basis": "newest-mtime", "minAgeDays": 30 },
+    "cleanup": { "method": "trash" }
+  },
+  {
+    "id": "macos.files.large-files",
+    "version": 1,
+    "platforms": ["macos"],
+    "audience": ["everyday", "developer"],
+    "category": "documents",
+    "group": "Large files",
+    "labels": {
+      "developer": "Large files unchanged for 90+ days",
+      "everyday": "Large files you haven't opened in a while"
+    },
+    "description": {
+      "what": "Files over 1 GB that haven't changed in 90 days. Found by a full scan.",
+      "ifCleared": "They move to the Trash, so you can put them back until you empty it."
+    },
+    "icon": "file-box",
+    "risk": "review",
+    "regenerates": false,
+    "detect": {
+      "kind": "query",
+      "paths": ["{home}"],
+      "minBytes": 1000000000,
+      "olderThanDays": 90,
+      "recursive": true
+    },
+    "unused": { "basis": "newest-mtime", "minAgeDays": 90 },
+    "cleanup": { "method": "trash" }
+  },
+  {
+    "id": "macos.mobile.device-backups",
+    "version": 1,
+    "platforms": ["macos"],
+    "audience": ["everyday", "developer"],
+    "category": "other",
+    "group": "Device backups",
+    "labels": {
+      "developer": "iPhone and iPad backups (MobileSync)",
+      "everyday": "iPhone and iPad backups"
+    },
+    "description": {
+      "what": "Full backups of iPhones and iPads made by Finder. Each one can be many gigabytes.",
+      "ifCleared": "The backup moves to the Trash. Once the Trash is emptied you can't restore that device from it."
+    },
+    "icon": "smartphone",
+    "risk": "caution",
+    "regenerates": false,
+    "detect": {
+      "kind": "fixed",
+      "paths": ["{appSupport}/MobileSync/Backup"],
+      "eachChild": true,
+      "exclude": [".*"]
+    },
+    "unused": { "basis": "newest-mtime", "minAgeDays": 0 },
+    "cleanup": { "method": "trash" }
+  },
+  {
+    "id": "macos.mail.attachment-downloads",
+    "version": 1,
+    "platforms": ["macos"],
+    "audience": ["everyday", "developer"],
+    "category": "apps",
+    "group": "Mail",
+    "labels": {
+      "developer": "Mail Downloads",
+      "everyday": "Mail attachments you've opened"
+    },
+    "description": {
+      "what": "Copies of attachments Mail saved when you opened them. The originals stay in your email.",
+      "ifCleared": "Mail downloads the attachment again next time you open it."
+    },
+    "icon": "mail",
+    "risk": "safe",
+    "regenerates": true,
+    "detect": {
+      "kind": "fixed",
+      "paths": ["{home}/Library/Containers/com.apple.mail/Data/Library/Mail Downloads"]
+    },
+    "unused": { "basis": "newest-mtime", "minAgeDays": 0 },
+    "cleanup": { "method": "delete", "keepRoot": true },
+    "relatedApps": ["Mail"]
+  },
+  {
+    "id": "macos.system.local-snapshots",
+    "version": 1,
+    "platforms": ["macos"],
+    "audience": ["everyday", "developer"],
+    "category": "system",
+    "group": "Backups",
+    "labels": {
+      "developer": "Time Machine local snapshots",
+      "everyday": "Backup snapshots stored on this Mac"
+    },
+    "description": {
+      "what": "Snapshots Time Machine keeps on this Mac between backups. macOS removes them on its own when space runs low.",
+      "ifCleared": "You can't restore files from these snapshots. Backups on your backup disk aren't affected."
+    },
+    "icon": "history",
+    "risk": "review",
+    "regenerates": true,
+    "detect": { "kind": "probe", "probe": "tmutil-snapshots" },
+    "unused": { "basis": "none" },
+    "cleanup": {
+      "method": "command",
+      "command": { "tool": "tmutil", "args": ["deletelocalsnapshots", "{item}"] },
+      "requiresAdmin": true
+    }
+  },
+  {
+    "id": "macos.media.libraries",
+    "version": 1,
+    "platforms": ["macos"],
+    "audience": ["everyday", "developer"],
+    "category": "media",
+    "group": "Media libraries",
+    "labels": {
+      "developer": "Photos, Music and TV libraries",
+      "everyday": "Photos, music and video libraries"
+    },
+    "description": {
+      "what": "Your photo, music and video libraries. Shown so you can see how much space they use.",
+      "ifCleared": "JClean never cleans these. Manage them in Photos, Music or TV."
+    },
+    "icon": "images",
+    "risk": "info",
+    "regenerates": false,
+    "detect": {
+      "kind": "fixed",
+      "paths": [
+        "{home}/Pictures/*.photoslibrary",
+        "{home}/Music/Music",
+        "{home}/Music/iTunes",
+        "{home}/Movies/TV"
+      ]
+    },
+    "unused": { "basis": "none" },
+    "cleanup": { "method": "none" }
+  }
+]

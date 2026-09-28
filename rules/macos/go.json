@@ -1,0 +1,71 @@
+[
+  {
+    "id": "macos.go.module-cache",
+    "version": 1,
+    "platforms": ["macos"],
+    "audience": ["developer"],
+    "category": "developer",
+    "group": "Package caches",
+    "labels": {
+      "developer": "Go module cache",
+      "everyday": "Downloaded packages (Go)"
+    },
+    "description": {
+      "what": "Go modules downloaded for your projects. Go makes these read-only, so its own command removes them.",
+      "ifCleared": "Go downloads them again the next time you install or build. Nothing in your projects changes."
+    },
+    "icon": "package",
+    "risk": "safe",
+    "regenerates": true,
+    "detect": {
+      "kind": "fixed",
+      "paths": ["{home}/go/pkg/mod"]
+    },
+    "unused": {
+      "basis": "newest-mtime",
+      "minAgeDays": 0
+    },
+    "cleanup": {
+      "method": "command",
+      "command": {
+        "tool": "go",
+        "args": ["clean", "-modcache"]
+      }
+    }
+  },
+  {
+    "id": "macos.go.build-cache",
+    "version": 1,
+    "platforms": ["macos"],
+    "audience": ["developer"],
+    "category": "developer",
+    "group": "Build caches",
+    "labels": {
+      "developer": "Go build cache",
+      "everyday": "Build files (Go)"
+    },
+    "description": {
+      "what": "Compiled packages Go keeps to make builds faster.",
+      "ifCleared": "The next build is slower while Go fills the cache again."
+    },
+    "icon": "folder-cog",
+    "risk": "safe",
+    "regenerates": true,
+    "detect": {
+      "kind": "fixed",
+      "paths": ["{caches}/go-build"]
+    },
+    "unused": {
+      "basis": "newest-mtime",
+      "minAgeDays": 0
+    },
+    "cleanup": {
+      "method": "command",
+      "command": {
+        "tool": "go",
+        "args": ["clean", "-cache"]
+      },
+      "fallback": "delete"
+    }
+  }
+]
