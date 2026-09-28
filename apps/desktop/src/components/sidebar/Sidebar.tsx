@@ -2,6 +2,7 @@ import { forwardRef } from "react";
 import { useStore } from "../../state/store";
 import { FilterRow } from "./FilterRow";
 import { ModeSwitch } from "./ModeSwitch";
+import { ResultPanel } from "./ResultPanel";
 import { RulesPanel } from "./RulesPanel";
 import { SearchField } from "./SearchField";
 import { StatusCard } from "./StatusCard";
@@ -20,6 +21,7 @@ export const Sidebar = forwardRef<HTMLInputElement, SidebarProps>(function Sideb
   searchRef,
 ) {
   const tab = useStore((s) => s.tab);
+  const showResult = useStore((s) => s.phase === "done" && s.summary !== null);
   return (
     <aside
       className={`relative flex h-full shrink-0 flex-col bg-surface ${
@@ -30,27 +32,33 @@ export const Sidebar = forwardRef<HTMLInputElement, SidebarProps>(function Sideb
       <div data-tauri-drag-region className="h-11 shrink-0" />
       <div className="flex min-h-0 flex-1 flex-col gap-3.5 px-4">
         <StatusCard />
-        <Tabs />
-        {tab === "categories" ? (
-          <div
-            id="panel-categories"
-            role="tabpanel"
-            aria-labelledby="tab-categories"
-            className="flex min-h-0 flex-1 flex-col gap-3"
-          >
-            <FilterRow compact={compact} onToggleLayout={onToggleLayout} />
-            <SearchField ref={searchRef} />
-            <StorageList />
-          </div>
+        {showResult ? (
+          <ResultPanel />
         ) : (
-          <div
-            id="panel-rules"
-            role="tabpanel"
-            aria-labelledby="tab-rules"
-            className="flex min-h-0 flex-1 flex-col"
-          >
-            <RulesPanel />
-          </div>
+          <>
+            <Tabs />
+            {tab === "categories" ? (
+              <div
+                id="panel-categories"
+                role="tabpanel"
+                aria-labelledby="tab-categories"
+                className="flex min-h-0 flex-1 flex-col gap-3"
+              >
+                <FilterRow compact={compact} onToggleLayout={onToggleLayout} />
+                <SearchField ref={searchRef} />
+                <StorageList />
+              </div>
+            ) : (
+              <div
+                id="panel-rules"
+                role="tabpanel"
+                aria-labelledby="tab-rules"
+                className="flex min-h-0 flex-1 flex-col"
+              >
+                <RulesPanel />
+              </div>
+            )}
+          </>
         )}
       </div>
       <footer className="border-t border-line px-4 py-3">

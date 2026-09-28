@@ -1,6 +1,7 @@
 import { AnimatePresence, MotionConfig, motion } from "motion/react";
 import { useEffect, useRef } from "react";
 import { Canvas } from "./components/canvas/Canvas";
+import { ConfirmSheet } from "./components/ConfirmSheet";
 import { ConnectorLine } from "./components/ConnectorLine";
 import { DetailDrawer } from "./components/drawer/DetailDrawer";
 import { Sidebar } from "./components/sidebar/Sidebar";
@@ -61,6 +62,7 @@ export function App() {
           )}
         </AnimatePresence>
         {showCanvas && <ConnectorLine />}
+        <ConfirmSheet />
       </div>
     </MotionConfig>
   );

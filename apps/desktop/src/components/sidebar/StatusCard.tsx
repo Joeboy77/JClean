@@ -3,13 +3,11 @@ import { useMemo } from "react";
 import { CATEGORIES, type Category, type StorageItem, type Volume } from "../../data/types";
 import { formatAgo, formatBytes } from "../../lib/format";
 import { spring } from "../../lib/motion";
-import { cancelScan, isLive, startScan } from "../../state/engine";
+import { cancelScan, reviewClean, startScan } from "../../state/engine";
 import { CATEGORY_NAME, usageByCategory } from "../../state/mapModel";
-import { startClean } from "../../state/mockEngine";
 import { selectedBytes } from "../../state/selectors";
 import { useStore } from "../../state/store";
 import { AnimatedBytes } from "../ui/AnimatedBytes";
-import { Tooltip } from "../ui/Tooltip";
 
 /** Card tint follows disk health (spec §5.2): violet, amber from 80%, rose from 90%. */
 function healthTint(usedRatio: number): string {
@@ -90,16 +88,14 @@ export function StatusCard() {
   const volume = useStore((s) => s.volume);
   const items = useStore((s) => s.items);
   const selected = useStore((s) => s.selected);
-  const freed = useStore((s) => s.freed);
   const source = useStore((s) => s.source);
   const cachedAt = useStore((s) => s.cachedAt);
   const error = useStore((s) => s.error);
+  const planning = useStore((s) => s.planning);
   const chosen = useMemo(() => selectedBytes(items, selected), [items, selected]);
 
   const usedRatio = volume ? (volume.total - volume.available) / volume.total : 0;
   const percent = Math.round(progress * 100);
-  // Cleaning is wired to the engine in phase 4; until then only the mock cleans.
-  const canClean = !isLive;
 
   const primary = {
     idle: {
@@ -117,12 +113,23 @@ export function StatusCard() {
       aria: "Cancel scan",
     },
     results: {
-      label: chosen > 0 ? `Clean ${formatBytes(chosen)}` : "Nothing selected",
-      onClick: startClean,
-      disabled: chosen === 0 || !canClean,
+      label: planning
+        ? "Preparing…"
+        : chosen > 0
+          ? `Clean ${formatBytes(chosen)}`
+          : "Nothing selected",
+      onClick: () => {
+        void reviewClean();
+      },
+      disabled: chosen === 0 || planning,
       aria: undefined,
     },
-    cleaning: { label: "Cleaning…", onClick: () => undefined, disabled: true, aria: undefined },
+    cleaning: {
+      label: `Cleaning… ${String(percent)}%`,
+      onClick: () => undefined,
+      disabled: true,
+      aria: undefined,
+    },
     done: {
       label: "Scan again",
       onClick: () => {
@@ -151,7 +158,7 @@ export function StatusCard() {
       {...(primary.aria ? { "aria-label": primary.aria } : {})}
       className="tabular relative h-9 w-full overflow-hidden rounded-control bg-accent px-4 font-medium text-white transition-[filter] hover:brightness-110 disabled:cursor-default disabled:opacity-50 disabled:hover:brightness-100"
     >
-      {phase === "scanning" && (
+      {(phase === "scanning" || phase === "cleaning") && (
         <span
           aria-hidden="true"
           className="absolute inset-y-0 left-0 bg-white/15 transition-[width] duration-200"
@@ -198,20 +205,7 @@ export function StatusCard() {
       )}
 
       <div className="mt-4 flex gap-2">
-        <div className="flex-1">
-          {phase === "results" && !canClean && chosen > 0 ? (
-            <Tooltip
-              text="Cleaning arrives in the next update. Nothing is deleted yet."
-              side="bottom"
-              align="start"
-              block
-            >
-              {primaryButton}
-            </Tooltip>
-          ) : (
-            primaryButton
-          )}
-        </div>
+        <div className="flex-1">{primaryButton}</div>
         <button
           type="button"
           onClick={() => {
@@ -232,12 +226,6 @@ export function StatusCard() {
       {source === "cached" && cachedAt !== null && phase === "results" && (
         <p className="mt-3 text-xs text-muted" role="status">
           From your last scan, {formatAgo(cachedAt)}.
-        </p>
-      )}
-      {phase === "done" && freed > 0 && (
-        <p className="mt-3 text-muted" role="status">
-          <AnimatedBytes bytes={freed} prefix="Cleaned " className="text-safe" />. Your Mac has more
-          room now.
         </p>
       )}
       {phase === "results" && partial && (

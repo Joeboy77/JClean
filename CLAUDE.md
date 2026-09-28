@@ -58,6 +58,7 @@ pnpm install
 pnpm tauri dev                       # run desktop app (from apps/desktop)
 VITE_DEMO=drawer VITE_MOCK_ROWS=5000 pnpm tauri dev   # dev-only: replay a state (scan|full|drawer|compact|expanded|fps)
 VITE_NO_AUTOSCAN=1 pnpm tauri dev    # dev-only: skip the quick scan on launch
+JCLEAN_DEV_ROOT=/tmp/jc pnpm tauri dev   # dev-only: run the app on a fixture (make one with `jclean-cli fixture /tmp/jc`); no tools run, Trash is the fixture's
 pnpm --filter web dev                # run website
 cargo test -p jclean-core
 cargo run -p jclean-cli -- scan --dry-run --mode quick

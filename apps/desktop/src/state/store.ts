@@ -1,5 +1,14 @@
 import { create } from "zustand";
-import type { Audience, MapView, Risk, ScanPhase, StorageItem, Volume } from "../data/types";
+import type { CleanSummary, PlanDto } from "../bindings";
+import type {
+  Audience,
+  MapView,
+  Method,
+  Risk,
+  ScanPhase,
+  StorageItem,
+  Volume,
+} from "../data/types";
 import { NO_FILTERS, type FilterKey, type Filters } from "./selectors";
 
 export type Tab = "categories" | "rules";
@@ -14,6 +23,17 @@ export type Source = "none" | "live" | "cached" | "mock";
 export interface Crumb {
   id: string;
   name: string;
+}
+
+/** How one item's clean went. */
+export interface ItemOutcome {
+  itemId: string;
+  /** Kept so the result view can still name items that are gone. */
+  label: string;
+  outcome: "cleaned" | "skipped" | "failed";
+  bytes: number;
+  reason: string | null;
+  method: Method;
 }
 
 /** A hovered list row, for lighting up its map cell (spec §5.2). */
@@ -57,6 +77,13 @@ interface State {
   hover: Hover | null;
   /** The map cell a hovered row points at, for the connector line. */
   linkCell: string | null;
+  /** The plan in the confirmation sheet (spec §5.4). */
+  plan: PlanDto | null;
+  planning: boolean;
+  cleanTotal: number;
+  outcomes: readonly ItemOutcome[];
+  /** The last clean's result, for the result view. */
+  summary: CleanSummary | null;
 }
 
 interface Actions {
@@ -72,8 +99,6 @@ interface Actions {
   }) => void;
   failScan: (message: string) => void;
   showCached: (items: StorageItem[], savedAt: number) => void;
-  beginClean: () => void;
-  finishClean: (cleanedIds: readonly string[], freed: number) => void;
   setSelected: (ids: readonly string[], on: boolean) => void;
   toggleExpanded: (key: string) => void;
   toggleSection: (risk: Risk) => void;
@@ -92,6 +117,12 @@ interface Actions {
   setZoom: (zoom: number) => void;
   setHover: (hover: Hover | null) => void;
   setLinkCell: (id: string | null) => void;
+  setPlanning: (planning: boolean) => void;
+  showPlan: (plan: PlanDto | null) => void;
+  startCleaning: (total: number) => void;
+  recordOutcome: (outcome: ItemOutcome) => void;
+  finishCleaning: (summary: CleanSummary) => void;
+  dismissResult: () => void;
 }
 
 function toggled<T>(set: ReadonlySet<T>, value: T): Set<T> {
@@ -137,6 +168,11 @@ export const useStore = create<State & Actions>()((set) => ({
   zoom: 1,
   hover: null,
   linkCell: null,
+  plan: null,
+  planning: false,
+  cleanTotal: 0,
+  outcomes: [],
+  summary: null,
 
   beginScan: (mode) => {
     set({
@@ -194,22 +230,6 @@ export const useStore = create<State & Actions>()((set) => ({
       progress: 1,
       mapPath: [],
       mapView: "found",
-    });
-  },
-  beginClean: () => {
-    set({ phase: "cleaning", progress: 0, drawer: null });
-  },
-  finishClean: (cleanedIds, freed) => {
-    set((s) => {
-      const gone = new Set(cleanedIds);
-      return {
-        phase: "done",
-        progress: 1,
-        freed,
-        items: s.items.filter((i) => !gone.has(i.id)),
-        selected: new Set([...s.selected].filter((id) => !gone.has(id))),
-        volume: s.volume ? { ...s.volume, available: s.volume.available + freed } : null,
-      };
     });
   },
   setSelected: (ids, on) => {
@@ -273,5 +293,51 @@ export const useStore = create<State & Actions>()((set) => ({
   },
   setLinkCell: (linkCell) => {
     set((s) => (s.linkCell === linkCell ? s : { linkCell }));
+  },
+  setPlanning: (planning) => {
+    set({ planning });
+  },
+  showPlan: (plan) => {
+    set({ plan, planning: false });
+  },
+  startCleaning: (total) => {
+    set({
+      phase: "cleaning",
+      progress: 0,
+      cleanTotal: total,
+      outcomes: [],
+      summary: null,
+      plan: null,
+      drawer: null,
+      hover: null,
+    });
+  },
+  recordOutcome: (outcome) => {
+    set((s) => {
+      const outcomes = [...s.outcomes, outcome];
+      const progress = s.cleanTotal ? outcomes.length / s.cleanTotal : 1;
+      if (outcome.outcome !== "cleaned") return { outcomes, progress };
+      // Cleaned items leave the list and the map right away: the clean
+      // collapse (spec §5.8, moment 2).
+      const selected = new Set(s.selected);
+      selected.delete(outcome.itemId);
+      return {
+        outcomes,
+        progress,
+        items: s.items.filter((i) => i.id !== outcome.itemId),
+        selected,
+      };
+    });
+  },
+  finishCleaning: (summary) => {
+    set({
+      phase: "done",
+      progress: 1,
+      summary,
+      freed: summary.cleanedBytes - summary.trashedBytes,
+    });
+  },
+  dismissResult: () => {
+    set({ phase: "results", summary: null, outcomes: [] });
   },
 }));

@@ -39,6 +39,18 @@ export const commands = {
 	savedAt: number,
 	items: ItemDto[],
 } | null>("cached_scan"),
+	/**  Builds the plan for the selected items and keeps it for `run_clean`. */
+	planClean: (itemIds: string[]) => typedError<PlanDto, string>(__TAURI_INVOKE("plan_clean", { itemIds })),
+	/**
+	 *  Runs the confirmed plan on a background thread. Failures never stop the
+	 *  rest of the plan (spec §9, 6).
+	 */
+	runClean: (onUpdate: Channel<CleanUpdate>) => typedError<null, string>(__TAURI_INVOKE("run_clean", { onUpdate })),
+	/**
+	 *  Empties the Trash through the same guard and log as any clean: finds
+	 *  what's in `~/.Trash` with the Trash rule and deletes it.
+	 */
+	emptyTrash: () => typedError<EmptyTrashResult, string>(__TAURI_INVOKE("empty_trash")),
 };
 
 /* Types */
@@ -57,6 +69,30 @@ export type CachedScan = {
 };
 
 export type CategoryDto = "apps" | "developer" | "system" | "media" | "documents" | "other";
+
+export type CleanSummary = {
+	/**  Measured just before cleaning, from the plan's items. */
+	cleanedBytes: number,
+	/**  Of that, moved to the Trash: frees nothing until it's emptied. */
+	trashedBytes: number,
+	/**  Change in the volume's free space, when it could be read (spec §9, 5). */
+	measuredFreed: number | null,
+	failed: number,
+	skipped: number,
+};
+
+export type CleanUpdate = ({ kind: "started"; total: number }) & { bytes?: never; itemId?: never; method?: never; outcome?: never; reason?: never } | ({ kind: "item"; itemId: string; 
+/**  `cleaned`, `skipped` or `failed`. */
+outcome: string; bytes: number; reason: string | null; method: MethodDto }) & { total?: never } | {
+	kind: "finished",
+} & CleanSummary;
+
+export type EmptyTrashResult = {
+	freed: number,
+	failed: number,
+	/**  Set when the Trash couldn't be read (usually missing Full Disk Access). */
+	note: string | null,
+};
 
 /**
  *  A list item as the UI sees it. Sizes are numbers of bytes (JS numbers are
@@ -94,7 +130,37 @@ export type MapCellDto = {
 
 export type MethodDto = "delete" | "trash" | "command" | "none";
 
+export type MethodTotalDto = {
+	method: MethodDto,
+	items: number,
+	bytes: number,
+};
+
 export type Mode = "quick" | "full";
+
+/**  What the confirmation sheet shows (spec §5.4). */
+export type PlanDto = {
+	totalBytes: number,
+	items: PlanItemDto[],
+	skipped: SkippedDto[],
+	byMethod: MethodTotalDto[],
+	/**  Tools that will run their own cleanup, e.g. "docker", "brew". */
+	tools: string[],
+	/**  `caution` items need an explicit second confirmation (spec §7.3). */
+	needsSecondConfirmation: boolean,
+	/**  Related apps that are running now; their items will be skipped. */
+	runningApps: string[],
+};
+
+export type PlanItemDto = {
+	itemId: string,
+	bytes: number,
+	method: MethodDto,
+	risk: RiskDto,
+	/**  e.g. `npm cache clean --force`. */
+	command: string | null,
+	requiresAdmin: boolean,
+};
 
 export type ProjectDto = {
 	name: string,
@@ -105,6 +171,11 @@ export type ProjectDto = {
 export type RiskDto = "safe" | "review" | "caution" | "info";
 
 export type ScanUpdate = { kind: "stage"; label: string } | { kind: "progress"; fraction: number } | { kind: "item"; item: ItemDto } | { kind: "finished"; partial: boolean; notes: string[]; hasTree: boolean };
+
+export type SkippedDto = {
+	itemId: string,
+	reason: string,
+};
 
 export type VolumeInfo = {
 	name: string,

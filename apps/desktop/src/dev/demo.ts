@@ -1,10 +1,11 @@
 // Dev-only scenarios for reviewing UI states without clicking:
-//   VITE_DEMO=scan|full|drawer|compact|expanded VITE_MOCK_ROWS=5000 pnpm tauri dev
+//   VITE_DEMO=scan|full|drawer|review|clean|compact|expanded|fps VITE_MOCK_ROWS=5000 pnpm tauri dev
+//   JCLEAN_DEV_ROOT=/tmp/jc VITE_DEMO=clean pnpm tauri dev   (clean a fixture from `jclean-cli fixture /tmp/jc`)
 // Never included in release builds (guarded by import.meta.env.DEV).
 
 import { isTauri } from "@tauri-apps/api/core";
 import { commands } from "../bindings";
-import { startScan } from "../state/engine";
+import { confirmClean, reviewClean, startScan } from "../state/engine";
 import { useStore } from "../state/store";
 
 export function runDemo(scenario: string) {
@@ -22,6 +23,17 @@ export function runDemo(scenario: string) {
       const s = useStore.getState();
       s.toggleExpanded("group:safe:macos.xcode.derived-data");
       s.openDrawer({ kind: "group", risk: "safe", ruleId: "macos.xcode.derived-data" });
+    });
+  }
+  if (scenario === "review" || scenario === "clean") {
+    whenDone(() => {
+      void reviewClean().then(() => {
+        const plan = useStore.getState().plan;
+        if (scenario === "clean" && plan)
+          setTimeout(() => {
+            confirmClean(plan);
+          }, 3000);
+      });
     });
   }
   if (scenario === "fps") {

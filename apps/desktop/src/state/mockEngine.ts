@@ -2,6 +2,8 @@
 // store the way real scan events will, and pretends to clean.
 
 import { mockItems, mockRowTarget } from "../data/mock";
+import type { PlanDto } from "../bindings";
+import type { Method } from "../data/types";
 import { useStore } from "./store";
 
 let timer: number | undefined;
@@ -47,21 +49,62 @@ export function cancelScan() {
   useStore.getState().finishScan({ partial: true, source: "mock" });
 }
 
-export function startClean() {
+/** A plan for the browser build, shaped like the engine's. */
+export function mockPlan(ids: readonly string[]): PlanDto {
+  const items = useStore.getState().items.filter((i) => ids.includes(i.id) && i.cleanable);
+  const byMethod = new Map<Method, { items: number; bytes: number }>();
+  for (const i of items) {
+    const m = byMethod.get(i.method) ?? { items: 0, bytes: 0 };
+    byMethod.set(i.method, { items: m.items + 1, bytes: m.bytes + i.bytes });
+  }
+  return {
+    totalBytes: items.reduce((n, i) => n + i.bytes, 0),
+    items: items.map((i) => ({
+      itemId: i.id,
+      bytes: i.bytes,
+      method: i.method,
+      risk: i.risk,
+      command: null,
+      requiresAdmin: false,
+    })),
+    skipped: [],
+    byMethod: [...byMethod].map(([method, t]) => ({ method, items: t.items, bytes: t.bytes })),
+    tools: [],
+    needsSecondConfirmation: items.some((i) => i.risk === "caution"),
+    runningApps: [],
+  };
+}
+
+/** Pretends to clean the plan, one item every 80 ms. */
+export function runMockClean(plan: PlanDto, label: (id: string) => string) {
   stop();
   const store = useStore.getState();
-  const ids = [...store.selected];
-  const freed = store.items
-    .filter((i) => store.selected.has(i.id))
-    .reduce((n, i) => n + i.bytes, 0);
-  store.beginClean();
-  let step = 0;
+  store.startCleaning(plan.items.length);
+  let i = 0;
+  let cleaned = 0;
+  let trashed = 0;
   timer = window.setInterval(() => {
-    step++;
-    useStore.getState().setProgress(step / 12);
-    if (step >= 12) {
+    const item = plan.items[i++];
+    if (!item) {
       stop();
-      useStore.getState().finishClean(ids, freed);
+      useStore.getState().finishCleaning({
+        cleanedBytes: cleaned,
+        trashedBytes: trashed,
+        measuredFreed: cleaned - trashed,
+        failed: 0,
+        skipped: 0,
+      });
+      return;
     }
-  }, 100);
+    cleaned += item.bytes;
+    if (item.method === "trash") trashed += item.bytes;
+    useStore.getState().recordOutcome({
+      itemId: item.itemId,
+      label: label(item.itemId),
+      outcome: "cleaned",
+      bytes: item.bytes,
+      reason: null,
+      method: item.method,
+    });
+  }, 80);
 }
