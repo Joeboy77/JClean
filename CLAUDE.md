@@ -59,6 +59,7 @@ pnpm tauri dev                       # run desktop app (from apps/desktop)
 pnpm --filter web dev                # run website
 cargo test -p jclean-core
 cargo run -p jclean-cli -- scan --dry-run --mode quick
+cargo run -p jclean-cli -- fixture /tmp/jc   # safe fake home to scan/clean (prints the commands)
 pnpm lint && pnpm typecheck && pnpm test
 cargo test -p jclean-desktop         # also regenerates apps/desktop/src/bindings.ts (IPC types)
 cargo clippy --all-targets -- -D warnings && cargo fmt --check

@@ -10,8 +10,11 @@ name = "jclean-cli"
 path = "src/main.rs"
 
 [dependencies]
-jclean-core.workspace = true
+jclean-core = { workspace = true, features = ["test-support"] }
 anyhow.workspace = true
+serde_json.workspace = true
+# Argument parsing for the dev harness only; not part of the app bundle.
+clap = { version = "4.6", features = ["derive"] }
 
 [lints]
 workspace = true
