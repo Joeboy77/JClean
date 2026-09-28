@@ -1,0 +1,54 @@
+---
+import Base from "../layouts/Base.astro";
+import { METHOD_LABEL, RISK_LABEL, RULES, type Risk } from "../lib/rules";
+
+const groups = [...new Set(RULES.map((r) => r.group))];
+const riskColor: Record<Risk, string> = { safe: "text-safe", review: "text-review", caution: "text-caution", info: "text-muted" };
+---
+
+<Base title="What it finds" description="Everything JClean detects on a Mac, generated from the same rule files the app uses: what each item is, what happens if it's cleaned, and how.">
+  <section class="mx-auto max-w-5xl px-4 pt-14 sm:px-6">
+    <h1 class="text-2xl font-semibold text-text">What JClean finds</h1>
+    <p class="mt-3 max-w-2xl text-muted">
+      This page is built from the same {RULES.length} rules the app uses, so it's always accurate. Rules marked "Developer" appear in Developer mode.
+    </p>
+    <nav aria-label="Groups" class="mt-6 flex flex-wrap gap-2">
+      {groups.map((g) => <a href={`#${g.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`} class="rounded-row border border-line bg-surface px-2.5 py-1 text-sm text-muted hover:text-text">{g}</a>)}
+    </nav>
+  </section>
+
+  {
+    groups.map((group) => (
+      <section class="mx-auto mt-12 max-w-5xl px-4 sm:px-6" aria-labelledby={group.toLowerCase().replace(/[^a-z0-9]+/g, "-")}>
+        <h2 id={group.toLowerCase().replace(/[^a-z0-9]+/g, "-")} class="scroll-mt-20 text-lg font-semibold text-text">
+          {group}
+        </h2>
+        <ul class="mt-4 grid gap-3 md:grid-cols-2">
+          {RULES.filter((r) => r.group === group).map((r) => (
+            <li class="rounded-card border border-line bg-surface p-4">
+              <div class="flex flex-wrap items-center gap-x-3 gap-y-1">
+                <h3 class="font-medium text-text">{r.developer}</h3>
+                {!r.audience.includes("everyday") && <span class="rounded-row bg-accent/15 px-1.5 text-xs text-accent-text">Developer</span>}
+              </div>
+              {r.everyday !== r.developer && <p class="text-xs text-muted">In Everyday mode: {r.everyday}</p>}
+              <p class="mt-2 text-sm text-muted">{r.what}</p>
+              <p class="mt-1 text-sm text-muted"><span class="text-text">If cleaned:</span> {r.ifCleared}</p>
+              <p class="mt-2 flex flex-wrap gap-x-3 text-xs">
+                <span class={riskColor[r.risk]}>{RISK_LABEL[r.risk]}</span>
+                <span class="text-muted">{r.command ? `Cleared with ${r.command}` : METHOD_LABEL[r.method]}</span>
+              </p>
+              {r.locations.length > 0 && (
+                <details class="mt-2 text-xs">
+                  <summary class="cursor-pointer text-muted">Where it looks</summary>
+                  <ul class="mt-1 space-y-0.5">
+                    {r.locations.map((l) => <li class="font-mono break-all text-muted">{l}</li>)}
+                  </ul>
+                </details>
+              )}
+            </li>
+          ))}
+        </ul>
+      </section>
+    ))
+  }
+</Base>

@@ -41,7 +41,10 @@ jobs:
       - name: Frontend tests
         run: pnpm test
 
+      # The website reads the latest release from GitHub at build time.
       - name: Frontend build
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: pnpm build
 
       - name: Rust format

@@ -1,0 +1,104 @@
+---
+import Logo from "../components/Logo.astro";
+import { REPO } from "../lib/release";
+import "../styles/global.css";
+// Preloaded so text is laid out once, in the right font (spec §12.3: no layout shift).
+import sansUrl from "@jclean/design/fonts/instrument-sans-latin-wght-normal.woff2?url";
+
+interface Props {
+  title?: string;
+  description?: string;
+}
+const {
+  title,
+  description = "JClean finds the storage you didn't know you were using, like developer caches, old build folders and leftovers, and clears it safely. Free, open source, and nothing leaves your Mac.",
+} = Astro.props;
+const fullTitle = title ? `${title} · JClean` : "JClean: see what's filling your Mac, and clear it safely";
+const canonical = new URL(Astro.url.pathname, Astro.site);
+const ogImage = new URL("/og.png", Astro.site);
+const nav = [
+  { href: "/download", label: "Download" },
+  { href: "/safety", label: "Safety" },
+  { href: "/rules", label: "What it finds" },
+  { href: "/changelog", label: "Changelog" },
+];
+const path = Astro.url.pathname.replace(/\/$/, "");
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{fullTitle}</title>
+    <meta name="description" content={description} />
+    <link rel="canonical" href={canonical} />
+    <link rel="preload" href={sansUrl} as="font" type="font/woff2" crossorigin />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <meta name="theme-color" content="#16141f" />
+    <meta name="color-scheme" content="dark" />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="JClean" />
+    <meta property="og:title" content={fullTitle} />
+    <meta property="og:description" content={description} />
+    <meta property="og:url" content={canonical} />
+    <meta property="og:image" content={ogImage} />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta name="twitter:card" content="summary_large_image" />
+  </head>
+  <body class="min-h-screen bg-bg text-text">
+    <a href="#main" class="sr-only focus:not-sr-only focus:absolute focus:top-3 focus:left-3 focus:rounded-control focus:bg-accent-strong focus:px-3 focus:py-2 focus:text-white">Skip to content</a>
+    <header class="sticky top-0 z-40 border-b border-line bg-bg/85 backdrop-blur">
+      <div class="mx-auto flex h-14 max-w-6xl items-center gap-6 px-4 sm:px-6">
+        <a href="/" class="flex items-center gap-2 text-accent" aria-label="JClean home">
+          <Logo size={22} />
+          <span class="text-md font-semibold text-text">JClean</span>
+        </a>
+        <nav aria-label="Main" class="ml-auto hidden items-center gap-1 sm:flex">
+          {
+            nav.map((n) => (
+              <a
+                href={n.href}
+                aria-current={path === n.href ? "page" : undefined}
+                class={`rounded-control px-3 py-1.5 text-sm ${path === n.href ? "bg-raised text-text" : "text-muted hover:text-text"}`}
+              >
+                {n.label}
+              </a>
+            ))
+          }
+          <a href={`https://github.com/${REPO}`} class="rounded-control px-3 py-1.5 text-sm text-muted hover:text-text">GitHub</a>
+        </nav>
+        <a href="/download" class="ml-auto rounded-control bg-accent-strong px-3 py-1.5 text-sm font-medium text-white sm:hidden">Download</a>
+      </div>
+    </header>
+
+    <main id="main">
+      <slot />
+    </main>
+
+    <footer class="mt-24 border-t border-line">
+      <div class="mx-auto grid max-w-6xl gap-8 px-4 py-10 text-sm text-muted sm:grid-cols-[2fr_1fr_1fr] sm:px-6">
+        <div>
+          <p class="flex items-center gap-2 text-accent">
+            <Logo size={18} />
+            <span class="font-semibold text-text">JClean</span>
+          </p>
+          <p class="mt-3 max-w-md">
+            JClean reads file names, sizes and dates to calculate storage. It never reads file contents, never uploads anything, and has no account system.
+          </p>
+        </div>
+        <nav aria-label="Product" class="space-y-2">
+          <p class="text-xs font-medium tracking-wide uppercase">Product</p>
+          {nav.map((n) => <a href={n.href} class="block hover:text-text">{n.label}</a>)}
+        </nav>
+        <nav aria-label="Open source" class="space-y-2">
+          <p class="text-xs font-medium tracking-wide uppercase">Open source</p>
+          <a href={`https://github.com/${REPO}`} class="block hover:text-text">Source code</a>
+          <a href={`https://github.com/${REPO}/issues`} class="block hover:text-text">Report a problem</a>
+          <a href={`https://github.com/${REPO}/blob/main/LICENSE`} class="block hover:text-text">MIT License</a>
+        </nav>
+      </div>
+    </footer>
+  </body>
+</html>

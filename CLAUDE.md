@@ -60,6 +60,7 @@ VITE_DEMO=drawer VITE_MOCK_ROWS=5000 pnpm tauri dev   # dev-only: replay a state
 VITE_NO_AUTOSCAN=1 pnpm tauri dev    # dev-only: skip the quick scan on launch
 JCLEAN_DEV_ROOT=/tmp/jc pnpm tauri dev   # dev-only: run the app on a fixture (make one with `jclean-cli fixture /tmp/jc`); no tools run, Trash is the fixture's
 pnpm --filter web dev                # run website
+pnpm --filter web build              # build the static site into apps/web/dist (reads the latest release from GitHub)
 cargo test -p jclean-core
 cargo run -p jclean-cli -- scan --dry-run --mode quick
 cargo run -p jclean-cli -- fixture /tmp/jc   # safe fake home to scan/clean (prints the commands)

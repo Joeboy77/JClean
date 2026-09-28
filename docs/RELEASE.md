@@ -15,6 +15,23 @@ Add these in the repository's Settings → Secrets and variables → Actions.
 
 Keep a backup of `~/.tauri/jclean.key`. If it's lost, existing installs can't be updated and users have to reinstall.
 
+## One-time setup: the website on Cloudflare Pages
+
+The download site in `apps/web` is static. It reads the latest release (version, DMG size, checksums, notes) from GitHub when it builds, and the download button always points at `/releases/latest/download/JClean_macos_universal.dmg`, so a new release only needs a rebuild.
+
+1. In Cloudflare, go to **Workers & Pages → Create → Pages → Connect to Git** and pick `Joeboy77/JClean`.
+2. Build settings:
+   - Framework preset: **Astro**
+   - Build command: `pnpm install --frozen-lockfile && pnpm --filter web build`
+   - Build output directory: `apps/web/dist`
+   - Root directory: leave empty (the repository root, so the workspace packages and `rules/` resolve)
+3. Environment variables (Production and Preview):
+   - `NODE_VERSION` = `22`
+   - `PNPM_VERSION` = the version in the root `package.json` `packageManager` field
+   - `SITE_URL` = the site's address, e.g. `https://jclean.pages.dev` or your own domain. Used for canonical links, the sitemap and `robots.txt`.
+   - `GITHUB_TOKEN` (optional) = a fine-grained token with no permissions. Raises the GitHub API limit; the build falls back safely without it.
+4. **Settings → Builds → Deploy hooks**: create a hook for `main`, and save its URL as the `CLOUDFLARE_DEPLOY_HOOK` GitHub secret. The release workflow calls it after publishing, so the site shows the new version.
+
 ## Cutting a release
 
 1. Set the version in `Cargo.toml` (`[workspace.package] version`) and `apps/desktop/package.json`, then commit.

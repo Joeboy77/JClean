@@ -7,3 +7,6 @@ target/
 coverage/
 .env*
 !.env.example
+
+# Astro generated types
+.astro/

@@ -1,0 +1,31 @@
+---
+import Base from "../layouts/Base.astro";
+import { RELEASES_URL, formatDate, releaseNotes } from "../lib/release";
+
+const notes = await releaseNotes();
+---
+
+<Base title="Changelog" description="What's new in each JClean release.">
+  <section class="mx-auto max-w-3xl px-4 pt-14 sm:px-6">
+    <h1 class="text-2xl font-semibold text-text">Changelog</h1>
+    {
+      notes.length === 0 ? (
+        <p class="mt-6 text-muted">
+          Release notes are on <a href={RELEASES_URL} class="text-accent hover:underline">GitHub</a>.
+        </p>
+      ) : (
+        <ol class="mt-8 space-y-10">
+          {notes.map((n) => (
+            <li>
+              <h2 class="text-lg font-semibold text-text">
+                <a href={n.url} class="hover:underline">Version {n.version}</a>
+              </h2>
+              {n.publishedAt && <p class="text-sm text-muted">{formatDate(n.publishedAt)}</p>}
+              <div class="notes mt-3" set:html={n.html} />
+            </li>
+          ))}
+        </ol>
+      )
+    }
+  </section>
+</Base>

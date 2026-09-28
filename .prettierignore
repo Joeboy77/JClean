@@ -6,3 +6,4 @@ CLAUDE.md
 apps/desktop/src/bindings.ts
 apps/desktop/src-tauri/gen/
 apps/desktop/src-tauri/icons/
+.astro/

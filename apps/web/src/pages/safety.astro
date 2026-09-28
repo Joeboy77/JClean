@@ -1,0 +1,57 @@
+---
+import Base from "../layouts/Base.astro";
+
+const levels = [
+  { color: "text-safe", name: "Safe to clean", body: "Comes back on its own when needed, like package caches and build folders of projects you haven't touched. Cleaning it loses nothing. Only these are ever ticked for you." },
+  { color: "text-review", name: "Needs review", body: "Probably fine to clean, but take a look first: old installers, large files, projects you're still working on. Your own files go to the Trash so you can put them back." },
+  { color: "text-caution", name: "Caution", body: "May hold data that can't be recovered, like iPhone backups or Docker volumes. JClean always asks a second time and spells out what you'd lose." },
+  { color: "text-muted", name: "For your information", body: "Shown so you can see where space goes, like your Photos library. JClean never cleans these." },
+];
+const never = [
+  "The top level of Documents, Desktop, Downloads, Pictures, Music, Movies and Library",
+  "Your SSH, GPG, AWS and Kubernetes keys, and your Keychain",
+  "Mail, and anything inside a Git repository's .git folder",
+  "macOS itself: /System, /usr, /bin, /etc, and your Applications",
+  "Anything in a folder containing a file named .jclean-keep",
+];
+---
+
+<Base title="Safety" description="How JClean decides what's safe to clean, the checks it runs before removing anything, what it never touches, and its privacy promise.">
+  <article class="mx-auto max-w-3xl px-4 pt-14 sm:px-6">
+    <h1 class="text-2xl font-semibold text-text">How JClean keeps your files safe</h1>
+    <p class="mt-3 text-md text-muted">A storage cleaner deletes files, so one bug could destroy someone's work. JClean is built so that it can't.</p>
+
+    <h2 class="mt-12 text-xl font-semibold text-text">Four levels of risk</h2>
+    <ul class="mt-4 space-y-3">
+      {levels.map((l) => (
+        <li class="rounded-card border border-line bg-surface p-5">
+          <p class={`font-semibold ${l.color}`}>{l.name}</p>
+          <p class="mt-1 text-muted">{l.body}</p>
+        </li>
+      ))}
+    </ul>
+    <p class="mt-3 text-sm text-muted">Risk is always shown with a label and an icon, never by colour alone. If there's any doubt about something, it's marked "Needs review", not "Safe".</p>
+
+    <h2 class="mt-12 text-xl font-semibold text-text">Checked again, right before cleaning</h2>
+    <p class="mt-3 text-muted">Scans can go stale, so every item passes these checks at the moment it's cleaned, not just when it was found:</p>
+    <ol class="mt-4 list-decimal space-y-2 pl-5 text-text">
+      <li>It's inside a folder its rule is allowed to clean, after following any shortcuts in the path.</li>
+      <li>It isn't a protected location, or a folder that contains one.</li>
+      <li>It isn't a link to somewhere else. Links are removed as links and never followed.</li>
+      <li>It hasn't changed since the scan. Anything that grew or was modified is skipped.</li>
+      <li>The app that uses it isn't open. JClean asks you to close it first.</li>
+    </ol>
+    <p class="mt-3 text-muted">All deletion goes through one small, heavily tested piece of code, and every action is written to a log you can read and export.</p>
+
+    <h2 class="mt-12 text-xl font-semibold text-text">What JClean never touches</h2>
+    <ul class="mt-4 space-y-2">
+      {never.map((n) => <li class="flex gap-3 text-text"><span class="text-safe" aria-hidden="true">✓</span>{n}</li>)}
+    </ul>
+
+    <h2 class="mt-12 text-xl font-semibold text-text">Privacy</h2>
+    <div class="mt-4 rounded-card border border-line bg-surface p-5 text-text">
+      <p>JClean reads file names, sizes and dates to calculate storage. It never reads file contents, never uploads anything, and has no account system.</p>
+      <p class="mt-2 text-muted">The only network request is the optional update check against GitHub, which you can turn off in Settings. There's no telemetry, crash reporting or analytics, and this website has no trackers or cookies.</p>
+    </div>
+  </article>
+</Base>

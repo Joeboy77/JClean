@@ -1,0 +1,106 @@
+---
+import { DownloadButton } from "../components/DownloadButton";
+import { HeroMap } from "../components/HeroMap";
+import Base from "../layouts/Base.astro";
+import { DMG_URL, RELEASES_URL, REPO, formatSize, latestRelease } from "../lib/release";
+import { RULES } from "../lib/rules";
+
+const release = await latestRelease();
+const detail = ["macOS 12 or later", release.dmgSize ? formatSize(release.dmgSize) : null].filter(Boolean).join(" · ");
+
+const finds = [
+  { title: "Developer caches", body: "npm, Yarn, pnpm, pip, Gradle, Maven, Cargo, Go, Homebrew, CocoaPods and more." },
+  { title: "Old build folders", body: "node_modules, target, .next, .venv and friends, in projects you haven't touched in months." },
+  { title: "Xcode and simulators", body: "DerivedData, old device support files, archives, and simulators you can't run anymore." },
+  { title: "Docker", body: "Build cache and images no container uses, cleared by Docker itself." },
+  { title: "App and browser caches", body: "Leftovers from apps, Chrome, Safari, Firefox, Slack, Discord and others. Never your history or passwords." },
+  { title: "Forgotten files", body: "Old installers in Downloads, large files you haven't opened in months, iPhone backups and the Trash." },
+];
+---
+
+<Base>
+  <section class="mx-auto grid max-w-6xl items-center gap-12 px-4 pt-14 pb-10 sm:px-6 lg:grid-cols-[1fr_1.15fr] lg:pt-20">
+    <div class="text-center sm:text-left">
+      <p class="text-sm font-medium text-accent">Free and open source · for macOS</p>
+      <h1 class="mt-3 text-2xl font-semibold tracking-tight text-text sm:text-[44px] sm:leading-[52px]">
+        See what's filling your Mac, and clear it safely.
+      </h1>
+      <p class="mt-4 max-w-xl text-md text-muted">
+        JClean finds the storage you didn't know you were using: developer caches, old build folders, app leftovers, old installers and logs. It explains each one in plain language and lets you decide what goes.
+      </p>
+      <div class="mt-8">
+        <DownloadButton client:load url={DMG_URL} detail={detail} releasesUrl={RELEASES_URL} />
+      </div>
+    </div>
+    <HeroMap client:visible />
+  </section>
+
+  <section class="mx-auto max-w-6xl px-4 pt-16 sm:px-6" aria-labelledby="how">
+    <h2 id="how" class="text-xl font-semibold text-text">How it works</h2>
+    <ol class="mt-6 grid gap-4 sm:grid-cols-3">
+      {
+        [
+          ["Scan", "A quick scan checks the places storage hides, in seconds. A full scan maps your whole home folder."],
+          ["Review", "Everything is grouped by how safe it is to clean, with what it is and what happens if it goes."],
+          ["Clean", "Safe, unused items are ticked for you. Nothing is removed until you confirm, and every clean is logged."],
+        ].map(([title, body], i) => (
+          <li class="rounded-card border border-line bg-surface p-5">
+            <span class="tabular text-sm text-accent">{String(i + 1).padStart(2, "0")}</span>
+            <h3 class="mt-2 text-md font-semibold text-text">{title}</h3>
+            <p class="mt-1 text-muted">{body}</p>
+          </li>
+        ))
+      }
+    </ol>
+  </section>
+
+  <section class="mx-auto max-w-6xl px-4 pt-20 sm:px-6" aria-labelledby="finds">
+    <div class="flex flex-wrap items-end justify-between gap-3">
+      <h2 id="finds" class="text-xl font-semibold text-text">What it finds</h2>
+      <a href="/rules" class="text-sm text-accent hover:underline">All {RULES.length} things JClean looks for</a>
+    </div>
+    <ul class="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      {
+        finds.map((f) => (
+          <li class="rounded-card border border-line bg-surface p-5">
+            <h3 class="text-md font-semibold text-text">{f.title}</h3>
+            <p class="mt-1 text-muted">{f.body}</p>
+          </li>
+        ))
+      }
+    </ul>
+  </section>
+
+  <section class="mx-auto max-w-6xl px-4 pt-20 sm:px-6" aria-labelledby="safety">
+    <div class="grid gap-8 rounded-card border border-line bg-surface p-6 sm:p-10 lg:grid-cols-2">
+      <div>
+        <h2 id="safety" class="text-xl font-semibold text-text">Safe by default</h2>
+        <p class="mt-3 text-muted">
+          JClean is built around one rule: never remove something you'd miss. Anything that isn't clearly regenerable needs your review, and every item is checked again right before it's cleaned.
+        </p>
+        <a href="/safety" class="mt-4 inline-block text-sm text-accent hover:underline">How JClean decides what's safe</a>
+      </div>
+      <ul class="space-y-3 text-text">
+        <li class="flex gap-3"><span class="text-safe" aria-hidden="true">✓</span>Never reads file contents, only names, sizes and dates.</li>
+        <li class="flex gap-3"><span class="text-safe" aria-hidden="true">✓</span>Never touches Documents, Desktop, Photos, your keys or your Git repositories.</li>
+        <li class="flex gap-3"><span class="text-safe" aria-hidden="true">✓</span>Skips anything that changed since the scan, and anything an open app is using.</li>
+        <li class="flex gap-3"><span class="text-safe" aria-hidden="true">✓</span>No account, no tracking, nothing sent anywhere.</li>
+      </ul>
+    </div>
+  </section>
+
+  <section class="mx-auto max-w-6xl px-4 pt-20 text-center sm:px-6" aria-labelledby="oss">
+    <h2 id="oss" class="text-xl font-semibold text-text">Open source, and free for good</h2>
+    <p class="mx-auto mt-3 max-w-2xl text-muted">
+      JClean is MIT licensed. Read every line that decides what's safe to delete, suggest a new location to clean, or build it yourself.
+    </p>
+    <a href={`https://github.com/${REPO}`} class="mt-5 inline-flex h-10 items-center rounded-control border border-line bg-raised px-5 text-text hover:border-muted">View on GitHub</a>
+  </section>
+
+  <section class="mx-auto mt-20 max-w-3xl rounded-card border border-line bg-surface px-6 py-10 text-center" aria-labelledby="get">
+    <h2 id="get" class="text-xl font-semibold text-text">Get your space back</h2>
+    <div class="mt-6 flex justify-center">
+      <DownloadButton client:visible url={DMG_URL} detail={detail} releasesUrl={RELEASES_URL} size="normal" />
+    </div>
+  </section>
+</Base>
