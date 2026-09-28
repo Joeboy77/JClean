@@ -15,7 +15,9 @@ const {
   description = "JClean finds the storage you didn't know you were using, like developer caches, old build folders and leftovers, and clears it safely. Free and open source for Mac, Windows and Linux, and nothing leaves your computer.",
 } = Astro.props;
 const fullTitle = title ? `${title} · JClean` : "JClean: see what's filling your computer, and clear it safely";
-const canonical = new URL(Astro.url.pathname, Astro.site);
+// Pages are built as download.html but served at /download.
+const cleanPath = Astro.url.pathname.replace(/(index)?\.html$/, "").replace(/(.)\/$/, "$1");
+const canonical = new URL(cleanPath, Astro.site);
 // JPEG: WhatsApp and some chat apps skip previews over roughly 300 KB.
 const ogImage = new URL("/og.jpg", Astro.site);
 const ogAlt =
@@ -46,7 +48,7 @@ const nav = [
   { href: "/rules", label: "What it finds" },
   { href: "/changelog", label: "Changelog" },
 ];
-const path = Astro.url.pathname.replace(/\/$/, "");
+const path = cleanPath === "/" ? "" : cleanPath;
 ---
 
 <!doctype html>
