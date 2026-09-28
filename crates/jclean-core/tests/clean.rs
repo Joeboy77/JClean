@@ -234,6 +234,59 @@ fn a_junction_in_a_cache_is_removed_as_a_link() {
     assert!(w.f.path("Documents/important.txt").exists());
 }
 
+/// Linux: one polkit prompt (`pkexec /bin/sh -c`), per-op results on stdout.
+#[cfg(target_os = "linux")]
+#[test]
+fn administrator_items_share_one_polkit_prompt_and_respect_cancel() {
+    use jclean_core::tools::CommandOutput;
+    let w = world();
+    w.f.system_file("Library/Logs/SomeDaemon/log.txt", 300_000)
+        .unwrap();
+    w.f.system_file("Library/Logs/other.log", 100_000).unwrap();
+    std::fs::create_dir_all(w.f.root.join("private/var/log")).unwrap();
+    let result = scan(&w, &FakeRunner::none());
+    let logs = id("macos.system.system-logs", &w.f.root.join("Library/Logs"));
+    assert!(result.item(&logs).is_some(), "system logs found");
+
+    let pkexec = |status: i32, stdout: &str| {
+        let mut runner = FakeRunner::none();
+        runner.tools.insert(
+            "pkexec".to_string(),
+            CommandOutput {
+                status: Some(status),
+                stdout: stdout.to_string(),
+                stderr: String::new(),
+            },
+        );
+        runner
+    };
+    let approved = pkexec(0, "ok:0\nok:1\n");
+    let plan = plan(&w, &result, &Selection::Ids(vec![logs]), &approved);
+    assert!(plan.needs_admin);
+    let report = run(&w, &plan, &approved, &NoProcesses, None, false);
+    assert!(
+        matches!(report.outcomes[0].outcome, Outcome::Cleaned { .. }),
+        "{:?}",
+        report.outcomes
+    );
+    let calls = approved.calls();
+    assert_eq!(calls.len(), 1, "one polkit prompt for everything");
+    assert_eq!(calls[0].1[..2], ["/bin/sh".to_string(), "-c".to_string()]);
+    let script = &calls[0].1[2];
+    assert!(script.contains("/bin/rm -rf -- '"));
+    assert!(script.contains("SomeDaemon") && script.contains("other.log"));
+
+    // Dismissing the polkit dialog (exit 126) skips the item.
+    let dismissed = pkexec(126, "");
+    let report = run(&w, &plan, &dismissed, &NoProcesses, None, false);
+    assert_eq!(
+        report.outcomes[0].outcome,
+        Outcome::Skipped {
+            reason: "You cancelled the password request".to_string()
+        }
+    );
+}
+
 /// Windows: one UAC prompt through PowerShell, with results in the exit code.
 #[cfg(windows)]
 #[test]
@@ -574,7 +627,7 @@ fn deleting_user_files_is_opt_in_and_never_applies_to_caution_items() {
 }
 
 /// macOS: one `osascript` password prompt.
-#[cfg(not(windows))]
+#[cfg(target_os = "macos")]
 #[test]
 fn administrator_items_share_one_prompt_and_respect_cancel() {
     use jclean_core::tools::CommandOutput;
