@@ -1,0 +1,29 @@
+{
+  "name": "@jclean/treemap",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Squarified treemap layout and React component shared by the app and the website",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "d3-hierarchy": "^3.1.2"
+  },
+  "peerDependencies": {
+    "motion": "^13.0.0",
+    "react": "^19.0.0"
+  },
+  "devDependencies": {
+    "@types/d3-hierarchy": "^3.1.7",
+    "@types/react": "^19.3.0",
+    "motion": "^13.4.4",
+    "react": "^19.3.0",
+    "typescript": "~6.0.3",
+    "vitest": "^4.1.11"
+  }
+}
