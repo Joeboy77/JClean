@@ -13,3 +13,9 @@ createRoot(rootElement).render(
     <App />
   </StrictMode>,
 );
+
+if (import.meta.env.DEV && import.meta.env.VITE_DEMO) {
+  void import("./dev/demo").then(({ runDemo }) => {
+    runDemo(String(import.meta.env.VITE_DEMO));
+  });
+}

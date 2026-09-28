@@ -12,9 +12,13 @@
     "tauri": "tauri"
   },
   "dependencies": {
+    "@tanstack/react-virtual": "^3.14.13",
     "@tauri-apps/api": "^2.12.0",
+    "lucide-react": "^1.48.0",
+    "motion": "^13.4.4",
     "react": "^19.3.0",
-    "react-dom": "^19.3.0"
+    "react-dom": "^19.3.0",
+    "zustand": "^5.0.15"
   },
   "devDependencies": {
     "@tailwindcss/vite": "^4.3.3",

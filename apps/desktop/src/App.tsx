@@ -1,47 +1,55 @@
-import { useEffect, useState } from "react";
-import { isTauri } from "@tauri-apps/api/core";
-import { commands, type AppInfo } from "./bindings";
-import { LogoMark } from "./components/LogoMark";
+import { AnimatePresence, MotionConfig, motion } from "motion/react";
+import { useEffect, useRef } from "react";
+import { Canvas } from "./components/canvas/Canvas";
+import { DetailDrawer } from "./components/drawer/DetailDrawer";
+import { Sidebar } from "./components/sidebar/Sidebar";
+import { useWindowMode } from "./lib/windowMode";
+import { useStore } from "./state/store";
 
 export function App() {
-  const [info, setInfo] = useState<AppInfo | null>(null);
+  const { compact, showCanvas, toggle, onCanvasHidden } = useWindowMode();
+  const searchRef = useRef<HTMLInputElement>(null);
+  const setTab = useStore((s) => s.setTab);
 
+  // ⌘F focuses search.
   useEffect(() => {
-    if (isTauri()) {
-      void commands.appInfo().then(setInfo);
-    }
-  }, []);
+    const onKey = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "f") {
+        e.preventDefault();
+        setTab("categories");
+        requestAnimationFrame(() => searchRef.current?.focus());
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => {
+      window.removeEventListener("keydown", onKey);
+    };
+  }, [setTab]);
 
   return (
-    <div className="flex h-full">
-      {/* Sidebar (380 px, spec §5.1). The top strip clears the traffic lights and drags the window. */}
-      <aside className="flex w-[380px] shrink-0 flex-col border-r border-line bg-surface">
-        <div data-tauri-drag-region className="h-13 shrink-0" />
-        <div className="flex flex-1 flex-col gap-6 px-5 pb-5">
-          <div className="flex items-center gap-2.5 text-accent">
-            <LogoMark size={22} />
-            <span className="text-lg font-semibold text-text">JClean</span>
-          </div>
-          <div className="rounded-card border border-line bg-bg p-4">
-            <p className="text-muted">Storage overview</p>
-            <p className="tabular mt-1 text-xl font-semibold">Not scanned yet</p>
-          </div>
+    // Every animation respects the system's reduced-motion setting.
+    <MotionConfig reducedMotion="user">
+      <div className="relative flex h-full overflow-hidden">
+        <div className={`relative h-full ${compact ? "w-full" : ""}`}>
+          <Sidebar ref={searchRef} compact={compact} onToggleLayout={toggle} />
+          {compact && <DetailDrawer compact />}
         </div>
-      </aside>
-
-      {/* Canvas: the disk map arrives in phase 3. Hidden in compact widths. */}
-      <main className="relative hidden flex-1 flex-col min-[760px]:flex">
-        <div data-tauri-drag-region className="h-13 shrink-0" />
-        <div className="flex flex-1 flex-col items-center justify-center gap-4 text-accent">
-          <LogoMark size={56} />
-          <p className="text-md text-muted">See what's filling your Mac, and clear it safely.</p>
-        </div>
-        {info && (
-          <p className="tabular absolute right-5 bottom-4 text-xs text-muted">
-            Version {info.version}
-          </p>
-        )}
-      </main>
-    </div>
+        <AnimatePresence onExitComplete={onCanvasHidden}>
+          {showCanvas && (
+            <motion.div
+              key="canvas"
+              className="relative flex h-full min-w-0 flex-1"
+              initial={{ opacity: 0, x: 32 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: 32 }}
+              transition={{ duration: 0.18, ease: [0.16, 1, 0.3, 1] }}
+            >
+              <Canvas />
+              <DetailDrawer compact={false} />
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
+    </MotionConfig>
   );
 }
