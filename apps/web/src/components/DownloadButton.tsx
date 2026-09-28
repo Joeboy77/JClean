@@ -7,6 +7,8 @@ interface Props {
   mac: Download;
   /** The Windows installer, once a release has one. */
   windows: Download | null;
+  /** The Linux AppImage (and .deb), once a release has them. */
+  linux: Download | null;
   releasesUrl: string;
   size?: "large" | "normal";
 }
@@ -39,7 +41,7 @@ const downloadIcon = (
   </svg>
 );
 
-export function DownloadButton({ mac, windows, releasesUrl, size = "large" }: Props) {
+export function DownloadButton({ mac, windows, linux, releasesUrl, size = "large" }: Props) {
   // Rendered as "mac" on the server and switched after load. Every variant is
   // one button and one short line, so nothing below it moves.
   const platform = useSyncExternalStore(subscribe, detect, () => "mac" as const);
@@ -50,7 +52,7 @@ export function DownloadButton({ mac, windows, releasesUrl, size = "large" }: Pr
     big ? "h-12 px-6 text-md" : "h-10 px-5"
   }`;
   const button = `${shape} bg-accent-strong text-white`;
-  const comingSoon = (platform === "windows" && !windows) || platform === "linux";
+  const comingSoon = (platform === "windows" && !windows) || (platform === "linux" && !linux);
 
   return (
     <div className="flex flex-col items-center gap-2 sm:items-start">
@@ -64,6 +66,12 @@ export function DownloadButton({ mac, windows, releasesUrl, size = "large" }: Pr
         <a href={windows.url} className={button}>
           {downloadIcon}
           Download for Windows
+        </a>
+      )}
+      {platform === "linux" && linux && (
+        <a href={linux.url} className={button}>
+          {downloadIcon}
+          Download for Linux
         </a>
       )}
       {comingSoon && (
@@ -87,6 +95,19 @@ export function DownloadButton({ mac, windows, releasesUrl, size = "large" }: Pr
       <p className="text-sm text-muted" aria-live="polite">
         {platform === "mac" && mac.detail}
         {platform === "windows" && windows?.detail}
+        {platform === "linux" && linux && (
+          <>
+            {linux.detail}
+            {linux.alternative && (
+              <>
+                {" · or the "}
+                <a href={linux.alternative.url} className="text-accent hover:underline">
+                  {linux.alternative.label}
+                </a>
+              </>
+            )}
+          </>
+        )}
         {comingSoon && "The Mac version is out now."}
         {platform === "mobile" && "Open this page on your computer to download."}
       </p>

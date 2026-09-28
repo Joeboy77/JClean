@@ -9,6 +9,10 @@ export const DMG_URL = `https://github.com/${REPO}/releases/latest/download/${DM
 export const EXE = "JClean_windows_x64_setup.exe";
 /** Stable URL: always the newest release's Windows installer. */
 export const EXE_URL = `https://github.com/${REPO}/releases/latest/download/${EXE}`;
+export const APPIMAGE = "JClean_linux_x86_64.AppImage";
+export const APPIMAGE_URL = `https://github.com/${REPO}/releases/latest/download/${APPIMAGE}`;
+export const DEB = "JClean_linux_amd64.deb";
+export const DEB_URL = `https://github.com/${REPO}/releases/latest/download/${DEB}`;
 export const RELEASES_URL = `https://github.com/${REPO}/releases`;
 
 export interface Checksum {
@@ -22,6 +26,8 @@ export interface LatestRelease {
   dmgSize: number | null;
   /** Bytes; `null` when the latest release has no Windows installer yet. */
   exeSize: number | null;
+  /** Bytes; `null` when the latest release has no Linux AppImage yet. */
+  appImageSize: number | null;
   publishedAt: string | null;
   checksums: Checksum[];
 }
@@ -107,6 +113,7 @@ export function latestRelease(): Promise<LatestRelease> {
       version: tag ? tag.replace(/^v/, "") : null,
       dmgSize: await size(DMG, DMG_URL),
       exeSize: await size(EXE, EXE_URL),
+      appImageSize: await size(APPIMAGE, APPIMAGE_URL),
       publishedAt:
         isRecord(data) && typeof data.published_at === "string" ? data.published_at : null,
       checksums,
@@ -141,10 +148,16 @@ export interface Download {
   url: string;
   /** e.g. "macOS 12 or later · 8.9 MB" */
   detail: string;
+  /** A second format, e.g. the .deb next to the AppImage. */
+  alternative?: { url: string; label: string };
 }
 
 /** What the download buttons offer. Windows appears once a release has it. */
-export function downloads(r: LatestRelease): { mac: Download; windows: Download | null } {
+export function downloads(r: LatestRelease): {
+  mac: Download;
+  windows: Download | null;
+  linux: Download | null;
+} {
   const detail = (base: string, size: number | null) =>
     [base, size ? formatSize(size) : null].filter(Boolean).join(" · ");
   return {
@@ -153,6 +166,14 @@ export function downloads(r: LatestRelease): { mac: Download; windows: Download 
       r.exeSize === null
         ? null
         : { url: EXE_URL, detail: detail("Windows 10 or 11, 64-bit", r.exeSize) },
+    linux:
+      r.appImageSize === null
+        ? null
+        : {
+            url: APPIMAGE_URL,
+            detail: detail("AppImage, any distribution, 64-bit", r.appImageSize),
+            alternative: { url: DEB_URL, label: ".deb for Ubuntu and Debian" },
+          },
   };
 }
 

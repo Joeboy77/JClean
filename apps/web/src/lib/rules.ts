@@ -1,4 +1,4 @@
-// The rule catalogs for /rules and /rules/windows, generated from
+// The rule catalogs for /rules, /rules/windows and /rules/linux, generated from
 // rules/<os>/*.json at build time so the pages always match what the app
 // detects (spec §12.1).
 
@@ -18,7 +18,7 @@ export interface SiteRule {
   locations: string[];
 }
 
-export type Os = "macos" | "windows";
+export type Os = "macos" | "windows" | "linux";
 
 const macFiles = import.meta.glob<unknown>("../../../../rules/macos/*.json", {
   eager: true,
@@ -42,6 +42,11 @@ function locations(detect: Json): string[] {
   if (typeof detect.probe === "string") return [`Reported by the tool (${detect.probe})`];
   return [];
 }
+
+const linuxFiles = import.meta.glob<unknown>("../../../../rules/linux/*.json", {
+  eager: true,
+  import: "default",
+});
 
 const parse = (files: Record<string, unknown>): SiteRule[] =>
   Object.values(files)
@@ -76,6 +81,7 @@ const parse = (files: Record<string, unknown>): SiteRule[] =>
 export const RULES_BY_OS: Record<Os, SiteRule[]> = {
   macos: parse(macFiles),
   windows: parse(windowsFiles),
+  linux: parse(linuxFiles),
 };
 
 /** The Mac catalog, the one the home page counts. */

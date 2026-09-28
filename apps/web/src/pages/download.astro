@@ -4,27 +4,41 @@ import Base from "../layouts/Base.astro";
 import { RELEASES_URL, downloads, formatDate, latestRelease } from "../lib/release";
 
 const release = await latestRelease();
-const { mac, windows } = downloads(release);
+const { mac, windows, linux } = downloads(release);
+const others = [windows && "Windows", linux && "Linux"].filter(Boolean);
 ---
 
 <Base
   title="Download"
-  description={`Download JClean for ${windows ? "Mac and Windows" : "Mac"}: free and open source. How to open it the first time, checksums and system requirements.`}
+  description={`Download JClean for ${["Mac", ...others].join(", ")}: free and open source. How to open it the first time, checksums and system requirements.`}
 >
   <section class="mx-auto max-w-4xl px-4 pt-14 sm:px-6">
     <h1 class="text-2xl font-semibold text-text">Download JClean</h1>
     <p class="mt-2 text-muted">
       {release.version ? `Version ${release.version}` : "Latest version"}
       {release.publishedAt && ` · released ${formatDate(release.publishedAt)}`}
-      · {windows ? "for Mac (Apple Silicon and Intel) and Windows." : "one download for Apple Silicon and Intel Macs."}
+      · {others.length ? `for Mac (Apple Silicon and Intel), ${others.join(" and ")}.` : "one download for Apple Silicon and Intel Macs."}
     </p>
     <div class="mt-8">
-      <DownloadButton client:load mac={mac} windows={windows} releasesUrl={RELEASES_URL} />
+      <DownloadButton client:load mac={mac} windows={windows} linux={linux} releasesUrl={RELEASES_URL} />
       {
-        windows && (
+        others.length > 0 && (
           <p class="mt-4 text-sm text-muted">
-            Also available: <a href={mac.url} class="text-accent hover:underline">Mac</a> ·{" "}
-            <a href={windows.url} class="text-accent hover:underline">Windows</a>
+            All downloads: <a href={mac.url} class="text-accent hover:underline">Mac</a>
+            {windows && (
+              <>
+                {" · "}
+                <a href={windows.url} class="text-accent hover:underline">Windows</a>
+              </>
+            )}
+            {linux && (
+              <>
+                {" · "}
+                <a href={linux.url} class="text-accent hover:underline">Linux AppImage</a>
+                {" · "}
+                <a href={linux.alternative?.url} class="text-accent hover:underline">Linux .deb</a>
+              </>
+            )}
           </p>
         )
       }
@@ -38,7 +52,7 @@ const { mac, windows } = downloads(release);
           <path d="M12 3 2 21h20L12 3Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"></path>
           <path d="M12 10v5m0 3h.01" stroke="currentColor" stroke-width="2" stroke-linecap="round"></path>
         </svg>
-        Opening JClean the first time{windows && " on a Mac"}
+        Opening JClean the first time{others.length > 0 && " on a Mac"}
       </h2>
       <p class="mt-3 text-text">
         JClean isn't notarized by Apple yet, so macOS blocks it the first time. This is expected, and you only have to do it once. It takes about 30 seconds.
@@ -181,6 +195,32 @@ const { mac, windows } = downloads(release);
     )
   }
 
+  {
+    linux && (
+      <section class="mx-auto mt-14 max-w-4xl px-4 sm:px-6" aria-labelledby="linux-first">
+        <div class="rounded-card border border-line bg-surface p-6 sm:p-8">
+          <h2 id="linux-first" class="text-xl font-semibold text-text">Installing on Linux</h2>
+          <div class="mt-6 grid gap-8 sm:grid-cols-2">
+            <div class="min-w-0">
+              <p class="text-sm font-medium text-accent-text">AppImage (any distribution)</p>
+              <p class="mt-1 text-text">Make it executable, then open it. It updates itself from Settings → Updates.</p>
+              <pre class="mt-3 overflow-x-auto rounded-control border border-line bg-bg p-3 font-mono text-xs text-text">chmod +x JClean_linux_x86_64.AppImage
+./JClean_linux_x86_64.AppImage</pre>
+              <p class="mt-2 text-sm text-muted">
+                On Ubuntu 22.04 or later, AppImages need FUSE 2 first: <code class="font-mono text-text">sudo apt install libfuse2t64</code> (<code class="font-mono text-text">libfuse2</code> on 22.04).
+              </p>
+            </div>
+            <div class="min-w-0">
+              <p class="text-sm font-medium text-accent-text">.deb (Ubuntu, Debian, Mint)</p>
+              <p class="mt-1 text-text">Install it with apt, which also adds what it needs. JClean appears in your apps.</p>
+              <pre class="mt-3 overflow-x-auto rounded-control border border-line bg-bg p-3 font-mono text-xs text-text">sudo apt install ./JClean_linux_amd64.deb</pre>
+            </div>
+          </div>
+        </div>
+      </section>
+    )
+  }
+
   <section class="mx-auto mt-14 grid max-w-4xl gap-6 px-4 sm:grid-cols-2 sm:px-6">
     <div class="rounded-card border border-line bg-surface p-6" aria-labelledby="req">
       <h2 id="req" class="text-lg font-semibold text-text">System requirements</h2>
@@ -203,6 +243,18 @@ const { mac, windows } = downloads(release);
           </>
         )
       }
+      {
+        linux && (
+          <>
+            <p class="mt-4 text-sm font-medium text-text">Linux</p>
+            <ul class="mt-1 space-y-1.5 text-muted">
+              <li>64-bit, with a recent desktop (GNOME, KDE Plasma or similar)</li>
+              <li>The .deb is for Ubuntu 22.04, Debian 12 and newer</li>
+              <li>Clearing system package caches and old logs asks for your password</li>
+            </ul>
+          </>
+        )
+      }
     </div>
     <div class="rounded-card border border-line bg-surface p-6" aria-labelledby="other">
       <h2 id="other" class="text-lg font-semibold text-text">Other platforms</h2>
@@ -211,7 +263,10 @@ const { mac, windows } = downloads(release);
           <strong class="text-text">Windows:</strong>{" "}
           {windows ? <a href={windows.url} class="text-accent hover:underline">download</a> : "coming soon"}
         </li>
-        <li><strong class="text-text">Linux:</strong> planned</li>
+        <li>
+          <strong class="text-text">Linux:</strong>{" "}
+          {linux ? <a href={linux.url} class="text-accent hover:underline">download</a> : "coming soon"}
+        </li>
       </ul>
       <a href={RELEASES_URL} class="mt-3 inline-block text-sm text-accent hover:underline">All versions on GitHub</a>
     </div>
@@ -227,6 +282,11 @@ const { mac, windows } = downloads(release);
             {windows && (
               <>
                 {" "}On Windows, run <code class="font-mono text-text">Get-FileHash JClean_windows_x64_setup.exe</code> in PowerShell.
+              </>
+            )}
+            {linux && (
+              <>
+                {" "}On Linux, run <code class="font-mono text-text">sha256sum</code> on the file.
               </>
             )}
           </p>
