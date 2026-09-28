@@ -112,9 +112,16 @@ fn custom(method: &str, path: &str) -> String {
     )
 }
 
+/// An absolute fixture root on this host (`/fx`, or `C:\\fx` on Windows).
+const FX: &str = if cfg!(windows) { r"C:\fx" } else { "/fx" };
+
+fn fx(rel: &str) -> std::path::PathBuf {
+    std::path::PathBuf::from(format!("{FX}{rel}"))
+}
+
 #[test]
 fn custom_rules_only_trash_and_never_target_protected_paths() {
-    let env = Env::new("/fx/Users/me", "/fx", Os::Macos);
+    let env = Env::new(fx("/Users/me"), FX, Os::Macos);
 
     let ok =
         rules::load_custom("pack.json", &custom("trash", "{home}/Movies/Renders"), &env).unwrap();
@@ -187,11 +194,11 @@ fn probes_named_in_rules_exist() {
 
 #[test]
 fn custom_folders_become_trash_only_rules_and_protected_paths_are_refused() {
-    let env = Env::new("/fx/Users/me", "/fx", Os::Macos);
+    let env = Env::new(fx("/Users/me"), FX, Os::Macos);
     let ok = rules::custom_folder_rule(
         "Old Renders",
         "Old renders",
-        std::path::Path::new("/fx/Users/me/Movies/Renders"),
+        &fx("/Users/me/Movies/Renders"),
         rules::Risk::Review,
         &env,
     )
@@ -201,32 +208,20 @@ fn custom_folders_become_trash_only_rules_and_protected_paths_are_refused() {
     assert_eq!(ok.source, RuleSource::Custom);
 
     for bad in [
-        "/fx/Users/me",
-        "/fx/Users/me/Documents",
-        "/fx/Users/me/.ssh",
-        "/fx/System/Library",
-        "relative",
+        fx("/Users/me"),
+        fx("/Users/me/Documents"),
+        fx("/Users/me/.ssh"),
+        fx("/System/Library"),
+        std::path::PathBuf::from("relative"),
     ] {
         assert!(
-            rules::custom_folder_rule(
-                "x",
-                "x",
-                std::path::Path::new(bad),
-                rules::Risk::Review,
-                &env
-            )
-            .is_err(),
-            "{bad} must be refused"
+            rules::custom_folder_rule("x", "x", &bad, rules::Risk::Review, &env).is_err(),
+            "{} must be refused",
+            bad.display()
         );
     }
     assert!(
-        rules::custom_folder_rule(
-            "x",
-            "x",
-            std::path::Path::new("/fx/Users/me/Movies/R"),
-            rules::Risk::Info,
-            &env
-        )
-        .is_err()
+        rules::custom_folder_rule("x", "x", &fx("/Users/me/Movies/R"), rules::Risk::Info, &env)
+            .is_err()
     );
 }

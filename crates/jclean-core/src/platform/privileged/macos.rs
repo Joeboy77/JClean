@@ -32,7 +32,7 @@ fn line(n: usize, op: &PrivilegedOp) -> Result<String, PrivilegedError> {
                 .and_then(|n| n.to_str())
                 .unwrap_or_default();
             let program_str = program.to_str().ok_or(PrivilegedError::UnsafePath)?;
-            if !ALLOWED_TOOLS.contains(&name) || !program.is_absolute() {
+            if !ALLOWED_TOOLS.contains(&name) || !program_str.starts_with('/') {
                 return Err(PrivilegedError::NotAllowed(name.to_string()));
             }
             if !clean_text(program_str) || args.iter().any(|a| !clean_text(a)) {
@@ -45,14 +45,14 @@ fn line(n: usize, op: &PrivilegedOp) -> Result<String, PrivilegedError> {
         }
         PrivilegedOp::Remove(path) => {
             let p = path.to_str().ok_or(PrivilegedError::UnsafePath)?;
-            if !path.is_absolute() || !clean_text(p) || path == Path::new("/") {
+            if !p.starts_with('/') || !clean_text(p) || path == Path::new("/") {
                 return Err(PrivilegedError::UnsafePath);
             }
             format!("/bin/rm -rf -- {}", shell_quote(p))
         }
         PrivilegedOp::ClearContents(path) => {
             let p = path.to_str().ok_or(PrivilegedError::UnsafePath)?;
-            if !path.is_absolute() || !clean_text(p) || path == Path::new("/") {
+            if !p.starts_with('/') || !clean_text(p) || path == Path::new("/") {
                 return Err(PrivilegedError::UnsafePath);
             }
             // `find` doesn't follow symlinks, and `rm -rf` removes them as links.

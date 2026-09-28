@@ -93,7 +93,7 @@ jobs:
         shell: bash
         run: |
           set -o pipefail
-          cargo test --workspace 2>&1 | tee test-output.txt
+          cargo test --workspace --no-fail-fast 2>&1 | tee test-output.txt
 
       # Puts failures on the run's summary page, where they're readable
       # without opening the log.

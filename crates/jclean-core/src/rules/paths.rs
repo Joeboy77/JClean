@@ -67,7 +67,12 @@ pub fn resolve(pattern: &str, env: &Env) -> Result<Option<PathBuf>, PathError> {
     }
     out.push_str(rest);
 
-    let path = PathBuf::from(&out);
+    // Rules are written with `/`; Windows paths read (and display) with `\\`.
+    let path = if cfg!(windows) {
+        PathBuf::from(out.replace('/', "\\"))
+    } else {
+        PathBuf::from(&out)
+    };
     if path.components().any(|c| matches!(c, Component::ParentDir)) {
         return Err(PathError::ParentComponent(pattern.to_string()));
     }
@@ -177,8 +182,15 @@ mod tests {
     use super::*;
     use crate::env::Os;
 
+    /// An absolute fixture root on this host (`/fx`, or `C:\\fx` on Windows).
+    const FX: &str = if cfg!(windows) { r"C:\fx" } else { "/fx" };
+
+    fn fx(rel: &str) -> PathBuf {
+        PathBuf::from(format!("{FX}{rel}"))
+    }
+
     fn env() -> Env {
-        Env::new("/fx/Users/me", "/fx", Os::Macos).with_var("GOPATH", "/fx/Users/me/go")
+        Env::new(fx("/Users/me"), FX, Os::Macos).with_var("GOPATH", fx("/Users/me/go"))
     }
 
     #[test]
@@ -186,27 +198,24 @@ mod tests {
         let e = env();
         assert_eq!(
             resolve("{home}/.npm/_cacache", &e),
-            Ok(Some(PathBuf::from("/fx/Users/me/.npm/_cacache")))
+            Ok(Some(fx("/Users/me/.npm/_cacache")))
         );
         assert_eq!(
             resolve("{caches}/Yarn", &e),
-            Ok(Some(PathBuf::from("/fx/Users/me/Library/Caches/Yarn")))
+            Ok(Some(fx("/Users/me/Library/Caches/Yarn")))
         );
         assert_eq!(
             resolve("{env:GOPATH}/pkg/mod", &e),
-            Ok(Some(PathBuf::from("/fx/Users/me/go/pkg/mod")))
+            Ok(Some(fx("/Users/me/go/pkg/mod")))
         );
         assert_eq!(resolve("{env:MISSING}/x", &e), Ok(None));
         assert_eq!(resolve("{localAppData}/x", &e), Ok(None));
-        assert_eq!(
-            resolve("/Library/Logs", &e),
-            Ok(Some(PathBuf::from("/fx/Library/Logs")))
-        );
+        assert_eq!(resolve("/Library/Logs", &e), Ok(Some(fx("/Library/Logs"))));
         assert_eq!(
             resolve("{home}/.cargo/registry/{cache,src}", &e),
-            Ok(Some(PathBuf::from(
-                "/fx/Users/me/.cargo/registry/{cache,src}"
-            )))
+            Ok(Some(PathBuf::from(&format!(
+                "{FX}/Users/me/.cargo/registry/{{cache,src}}"
+            ))))
         );
     }
 

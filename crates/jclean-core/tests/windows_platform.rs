@@ -31,7 +31,7 @@ struct Drive {
 impl Drive {
     fn new() -> Self {
         let tmp = tempfile::tempdir().unwrap();
-        let root = fs::canonicalize(tmp.path()).unwrap();
+        let root = jclean_core::testing::simplify(fs::canonicalize(tmp.path()).unwrap());
         let home = root.join("Users/me");
         for dir in [
             "Windows/System32",
@@ -65,7 +65,7 @@ impl Drive {
     }
 
     fn path(&self, rel: &str) -> PathBuf {
-        self.root.join(rel)
+        self.root.join(jclean_core::testing::native(rel))
     }
 }
 

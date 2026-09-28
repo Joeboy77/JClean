@@ -295,7 +295,10 @@ pub fn validate(rule: &Rule) -> Result<(), RuleError> {
         return Err(invalid(rule, "keepRoot has no effect with eachChild"));
     }
 
-    let env = Env::new("/h", "/", os_of(rule));
+    // A placeholder that's absolute on this host, so rule paths validate the
+    // same way wherever the app runs.
+    let root = std::path::PathBuf::from(if cfg!(windows) { r"C:\" } else { "/" });
+    let env = Env::new(root.join("h"), root, os_of(rule));
     let check_glob = |g: &str| {
         paths::matcher(g)
             .map(|_| ())

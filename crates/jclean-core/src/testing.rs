@@ -24,8 +24,8 @@ impl Fixture {
         fs::create_dir_all(&home)?;
         // Canonical paths keep comparisons simple on macOS, where the
         // temporary folder lives behind the /var -> /private/var symlink.
-        let root = fs::canonicalize(&root)?;
-        let home = fs::canonicalize(&home)?;
+        let root = simplify(fs::canonicalize(&root)?);
+        let home = simplify(fs::canonicalize(&home)?);
         Ok(Self { root, home })
     }
 
@@ -34,7 +34,7 @@ impl Fixture {
     }
 
     pub fn path(&self, rel: &str) -> PathBuf {
-        self.home.join(rel)
+        self.home.join(native(rel))
     }
 
     /// Writes a file of `bytes` real bytes under the home folder.
@@ -194,6 +194,29 @@ impl Fixture {
             age_tree(&f.path(fresh), 0)?;
         }
         Ok(f)
+    }
+}
+
+/// Windows canonical paths start with `\\?\`, where `/` isn't a separator;
+/// fixtures use the plain `C:\…` form, as the app does.
+pub fn simplify(path: PathBuf) -> PathBuf {
+    if cfg!(windows) {
+        let text = path.to_string_lossy();
+        if let Some(rest) = text.strip_prefix(r"\\?\")
+            && rest.as_bytes().get(1) == Some(&b':')
+        {
+            return PathBuf::from(rest.to_string());
+        }
+    }
+    path
+}
+
+/// A relative fixture path with the platform's separators.
+pub fn native(rel: &str) -> String {
+    if cfg!(windows) {
+        rel.replace('/', "\\")
+    } else {
+        rel.to_string()
     }
 }
 
