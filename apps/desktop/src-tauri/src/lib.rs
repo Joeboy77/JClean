@@ -7,10 +7,15 @@ use tauri_specta::{Builder, collect_commands};
 
 mod clean;
 mod engine;
+mod settings;
+mod system;
+mod tray;
 mod volume;
 mod window;
 
 use std::sync::Arc;
+
+use tauri::Manager;
 
 /// Where the generated IPC bindings are written, relative to this crate.
 const BINDINGS_PATH: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../src/bindings.ts");
@@ -62,6 +67,20 @@ pub fn specta_builder() -> Builder<tauri::Wry> {
         clean::plan_clean,
         clean::run_clean,
         clean::empty_trash,
+        settings::get_settings,
+        settings::save_settings,
+        settings::add_custom_folder,
+        settings::add_rule_pack,
+        settings::remove_custom_rule,
+        system::full_disk_access,
+        system::open_link,
+        system::reveal_item,
+        system::pick_folder,
+        system::pick_rule_pack,
+        system::get_rules,
+        system::history_cleanups,
+        system::history_actions,
+        system::export_history,
     ])
 }
 
@@ -87,12 +106,33 @@ pub fn run() -> Result<(), Box<dyn std::error::Error>> {
 
     tauri::Builder::default()
         .plugin(tauri_plugin_window_state::Builder::new().build())
+        .plugin(tauri_plugin_autostart::init(
+            tauri_plugin_autostart::MacosLauncher::LaunchAgent,
+            None,
+        ))
+        .plugin(tauri_plugin_dialog::init())
+        .plugin(tauri_plugin_opener::init())
         .manage(window::LastExpandedWidth::default())
         .manage(engine)
         .invoke_handler(builder.invoke_handler())
         .setup(move |app| {
             builder.mount_events(app);
+            tray::refresh(app.handle());
             Ok(())
+        })
+        // With the menu bar icon on, closing the window keeps JClean running
+        // there; "Open JClean" brings it back (spec §5.10).
+        .on_window_event(|window, event| {
+            if let tauri::WindowEvent::CloseRequested { api, .. } = event {
+                let keep = window
+                    .app_handle()
+                    .try_state::<Arc<engine::Engine>>()
+                    .is_some_and(|e| engine::lock(&e.settings).menu_bar_icon);
+                if keep {
+                    api.prevent_close();
+                    let _ = window.hide();
+                }
+            }
         })
         .run(tauri::generate_context!())?;
     Ok(())

@@ -7,7 +7,7 @@ use std::sync::Arc;
 
 use jclean_core::cancel::CancelToken;
 use jclean_core::cleaner::{self, CleanContext, CleanEvent, Outcome};
-use jclean_core::planner::{CleanPlan, Selection, build_plan};
+use jclean_core::planner::{CleanPlan, Selection, build_plan, build_plan_with};
 use jclean_core::rules::{Audience, Method, RuleSet};
 use jclean_core::safety::{ProcessChecker, SafetyGuard, SystemProcesses};
 use jclean_core::scanner::{ScanMode, ScanOptions, ScanResult, Scanner};
@@ -128,12 +128,13 @@ pub fn plan_clean(
     let last = lock(&engine.last)
         .clone()
         .ok_or("Scan first, then choose what to clean")?;
-    let plan = build_plan(
+    let plan = build_plan_with(
         &last,
-        &engine.rules,
+        &engine.rules(),
         &item_ids,
         &engine.env,
         engine.runner.as_ref(),
+        engine.plan_options(),
     );
     let running = SystemProcesses.running(&plan.related_apps);
     let dto = plan_dto(&plan, running);
@@ -200,6 +201,7 @@ fn outcome_update(o: &cleaner::ItemOutcome) -> CleanUpdate {
 #[tauri::command]
 #[specta::specta]
 pub fn run_clean(
+    app: tauri::AppHandle,
     engine: State<'_, Arc<Engine>>,
     on_update: Channel<CleanUpdate>,
 ) -> Result<(), String> {
@@ -217,6 +219,7 @@ pub fn run_clean(
         .spawn(move || {
             let summary = execute(&engine, &plan, &on_update);
             let _ = on_update.send(CleanUpdate::Finished(summary));
+            crate::tray::refresh(&app);
         })
         .map(|_| ())
         .map_err(|e| e.to_string())
@@ -304,7 +307,7 @@ pub async fn empty_trash(engine: State<'_, Arc<Engine>>) -> Result<EmptyTrashRes
 #[allow(clippy::cast_precision_loss)]
 fn empty_trash_blocking(engine: &Engine) -> Result<EmptyTrashResult, String> {
     let rule = engine
-        .rules
+        .builtin
         .get("macos.system.trash")
         .cloned()
         .ok_or("The Trash rule is missing")?;

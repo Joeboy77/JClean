@@ -4,7 +4,7 @@
 
 use std::path::PathBuf;
 use std::sync::atomic::{AtomicUsize, Ordering};
-use std::sync::{Arc, Mutex};
+use std::sync::{Arc, Mutex, RwLock};
 
 use jclean_core::cancel::CancelToken;
 use jclean_core::cleaner::{SystemTrash, Trasher};
@@ -17,6 +17,8 @@ use jclean_core::rules::{Audience, Category, Method, Risk, RuleSet};
 use jclean_core::scanner::{ScanEvent, ScanItem, ScanMode, ScanOptions, ScanResult, Scanner};
 use jclean_core::time::now_secs;
 use jclean_core::tools::{CommandRunner, SystemRunner};
+
+use crate::settings::Settings;
 use serde::{Deserialize, Serialize};
 use specta::Type;
 use tauri::State;
@@ -25,7 +27,11 @@ use tauri::ipc::Channel;
 /// Engine state shared by the commands.
 pub struct Engine {
     pub(crate) env: Env,
-    pub(crate) rules: RuleSet,
+    /// Built-in rules, embedded at build time.
+    pub(crate) builtin: RuleSet,
+    /// Built-in plus custom rules; rebuilt when settings change.
+    rules: RwLock<Arc<RuleSet>>,
+    pub(crate) settings: Mutex<Settings>,
     pub(crate) last: Mutex<Option<Arc<ScanResult>>>,
     cancel: Mutex<Option<CancelToken>>,
     /// The deletion log and scan history (spec §7.5, §10). `None` if the
@@ -41,14 +47,18 @@ pub struct Engine {
 impl Engine {
     pub fn new() -> Result<Self, String> {
         let (env, runner, trasher) = environment()?;
-        let rules = RuleSet::builtin(env.os()).map_err(|e| e.to_string())?;
+        let builtin = RuleSet::builtin(env.os()).map_err(|e| e.to_string())?;
+        let settings = Settings::load(&crate::settings::settings_path(&env));
+        let (rules, _) = settings.rule_set(&builtin, &env);
         let history = History::open(&platform::app_data_dir(&env).join("history.sqlite")).ok();
         if let Some(h) = &history {
             let _ = h.prune(now_secs());
         }
         Ok(Self {
             env,
-            rules,
+            builtin,
+            rules: RwLock::new(Arc::new(rules)),
+            settings: Mutex::new(settings),
             last: Mutex::new(None),
             cancel: Mutex::new(None),
             history,
@@ -57,6 +67,40 @@ impl Engine {
             runner,
             trasher,
         })
+    }
+
+    /// The rules in force now.
+    pub(crate) fn rules(&self) -> Arc<RuleSet> {
+        Arc::clone(&self.rules.read().unwrap_or_else(|p| p.into_inner()))
+    }
+
+    pub(crate) fn apply_settings(&self, settings: Settings) {
+        let (rules, _) = settings.rule_set(&self.builtin, &self.env);
+        *self.rules.write().unwrap_or_else(|p| p.into_inner()) = Arc::new(rules);
+        *lock(&self.settings) = settings;
+    }
+
+    /// Scan options from Settings (spec §4.4, §4.5, §5.11).
+    pub(crate) fn scan_options(&self, mode: ScanMode) -> ScanOptions {
+        let s = lock(&self.settings);
+        // Always scan everything; Everyday mode filters in the UI so switching is instant.
+        let mut opts = ScanOptions::new(mode, Audience::Developer);
+        opts.scan_roots = s
+            .project_roots
+            .iter()
+            .map(PathBuf::from)
+            .filter(|p| p.is_absolute())
+            .collect();
+        opts.excluded = s.excluded_folders.iter().map(PathBuf::from).collect();
+        opts.inactive_after_days = s.inactive_after_days;
+        opts.disabled_rules = s.disabled_rules.iter().cloned().collect();
+        opts
+    }
+
+    pub(crate) fn plan_options(&self) -> jclean_core::planner::PlanOptions {
+        jclean_core::planner::PlanOptions {
+            delete_user_files: lock(&self.settings).delete_user_files,
+        }
     }
 
     pub(crate) fn cache_path(&self) -> PathBuf {
@@ -286,6 +330,8 @@ pub enum ScanUpdate {
         partial: bool,
         notes: Vec<String>,
         has_tree: bool,
+        /// Rules whose locations need Full Disk Access (spec §11).
+        needs_access: Vec<String>,
     },
 }
 
@@ -325,6 +371,7 @@ pub struct CachedScan {
     #[specta(type = u32)]
     pub saved_at: f64,
     pub items: Vec<ItemDto>,
+    pub needs_access: Vec<String>,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -338,6 +385,7 @@ struct CacheFile {
 #[tauri::command]
 #[specta::specta]
 pub fn start_scan(
+    app: tauri::AppHandle,
     engine: State<'_, Arc<Engine>>,
     mode: Mode,
     on_update: Channel<ScanUpdate>,
@@ -355,11 +403,11 @@ pub fn start_scan(
                 Mode::Quick => ScanMode::Quick,
                 Mode::Full => ScanMode::Full,
             };
-            // Always scan everything; Everyday mode filters in the UI so switching is instant.
-            let opts = ScanOptions::new(mode, Audience::Developer);
+            let opts = engine.scan_options(mode);
+            let rules = engine.rules();
             let scanner = Scanner {
                 env: &engine.env,
-                rules: &engine.rules,
+                rules: &rules,
                 runner: engine.runner.as_ref(),
             };
             let last_percent = AtomicUsize::new(usize::MAX);
@@ -390,6 +438,7 @@ pub fn start_scan(
                 partial: result.cancelled,
                 notes,
                 has_tree: !result.tree.is_empty(),
+                needs_access: result.needs_access.clone(),
             };
             let result = Arc::new(result);
             if !result.cancelled {
@@ -416,6 +465,7 @@ pub fn start_scan(
             }
             *lock(&engine.last) = Some(result);
             let _ = on_update.send(finished);
+            crate::tray::refresh(&app);
         })
         .map(|_| ())
         .map_err(|e| e.to_string())
@@ -461,6 +511,7 @@ pub fn cached_scan(engine: State<'_, Arc<Engine>>) -> Option<CachedScan> {
     let cached = CachedScan {
         saved_at: file.saved_at as f64,
         items: file.scan.items.iter().map(item_dto).collect(),
+        needs_access: file.scan.needs_access.clone(),
     };
     let mut last = lock(&engine.last);
     if last.is_none() {
