@@ -162,9 +162,8 @@ function Sheet({ plan }: { plan: PlanDto }) {
             )}
             {admin.length > 0 && (
               <p className="text-xs text-muted">
-                {admin.length} {admin.length === 1 ? "item needs" : "items need"} an administrator
-                password, which JClean can't ask for yet. {admin.length === 1 ? "It" : "They"} will
-                be skipped.
+                {admin.length} {admin.length === 1 ? "item is" : "items are"} owned by macOS. It will ask for your
+                password once when cleaning starts.
               </p>
             )}
             {plan.skipped.length > 0 && (

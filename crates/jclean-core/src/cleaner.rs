@@ -150,10 +150,19 @@ pub fn execute(
         result
     };
 
+    // Administrator items share one password prompt (spec §7.4).
+    let (admin, regular): (Vec<&PlanItem>, Vec<&PlanItem>) =
+        plan.items.iter().partition(|i| i.requires_admin);
+    let mut outcomes: Vec<ItemOutcome> = Vec::new();
+    for (item, outcome, logged) in run_admin(&admin, ctx, cancel) {
+        outcomes.push(finish(item, outcome, &logged));
+    }
+
     // Independent path items run in parallel.
-    let (commands, paths): (Vec<&PlanItem>, Vec<&PlanItem>) =
-        plan.items.iter().partition(|i| i.method == Method::Command);
-    let mut outcomes: Vec<ItemOutcome> = paths
+    let (commands, paths): (Vec<&PlanItem>, Vec<&PlanItem>) = regular
+        .into_iter()
+        .partition(|i| i.method == Method::Command);
+    let path_outcomes: Vec<ItemOutcome> = paths
         .par_iter()
         .map(|item| {
             let outcome = clean_path(item, ctx, cancel);
@@ -165,6 +174,7 @@ pub fn execute(
             finish(item, outcome, &logged)
         })
         .collect();
+    outcomes.extend(path_outcomes);
 
     // Commands run one at a time; items sharing a command run it once.
     let mut groups: BTreeMap<String, Vec<&PlanItem>> = BTreeMap::new();
@@ -219,6 +229,184 @@ pub fn execute(
     }
 }
 
+const OSASCRIPT: &str = "/usr/bin/osascript";
+/// Long enough for someone to find and type their password.
+const ADMIN_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(300);
+
+/// Runs every administrator item after one password prompt. Paths are
+/// verified by the SafetyGuard first; only allowlisted tools run.
+fn run_admin<'p>(
+    items: &[&'p PlanItem],
+    ctx: &CleanContext<'_>,
+    cancel: &CancelToken,
+) -> Vec<(&'p PlanItem, Outcome, String)> {
+    use crate::platform::privileged::{PrivilegedOp, script, succeeded};
+
+    let mut done = Vec::new();
+    // For each item still going ahead: its ops' indexes and its size.
+    let mut pending: Vec<(&PlanItem, std::ops::Range<usize>, u64, String)> = Vec::new();
+    let mut ops: Vec<PrivilegedOp> = Vec::new();
+    for item in items {
+        if cancel.is_cancelled() {
+            done.push((*item, skipped("Cancelled"), String::new()));
+            continue;
+        }
+        let running = ctx.processes.running(&item.related_apps);
+        if !running.is_empty() {
+            done.push((
+                *item,
+                skipped(format!("Close {} first", running.join(", "))),
+                String::new(),
+            ));
+            continue;
+        }
+        let start = ops.len();
+        match (&item.command, &item.path) {
+            (Some(cmd), _) if item.method == Method::Command => {
+                ops.push(PrivilegedOp::Command {
+                    program: cmd.program.clone(),
+                    args: cmd.args.clone(),
+                });
+                pending.push((*item, start..ops.len(), item.bytes, cmd.display()));
+            }
+            (_, Some(path)) => {
+                let target = Target {
+                    path,
+                    roots: &item.roots,
+                    snapshot: item.snapshot,
+                    regenerates: item.regenerates,
+                    cross_filesystems: item.cross_filesystems,
+                    exclude: &item.excluded,
+                    related_apps: &item.related_apps,
+                };
+                let verified = match ctx.guard.check(&target, ctx.processes, cancel) {
+                    Ok(v) => v,
+                    Err(refusal) => {
+                        done.push((
+                            *item,
+                            skipped(refusal.to_string()),
+                            path.display().to_string(),
+                        ));
+                        continue;
+                    }
+                };
+                if verified.is_dir && item.keep_root {
+                    // Clear the contents, keep the folder: one op per entry inside.
+                    let Ok(entries) = fs::read_dir(&verified.path) else {
+                        done.push((
+                            *item,
+                            Outcome::Failed {
+                                reason: "JClean couldn't list what's inside".to_string(),
+                            },
+                            path.display().to_string(),
+                        ));
+                        continue;
+                    };
+                    for entry in entries.flatten() {
+                        ops.push(PrivilegedOp::Remove(entry.path()));
+                    }
+                } else {
+                    ops.push(PrivilegedOp::Remove(verified.path.clone()));
+                }
+                pending.push((
+                    *item,
+                    start..ops.len(),
+                    verified.allocated,
+                    path.display().to_string(),
+                ));
+            }
+            _ => done.push((
+                *item,
+                skipped("Nothing to clean at a known location"),
+                String::new(),
+            )),
+        }
+    }
+    if pending.is_empty() {
+        return done;
+    }
+
+    if ctx.dry_run {
+        done.extend(
+            pending
+                .into_iter()
+                .map(|(i, _, bytes, logged)| (i, Outcome::WouldClean { bytes }, logged)),
+        );
+        return done;
+    }
+
+    let fail_all = |pending: Vec<(&'p PlanItem, std::ops::Range<usize>, u64, String)>,
+                    outcome: Outcome| {
+        pending
+            .into_iter()
+            .map(move |(i, _, _, logged)| (i, outcome.clone(), logged))
+    };
+    let script = match script(
+        &ops,
+        "JClean needs your password to clean system files you selected.",
+    ) {
+        Ok(s) => s,
+        Err(e) => {
+            done.extend(fail_all(
+                pending,
+                Outcome::Failed {
+                    reason: e.to_string(),
+                },
+            ));
+            return done;
+        }
+    };
+    match ctx.runner.run(
+        Path::new(OSASCRIPT),
+        &["-e".to_string(), script],
+        ADMIN_TIMEOUT,
+    ) {
+        Ok(out) if out.success() => {
+            let ok = succeeded(&out.stdout, ops.len());
+            for (item, range, bytes, logged) in pending {
+                let all_ok = range.clone().all(|n| ok.get(n).copied().unwrap_or(false));
+                let outcome = if all_ok {
+                    Outcome::Cleaned { bytes }
+                } else {
+                    Outcome::Failed {
+                        reason: "macOS didn't allow part of it to be removed".to_string(),
+                    }
+                };
+                done.push((item, outcome, logged));
+            }
+        }
+        // AppleScript error -128: the password prompt was cancelled.
+        Ok(out) if out.stderr.contains("-128") => {
+            done.extend(fail_all(
+                pending,
+                skipped("You cancelled the password request"),
+            ));
+        }
+        Ok(out) => {
+            let msg = out
+                .stderr
+                .lines()
+                .find(|l| !l.trim().is_empty())
+                .unwrap_or("it didn't finish")
+                .trim()
+                .to_string();
+            done.extend(fail_all(
+                pending,
+                Outcome::Failed {
+                    reason: format!("Administrator cleanup failed: {msg}"),
+                },
+            ));
+        }
+        Err(e) => done.extend(fail_all(
+            pending,
+            Outcome::Failed {
+                reason: e.to_string(),
+            },
+        )),
+    }
+    done
+}
+
 fn skipped(reason: impl Into<String>) -> Outcome {
     Outcome::Skipped {
         reason: reason.into(),
@@ -228,10 +416,6 @@ fn skipped(reason: impl Into<String>) -> Outcome {
 fn clean_path(item: &PlanItem, ctx: &CleanContext<'_>, cancel: &CancelToken) -> Outcome {
     if cancel.is_cancelled() {
         return skipped("Cancelled");
-    }
-    if item.requires_admin {
-        // Administrator cleanups (spec §7.4) arrive with platform::macos::run_privileged.
-        return skipped("Needs administrator approval, which JClean can't ask for yet");
     }
     let Some(path) = &item.path else {
         return skipped("Nothing to clean at a known location");
@@ -358,11 +542,6 @@ fn run_command_group(
     };
     if cancel.is_cancelled() {
         return all(skipped("Cancelled"));
-    }
-    if first.requires_admin {
-        return all(skipped(
-            "Needs administrator approval, which JClean can't ask for yet",
-        ));
     }
     let Some(cmd) = &first.command else {
         return all(Outcome::Failed {

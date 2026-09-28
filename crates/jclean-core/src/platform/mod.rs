@@ -6,6 +6,7 @@
 
 pub mod fs;
 mod macos;
+pub mod privileged;
 
 use std::path::PathBuf;
 

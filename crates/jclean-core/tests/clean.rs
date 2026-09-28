@@ -487,3 +487,72 @@ fn deleting_user_files_is_opt_in_and_never_applies_to_caution_items() {
     );
     assert!(delete.needs_second_confirmation);
 }
+
+#[test]
+fn administrator_items_share_one_prompt_and_respect_cancel() {
+    use jclean_core::tools::CommandOutput;
+    let w = world();
+    // A root-owned log folder, as far as the rule is concerned.
+    w.f.system_file("Library/Logs/SomeDaemon/log.txt", 300_000)
+        .unwrap();
+    w.f.system_file("Library/Logs/other.log", 100_000).unwrap();
+    std::fs::create_dir_all(w.f.root.join("private/var/log")).unwrap();
+    let scan_runner = FakeRunner::none();
+    let result = scan(&w, &scan_runner);
+    let logs = id("macos.system.system-logs", &w.f.root.join("Library/Logs"));
+    assert!(result.item(&logs).is_some(), "system logs found");
+
+    // The password prompt succeeds for every op.
+    let mut runner = FakeRunner::none();
+    runner.tools.insert(
+        "osascript".to_string(),
+        CommandOutput {
+            status: Some(0),
+            stdout: "ok:0\nok:1\n".to_string(),
+            stderr: String::new(),
+        },
+    );
+    let plan = plan(&w, &result, &Selection::Ids(vec![logs.clone()]), &runner);
+    assert!(plan.needs_admin);
+    let report = run(&w, &plan, &runner, &NoProcesses, None, false);
+    assert!(
+        matches!(report.outcomes[0].outcome, Outcome::Cleaned { .. }),
+        "{:?}",
+        report.outcomes
+    );
+    let calls = runner.calls();
+    assert_eq!(calls.len(), 1, "one password prompt for everything");
+    let script = &calls[0].1[1];
+    assert!(script.contains("with administrator privileges"));
+    assert!(script.contains("/bin/rm -rf -- '"));
+    assert!(script.contains("SomeDaemon") && script.contains("other.log"));
+    // The folder itself is kept: only its contents are passed to rm.
+    assert!(!script.contains(&format!("'{}'", w.f.root.join("Library/Logs").display())));
+
+    // Cancelling the prompt skips the item with a plain reason.
+    let mut cancelled = FakeRunner::none();
+    cancelled.tools.insert(
+        "osascript".to_string(),
+        CommandOutput {
+            status: Some(1),
+            stdout: String::new(),
+            stderr: "execution error: User canceled. (-128)".to_string(),
+        },
+    );
+    let report = run(&w, &plan, &cancelled, &NoProcesses, None, false);
+    assert_eq!(
+        report.outcomes[0].outcome,
+        Outcome::Skipped {
+            reason: "You cancelled the password request".to_string()
+        }
+    );
+
+    // Dry runs never ask for a password.
+    let dry = FakeRunner::none();
+    let report = run(&w, &plan, &dry, &NoProcesses, None, true);
+    assert!(matches!(
+        report.outcomes[0].outcome,
+        Outcome::WouldClean { .. }
+    ));
+    assert!(dry.calls().is_empty());
+}
