@@ -1,0 +1,272 @@
+[
+  {
+    "id": "linux.node.npm-cache",
+    "version": 1,
+    "platforms": ["linux"],
+    "audience": ["developer"],
+    "category": "developer",
+    "group": "Package caches",
+    "labels": {
+      "developer": "npm cache",
+      "everyday": "Downloaded packages (npm)"
+    },
+    "description": {
+      "what": "Copies of every package npm has downloaded, kept so installs are faster.",
+      "ifCleared": "npm downloads packages again the next time you install them. Nothing in your projects changes."
+    },
+    "icon": "package",
+    "risk": "safe",
+    "regenerates": true,
+    "detect": {
+      "kind": "fixed",
+      "paths": ["{home}/.npm/_cacache"]
+    },
+    "unused": {
+      "basis": "newest-mtime",
+      "minAgeDays": 0
+    },
+    "cleanup": {
+      "method": "command",
+      "command": {
+        "tool": "npm",
+        "args": ["cache", "clean", "--force"]
+      },
+      "fallback": "delete"
+    },
+    "docs": "https://docs.npmjs.com/cli/commands/npm-cache"
+  },
+  {
+    "id": "linux.node.yarn-cache",
+    "version": 1,
+    "platforms": ["linux"],
+    "audience": ["developer"],
+    "category": "developer",
+    "group": "Package caches",
+    "labels": {
+      "developer": "Yarn cache",
+      "everyday": "Downloaded packages (Yarn)"
+    },
+    "description": {
+      "what": "Copies of packages Yarn has downloaded, kept so installs are faster.",
+      "ifCleared": "Yarn downloads them again the next time you install or build. Nothing in your projects changes."
+    },
+    "icon": "package",
+    "risk": "safe",
+    "regenerates": true,
+    "detect": {
+      "kind": "fixed",
+      "paths": ["{caches}/yarn", "{home}/.yarn/berry/cache"]
+    },
+    "unused": {
+      "basis": "newest-mtime",
+      "minAgeDays": 0
+    },
+    "cleanup": {
+      "method": "delete"
+    }
+  },
+  {
+    "id": "linux.node.pnpm-store",
+    "version": 1,
+    "platforms": ["linux"],
+    "audience": ["developer"],
+    "category": "developer",
+    "group": "Package caches",
+    "labels": {
+      "developer": "pnpm store",
+      "everyday": "Downloaded packages (pnpm)"
+    },
+    "description": {
+      "what": "pnpm's shared store of packages. Projects link to it, so only unused packages can be removed.",
+      "ifCleared": "pnpm removes packages no project uses. Projects keep working."
+    },
+    "icon": "package",
+    "risk": "safe",
+    "regenerates": true,
+    "detect": {
+      "kind": "fixed",
+      "paths": ["{data}/pnpm/store"]
+    },
+    "unused": {
+      "basis": "newest-mtime",
+      "minAgeDays": 0
+    },
+    "cleanup": {
+      "method": "command",
+      "command": {
+        "tool": "pnpm",
+        "args": ["store", "prune"]
+      }
+    },
+    "mayShareBlocks": true
+  },
+  {
+    "id": "linux.node.bun-cache",
+    "version": 1,
+    "platforms": ["linux"],
+    "audience": ["developer"],
+    "category": "developer",
+    "group": "Package caches",
+    "labels": {
+      "developer": "Bun install cache",
+      "everyday": "Downloaded packages (Bun)"
+    },
+    "description": {
+      "what": "Copies of packages Bun has downloaded, kept so installs are faster.",
+      "ifCleared": "Bun downloads them again the next time you install or build. Nothing in your projects changes."
+    },
+    "icon": "package",
+    "risk": "safe",
+    "regenerates": true,
+    "detect": {
+      "kind": "fixed",
+      "paths": ["{home}/.bun/install/cache"]
+    },
+    "unused": {
+      "basis": "newest-mtime",
+      "minAgeDays": 0
+    },
+    "cleanup": {
+      "method": "delete"
+    }
+  },
+  {
+    "id": "linux.node.old-node-versions",
+    "version": 1,
+    "platforms": ["linux"],
+    "audience": ["developer"],
+    "category": "developer",
+    "group": "SDKs and runtimes",
+    "labels": {
+      "developer": "Old Node.js versions (nvm, Volta, fnm)",
+      "everyday": "Old versions of Node.js"
+    },
+    "description": {
+      "what": "Node.js versions installed by a version manager. The newest one is kept.",
+      "ifCleared": "Projects that need an old version will ask you to install it again."
+    },
+    "icon": "hexagon",
+    "risk": "review",
+    "regenerates": true,
+    "detect": {
+      "kind": "fixed",
+      "paths": [
+        "{home}/.nvm/versions/node/*",
+        "{home}/.volta/tools/image/node/*",
+        "{data}/fnm/node-versions/*"
+      ]
+    },
+    "unused": {
+      "basis": "newest-mtime",
+      "minAgeDays": 0
+    },
+    "cleanup": {
+      "method": "delete"
+    },
+    "keep": {
+      "newest": 1,
+      "groupBy": "parent"
+    }
+  },
+  {
+    "id": "linux.node.project-dependencies",
+    "version": 1,
+    "platforms": ["linux"],
+    "audience": ["developer"],
+    "category": "developer",
+    "group": "Project build folders",
+    "labels": {
+      "developer": "node_modules",
+      "everyday": "Installed packages in old projects"
+    },
+    "description": {
+      "what": "Packages installed for a JavaScript project. Recreated with npm, pnpm, Yarn or Bun install.",
+      "ifCleared": "Run your package manager's install command before working on the project again."
+    },
+    "icon": "folder-tree",
+    "risk": "safe",
+    "regenerates": true,
+    "detect": {
+      "kind": "project-artifact",
+      "markers": ["package.json"],
+      "folders": ["node_modules"]
+    },
+    "unused": {
+      "basis": "project-activity",
+      "minAgeDays": 0
+    },
+    "cleanup": {
+      "method": "delete"
+    }
+  },
+  {
+    "id": "linux.node.project-caches",
+    "version": 1,
+    "platforms": ["linux"],
+    "audience": ["developer"],
+    "category": "developer",
+    "group": "Project build folders",
+    "labels": {
+      "developer": "Framework build caches (.next, .nuxt, .turbo…)",
+      "everyday": "Build caches in old projects"
+    },
+    "description": {
+      "what": "Caches that JavaScript frameworks and bundlers write inside a project.",
+      "ifCleared": "The next build or dev server run recreates them, a little slower the first time."
+    },
+    "icon": "folder-cog",
+    "risk": "safe",
+    "regenerates": true,
+    "detect": {
+      "kind": "project-artifact",
+      "markers": ["package.json"],
+      "folders": [
+        ".next",
+        ".nuxt",
+        ".turbo",
+        ".parcel-cache",
+        ".svelte-kit",
+        ".angular/cache",
+        ".expo"
+      ]
+    },
+    "unused": {
+      "basis": "project-activity",
+      "minAgeDays": 0
+    },
+    "cleanup": {
+      "method": "delete"
+    }
+  },
+  {
+    "id": "linux.node.project-output",
+    "version": 1,
+    "platforms": ["linux"],
+    "audience": ["developer"],
+    "category": "developer",
+    "group": "Project build folders",
+    "labels": {
+      "developer": "Build output (dist, build)",
+      "everyday": "Build output in old projects"
+    },
+    "description": {
+      "what": "Folders a build writes its output to. Some projects keep hand-made files here, so check before cleaning.",
+      "ifCleared": "Running the build again recreates them. Anything that wasn't generated by the build is lost."
+    },
+    "icon": "folder-output",
+    "risk": "review",
+    "regenerates": true,
+    "detect": {
+      "kind": "project-artifact",
+      "markers": ["package.json"],
+      "folders": ["dist", "build"]
+    },
+    "unused": {
+      "basis": "project-activity",
+      "minAgeDays": 0
+    },
+    "cleanup": {
+      "method": "delete"
+    }
+  }
+]

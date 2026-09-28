@@ -1,0 +1,124 @@
+[
+  {
+    "id": "linux.tools.browser-automation",
+    "version": 1,
+    "platforms": ["linux"],
+    "audience": ["developer"],
+    "category": "developer",
+    "group": "Build caches",
+    "labels": {
+      "developer": "Playwright and Puppeteer browsers",
+      "everyday": "Browsers downloaded for testing"
+    },
+    "description": {
+      "what": "Browser builds downloaded by Playwright and Puppeteer for automated tests.",
+      "ifCleared": "They're downloaded again the next time tests need them."
+    },
+    "icon": "globe",
+    "risk": "review",
+    "regenerates": true,
+    "detect": {
+      "kind": "fixed",
+      "paths": ["{caches}/ms-playwright/*", "{home}/.cache/puppeteer/*"]
+    },
+    "unused": {
+      "basis": "newest-mtime",
+      "minAgeDays": 0
+    },
+    "cleanup": {
+      "method": "delete"
+    }
+  },
+  {
+    "id": "linux.tools.misc-caches",
+    "version": 1,
+    "platforms": ["linux"],
+    "audience": ["developer"],
+    "category": "developer",
+    "group": "Build caches",
+    "labels": {
+      "developer": "Electron, Composer and node-gyp caches",
+      "everyday": "Temporary files from developer tools"
+    },
+    "description": {
+      "what": "Downloads cached by Electron, Composer and node-gyp.",
+      "ifCleared": "They're downloaded again when needed."
+    },
+    "icon": "folder-cog",
+    "risk": "safe",
+    "regenerates": true,
+    "detect": {
+      "kind": "fixed",
+      "paths": ["{caches}/electron", "{caches}/composer", "{caches}/node-gyp"]
+    },
+    "unused": {
+      "basis": "newest-mtime",
+      "minAgeDays": 0
+    },
+    "cleanup": {
+      "method": "delete"
+    }
+  },
+  {
+    "id": "linux.cmake.project-output",
+    "version": 1,
+    "platforms": ["linux"],
+    "audience": ["developer"],
+    "category": "developer",
+    "group": "Project build folders",
+    "labels": {
+      "developer": "CMake build folders",
+      "everyday": "Build output in old C and C++ projects"
+    },
+    "description": {
+      "what": "Build folders CMake generates. Some projects keep other files in build, so check first.",
+      "ifCleared": "The next CMake configure and build recreates them."
+    },
+    "icon": "folder-output",
+    "risk": "review",
+    "regenerates": true,
+    "detect": {
+      "kind": "project-artifact",
+      "markers": ["CMakeLists.txt"],
+      "folders": ["build", "cmake-build-*"]
+    },
+    "unused": {
+      "basis": "project-activity",
+      "minAgeDays": 0
+    },
+    "cleanup": {
+      "method": "delete"
+    }
+  },
+  {
+    "id": "linux.dotnet.project-output",
+    "version": 1,
+    "platforms": ["linux"],
+    "audience": ["developer"],
+    "category": "developer",
+    "group": "Project build folders",
+    "labels": {
+      "developer": ".NET bin and obj folders",
+      "everyday": "Build output in old .NET projects"
+    },
+    "description": {
+      "what": "Compiled output .NET writes inside a project.",
+      "ifCleared": "The next build recreates them."
+    },
+    "icon": "folder-output",
+    "risk": "safe",
+    "regenerates": true,
+    "detect": {
+      "kind": "project-artifact",
+      "markers": ["*.csproj", "*.sln"],
+      "folders": ["bin", "obj"]
+    },
+    "unused": {
+      "basis": "project-activity",
+      "minAgeDays": 0
+    },
+    "cleanup": {
+      "method": "delete"
+    }
+  }
+]

@@ -1,0 +1,362 @@
+[
+  {
+    "id": "linux.system.app-caches",
+    "version": 1,
+    "platforms": ["linux"],
+    "audience": ["everyday", "developer"],
+    "category": "apps",
+    "group": "App caches",
+    "labels": {
+      "developer": "App caches (~/.cache)",
+      "everyday": "Leftover files from apps"
+    },
+    "description": {
+      "what": "Files apps keep so they open and load faster. Each app has its own folder.",
+      "ifCleared": "Apps rebuild these as you use them. Some may feel slower the first time they open."
+    },
+    "icon": "app-window",
+    "risk": "safe",
+    "regenerates": true,
+    "detect": {
+      "kind": "fixed",
+      "paths": ["{caches}"],
+      "eachChild": true,
+      "exclude": [".*", "thumbnails"]
+    },
+    "unused": {
+      "basis": "newest-mtime",
+      "minAgeDays": 7
+    },
+    "cleanup": {
+      "method": "delete"
+    }
+  },
+  {
+    "version": 1,
+    "platforms": ["linux"],
+    "unused": {
+      "basis": "newest-mtime",
+      "minAgeDays": 7
+    },
+    "id": "linux.system.sandboxed-app-caches",
+    "audience": ["everyday", "developer"],
+    "category": "apps",
+    "group": "App caches",
+    "labels": {
+      "developer": "Flatpak and Snap app caches (~/.var/app/*/cache, ~/snap/*/common/.cache)",
+      "everyday": "Leftover files from store apps"
+    },
+    "description": {
+      "what": "Caches of apps installed from Flathub or the Snap Store, which keep them in their own folders.",
+      "ifCleared": "Apps rebuild these as you use them. Your settings and files in those apps aren't touched."
+    },
+    "icon": "app-window",
+    "risk": "safe",
+    "regenerates": true,
+    "detect": {
+      "kind": "fixed",
+      "paths": ["{home}/.var/app/*/cache", "{home}/snap/*/common/.cache"]
+    },
+    "cleanup": {
+      "method": "delete",
+      "keepRoot": true
+    }
+  },
+  {
+    "version": 1,
+    "platforms": ["linux"],
+    "unused": {
+      "basis": "newest-mtime",
+      "minAgeDays": 0
+    },
+    "id": "linux.system.thumbnails",
+    "audience": ["everyday", "developer"],
+    "category": "apps",
+    "group": "App caches",
+    "labels": {
+      "developer": "Thumbnail cache (~/.cache/thumbnails)",
+      "everyday": "Picture previews"
+    },
+    "description": {
+      "what": "Small previews of your pictures and videos that the file manager saved.",
+      "ifCleared": "Previews are made again the next time you open a folder. Your pictures aren't touched."
+    },
+    "icon": "image",
+    "risk": "safe",
+    "regenerates": true,
+    "detect": {
+      "kind": "fixed",
+      "paths": ["{caches}/thumbnails"]
+    },
+    "cleanup": {
+      "method": "delete",
+      "keepRoot": true
+    }
+  },
+  {
+    "version": 1,
+    "platforms": ["linux"],
+    "unused": {
+      "basis": "none"
+    },
+    "id": "linux.system.trash",
+    "audience": ["everyday", "developer"],
+    "category": "other",
+    "group": "Trash",
+    "labels": {
+      "developer": "Trash (~/.local/share/Trash)",
+      "everyday": "Trash"
+    },
+    "description": {
+      "what": "Things you've moved to the Trash. They still take up space until the Trash is emptied.",
+      "ifCleared": "These items are deleted permanently and can't be put back."
+    },
+    "icon": "trash",
+    "risk": "safe",
+    "regenerates": false,
+    "detect": {
+      "kind": "fixed",
+      "paths": ["{data}/Trash"]
+    },
+    "cleanup": {
+      "method": "delete",
+      "keepRoot": true
+    }
+  },
+  {
+    "id": "linux.downloads.old-installers",
+    "version": 1,
+    "platforms": ["linux"],
+    "audience": ["everyday", "developer"],
+    "category": "other",
+    "group": "Downloads",
+    "labels": {
+      "developer": "Old installers in ~/Downloads",
+      "everyday": "Old installers in Downloads"
+    },
+    "description": {
+      "what": "Packages, AppImages, disk images and archives in Downloads that are more than 30 days old. Usually installers for apps that are already installed.",
+      "ifCleared": "They move to the Trash, so you can put them back until you empty it."
+    },
+    "icon": "package-open",
+    "risk": "review",
+    "regenerates": false,
+    "detect": {
+      "kind": "query",
+      "paths": ["{home}/Downloads"],
+      "names": ["*.deb", "*.rpm", "*.AppImage", "*.run", "*.iso", "*.tar.gz", "*.zip"],
+      "olderThanDays": 30
+    },
+    "unused": {
+      "basis": "newest-mtime",
+      "minAgeDays": 30
+    },
+    "cleanup": {
+      "method": "trash"
+    }
+  },
+  {
+    "id": "linux.files.large-files",
+    "version": 1,
+    "platforms": ["linux"],
+    "audience": ["everyday", "developer"],
+    "category": "documents",
+    "group": "Large files",
+    "labels": {
+      "developer": "Large files unchanged for 90+ days",
+      "everyday": "Large files you haven't opened in a while"
+    },
+    "description": {
+      "what": "Files over 1 GB that haven't changed in 90 days. Found by a full scan.",
+      "ifCleared": "They move to the Trash, so you can put them back until you empty it."
+    },
+    "icon": "file-box",
+    "risk": "review",
+    "regenerates": false,
+    "detect": {
+      "kind": "query",
+      "paths": ["{home}"],
+      "minBytes": 1000000000,
+      "olderThanDays": 90,
+      "recursive": true
+    },
+    "unused": {
+      "basis": "newest-mtime",
+      "minAgeDays": 90
+    },
+    "cleanup": {
+      "method": "trash"
+    }
+  },
+  {
+    "version": 1,
+    "platforms": ["linux"],
+    "unused": {
+      "basis": "newest-mtime",
+      "minAgeDays": 0
+    },
+    "id": "linux.system.apt-cache",
+    "audience": ["everyday", "developer"],
+    "category": "system",
+    "group": "System packages",
+    "labels": {
+      "developer": "APT package cache (/var/cache/apt/archives)",
+      "everyday": "Downloaded system updates"
+    },
+    "description": {
+      "what": "Package files apt downloaded to install software and updates. They're kept after installing.",
+      "ifCleared": "Installed software isn't affected. apt downloads a package again if it's needed. Needs administrator approval."
+    },
+    "icon": "package",
+    "risk": "safe",
+    "regenerates": true,
+    "detect": {
+      "kind": "fixed",
+      "paths": ["/var/cache/apt/archives"]
+    },
+    "cleanup": {
+      "method": "command",
+      "requiresAdmin": true,
+      "command": {
+        "tool": "apt-get",
+        "args": ["clean"]
+      }
+    },
+    "relatedApps": ["apt", "apt-get", "dpkg", "unattended-upgr", "packagekitd"]
+  },
+  {
+    "version": 1,
+    "platforms": ["linux"],
+    "unused": {
+      "basis": "newest-mtime",
+      "minAgeDays": 0
+    },
+    "id": "linux.system.dnf-cache",
+    "audience": ["everyday", "developer"],
+    "category": "system",
+    "group": "System packages",
+    "labels": {
+      "developer": "DNF package cache (/var/cache/dnf)",
+      "everyday": "Downloaded system updates"
+    },
+    "description": {
+      "what": "Package files dnf downloaded to install software and updates.",
+      "ifCleared": "Installed software isn't affected. dnf downloads a package again if it's needed. Needs administrator approval."
+    },
+    "icon": "package",
+    "risk": "safe",
+    "regenerates": true,
+    "detect": {
+      "kind": "fixed",
+      "paths": ["/var/cache/dnf", "/var/cache/libdnf5"]
+    },
+    "cleanup": {
+      "method": "command",
+      "requiresAdmin": true,
+      "command": {
+        "tool": "dnf",
+        "args": ["clean", "packages"]
+      }
+    },
+    "relatedApps": ["dnf", "dnf5", "rpm", "packagekitd"]
+  },
+  {
+    "version": 1,
+    "platforms": ["linux"],
+    "unused": {
+      "basis": "none"
+    },
+    "id": "linux.system.journal",
+    "audience": ["everyday", "developer"],
+    "category": "system",
+    "group": "Logs",
+    "labels": {
+      "developer": "systemd journal (journalctl)",
+      "everyday": "System activity logs"
+    },
+    "description": {
+      "what": "The system's log of what services and the kernel have been doing.",
+      "ifCleared": "Entries older than two weeks are removed; recent ones stay for troubleshooting. Needs administrator approval."
+    },
+    "icon": "scroll-text",
+    "risk": "review",
+    "regenerates": true,
+    "detect": {
+      "kind": "probe",
+      "probe": "journal-disk-usage"
+    },
+    "cleanup": {
+      "method": "command",
+      "requiresAdmin": true,
+      "command": {
+        "tool": "journalctl",
+        "args": ["--vacuum-time=2weeks"]
+      }
+    },
+    "mayShareBlocks": true
+  },
+  {
+    "version": 1,
+    "platforms": ["linux"],
+    "unused": {
+      "basis": "none"
+    },
+    "id": "linux.snap.disabled-revisions",
+    "audience": ["everyday", "developer"],
+    "category": "apps",
+    "group": "Snap and Flatpak",
+    "labels": {
+      "developer": "Old snap revisions (disabled)",
+      "everyday": "Old versions of Snap apps"
+    },
+    "description": {
+      "what": "Snap keeps the previous versions of each app after updating it, switched off.",
+      "ifCleared": "You can't roll that app back to the removed version. The current version isn't touched. Needs administrator approval."
+    },
+    "icon": "package",
+    "risk": "review",
+    "regenerates": false,
+    "detect": {
+      "kind": "probe",
+      "probe": "snap-disabled"
+    },
+    "cleanup": {
+      "method": "command",
+      "requiresAdmin": true,
+      "command": {
+        "tool": "snap",
+        "args": ["remove", "{item.0}", "--revision={item.1}"]
+      }
+    },
+    "docs": "https://snapcraft.io/docs/managing-updates"
+  },
+  {
+    "version": 1,
+    "platforms": ["linux"],
+    "unused": {
+      "basis": "none"
+    },
+    "id": "linux.flatpak.leftover-data",
+    "audience": ["everyday", "developer"],
+    "category": "apps",
+    "group": "Snap and Flatpak",
+    "labels": {
+      "developer": "Data of removed Flatpak apps (~/.var/app)",
+      "everyday": "Leftovers from removed apps"
+    },
+    "description": {
+      "what": "Settings and files Flatpak apps kept after you uninstalled them.",
+      "ifCleared": "They move to the Trash. If you reinstall the app, it starts fresh."
+    },
+    "icon": "package-open",
+    "risk": "review",
+    "regenerates": false,
+    "detect": {
+      "kind": "probe",
+      "probe": "flatpak-leftovers"
+    },
+    "cleanup": {
+      "method": "trash"
+    }
+  }
+]

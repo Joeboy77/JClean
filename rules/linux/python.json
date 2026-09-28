@@ -1,0 +1,262 @@
+[
+  {
+    "id": "linux.python.pip-cache",
+    "version": 1,
+    "platforms": ["linux"],
+    "audience": ["developer"],
+    "category": "developer",
+    "group": "Package caches",
+    "labels": {
+      "developer": "pip cache",
+      "everyday": "Downloaded packages (pip)"
+    },
+    "description": {
+      "what": "Copies of Python packages pip has downloaded.",
+      "ifCleared": "pip downloads them again the next time you install or build. Nothing in your projects changes."
+    },
+    "icon": "package",
+    "risk": "safe",
+    "regenerates": true,
+    "detect": {
+      "kind": "fixed",
+      "paths": ["{caches}/pip"]
+    },
+    "unused": {
+      "basis": "newest-mtime",
+      "minAgeDays": 0
+    },
+    "cleanup": {
+      "method": "delete"
+    }
+  },
+  {
+    "id": "linux.python.uv-cache",
+    "version": 1,
+    "platforms": ["linux"],
+    "audience": ["developer"],
+    "category": "developer",
+    "group": "Package caches",
+    "labels": {
+      "developer": "uv cache",
+      "everyday": "Downloaded packages (uv)"
+    },
+    "description": {
+      "what": "Python packages and builds uv keeps to make installs fast.",
+      "ifCleared": "uv downloads them again the next time you install or build. Nothing in your projects changes."
+    },
+    "icon": "package",
+    "risk": "safe",
+    "regenerates": true,
+    "detect": {
+      "kind": "fixed",
+      "paths": ["{caches}/uv"]
+    },
+    "unused": {
+      "basis": "newest-mtime",
+      "minAgeDays": 0
+    },
+    "cleanup": {
+      "method": "command",
+      "command": {
+        "tool": "uv",
+        "args": ["cache", "clean"]
+      },
+      "fallback": "delete"
+    },
+    "mayShareBlocks": true
+  },
+  {
+    "id": "linux.python.poetry-cache",
+    "version": 1,
+    "platforms": ["linux"],
+    "audience": ["developer"],
+    "category": "developer",
+    "group": "Package caches",
+    "labels": {
+      "developer": "Poetry cache",
+      "everyday": "Downloaded packages (Poetry)"
+    },
+    "description": {
+      "what": "Python packages and metadata Poetry has downloaded.",
+      "ifCleared": "Poetry downloads them again the next time you install or build. Nothing in your projects changes."
+    },
+    "icon": "package",
+    "risk": "safe",
+    "regenerates": true,
+    "detect": {
+      "kind": "fixed",
+      "paths": ["{caches}/pypoetry"]
+    },
+    "unused": {
+      "basis": "newest-mtime",
+      "minAgeDays": 0
+    },
+    "cleanup": {
+      "method": "delete"
+    }
+  },
+  {
+    "id": "linux.python.conda-packages",
+    "version": 1,
+    "platforms": ["linux"],
+    "audience": ["developer"],
+    "category": "developer",
+    "group": "Package caches",
+    "labels": {
+      "developer": "Conda package cache (pkgs)",
+      "everyday": "Downloaded packages (Conda)"
+    },
+    "description": {
+      "what": "Package archives and extracted packages Conda keeps after installing them into environments.",
+      "ifCleared": "Conda removes packages no environment needs. Your environments keep working."
+    },
+    "icon": "package",
+    "risk": "safe",
+    "regenerates": true,
+    "detect": {
+      "kind": "fixed",
+      "paths": ["{home}/miniconda3/pkgs", "{home}/anaconda3/pkgs", "{home}/miniforge3/pkgs"]
+    },
+    "unused": {
+      "basis": "newest-mtime",
+      "minAgeDays": 0
+    },
+    "cleanup": {
+      "method": "command",
+      "command": {
+        "tool": "conda",
+        "args": ["clean", "--all", "-y"]
+      }
+    },
+    "mayShareBlocks": true
+  },
+  {
+    "id": "linux.python.huggingface-models",
+    "version": 1,
+    "platforms": ["linux"],
+    "audience": ["developer"],
+    "category": "developer",
+    "group": "Machine learning models",
+    "labels": {
+      "developer": "Hugging Face hub cache",
+      "everyday": "Downloaded AI models (Hugging Face)"
+    },
+    "description": {
+      "what": "Models and datasets downloaded by Hugging Face libraries. Often several gigabytes each.",
+      "ifCleared": "Code that uses these models downloads them again, which can take a long time."
+    },
+    "icon": "brain",
+    "risk": "review",
+    "regenerates": true,
+    "detect": {
+      "kind": "fixed",
+      "paths": ["{caches}/huggingface/hub"],
+      "eachChild": true,
+      "exclude": [".*", "version.txt"]
+    },
+    "unused": {
+      "basis": "newest-mtime",
+      "minAgeDays": 0
+    },
+    "cleanup": {
+      "method": "delete"
+    }
+  },
+  {
+    "id": "linux.python.local-llm-models",
+    "version": 1,
+    "platforms": ["linux"],
+    "audience": ["developer"],
+    "category": "developer",
+    "group": "Machine learning models",
+    "labels": {
+      "developer": "Local LLM models (Ollama, LM Studio)",
+      "everyday": "Downloaded AI models (Ollama, LM Studio)"
+    },
+    "description": {
+      "what": "Language models downloaded to run on this computer. Each can be many gigabytes.",
+      "ifCleared": "You'll need to download a model again before using it."
+    },
+    "icon": "brain",
+    "risk": "review",
+    "regenerates": true,
+    "detect": {
+      "kind": "fixed",
+      "paths": [
+        "{home}/.ollama/models",
+        "{home}/.lmstudio/models",
+        "{home}/.cache/lm-studio/models"
+      ]
+    },
+    "unused": {
+      "basis": "newest-mtime",
+      "minAgeDays": 0
+    },
+    "cleanup": {
+      "method": "delete"
+    },
+    "relatedApps": ["ollama", "lm-studio", "LM Studio"]
+  },
+  {
+    "id": "linux.python.project-environments",
+    "version": 1,
+    "platforms": ["linux"],
+    "audience": ["developer"],
+    "category": "developer",
+    "group": "Project build folders",
+    "labels": {
+      "developer": "Virtual environments (.venv, venv)",
+      "everyday": "Python environments in old projects"
+    },
+    "description": {
+      "what": "Python packages installed for one project. Recreated from its requirements.",
+      "ifCleared": "Recreate the environment and install the requirements before working on the project again."
+    },
+    "icon": "folder-tree",
+    "risk": "safe",
+    "regenerates": true,
+    "detect": {
+      "kind": "project-artifact",
+      "markers": ["pyproject.toml", "requirements.txt", "setup.py"],
+      "folders": [".venv", "venv"]
+    },
+    "unused": {
+      "basis": "project-activity",
+      "minAgeDays": 0
+    },
+    "cleanup": {
+      "method": "delete"
+    }
+  },
+  {
+    "id": "linux.python.project-caches",
+    "version": 1,
+    "platforms": ["linux"],
+    "audience": ["developer"],
+    "category": "developer",
+    "group": "Project build folders",
+    "labels": {
+      "developer": "Python caches (__pycache__, .pytest_cache…)",
+      "everyday": "Python caches in old projects"
+    },
+    "description": {
+      "what": "Compiled files and test caches Python tools write inside a project.",
+      "ifCleared": "Python recreates them the next time the code runs."
+    },
+    "icon": "folder-cog",
+    "risk": "safe",
+    "regenerates": true,
+    "detect": {
+      "kind": "project-artifact",
+      "markers": ["pyproject.toml", "requirements.txt", "setup.py"],
+      "folders": ["__pycache__", ".pytest_cache", ".mypy_cache", ".tox"]
+    },
+    "unused": {
+      "basis": "project-activity",
+      "minAgeDays": 0
+    },
+    "cleanup": {
+      "method": "delete"
+    }
+  }
+]

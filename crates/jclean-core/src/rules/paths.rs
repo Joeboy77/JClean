@@ -31,6 +31,10 @@ const TOKENS: &[&str] = &[
     "temp",
     "localAppData",
     "appData",
+    // XDG base directories (Linux).
+    "config",
+    "data",
+    "state",
 ];
 
 /// Substitutes tokens. `Ok(None)` means a token has no value here (for

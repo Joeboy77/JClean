@@ -1,0 +1,108 @@
+[
+  {
+    "id": "linux.chat.slack",
+    "version": 1,
+    "platforms": ["linux"],
+    "audience": ["everyday", "developer"],
+    "category": "apps",
+    "group": "Chat and media apps",
+    "labels": {
+      "developer": "Slack cache",
+      "everyday": "Slack's saved data"
+    },
+    "description": {
+      "what": "Images, files and page data Slack keeps so conversations load faster.",
+      "ifCleared": "The app downloads what it needs again. Your messages, files and settings aren't touched."
+    },
+    "icon": "message-square",
+    "risk": "safe",
+    "regenerates": true,
+    "detect": {
+      "kind": "fixed",
+      "paths": [
+        "{config}/Slack/Cache",
+        "{config}/Slack/Code Cache",
+        "{config}/Slack/GPUCache",
+        "{config}/Slack/Service Worker/CacheStorage"
+      ]
+    },
+    "unused": {
+      "basis": "newest-mtime",
+      "minAgeDays": 0
+    },
+    "cleanup": {
+      "method": "delete",
+      "keepRoot": true
+    },
+    "relatedApps": ["slack"]
+  },
+  {
+    "id": "linux.chat.discord",
+    "version": 1,
+    "platforms": ["linux"],
+    "audience": ["everyday", "developer"],
+    "category": "apps",
+    "group": "Chat and media apps",
+    "labels": {
+      "developer": "Discord cache",
+      "everyday": "Discord's saved data"
+    },
+    "description": {
+      "what": "Images and page data Discord keeps so chats load faster.",
+      "ifCleared": "The app downloads what it needs again. Your messages, files and settings aren't touched."
+    },
+    "icon": "message-square",
+    "risk": "safe",
+    "regenerates": true,
+    "detect": {
+      "kind": "fixed",
+      "paths": [
+        "{config}/discord/Cache",
+        "{config}/discord/Code Cache",
+        "{config}/discord/GPUCache",
+        "{config}/discord/Service Worker/CacheStorage"
+      ]
+    },
+    "unused": {
+      "basis": "newest-mtime",
+      "minAgeDays": 0
+    },
+    "cleanup": {
+      "method": "delete",
+      "keepRoot": true
+    },
+    "relatedApps": ["Discord"]
+  },
+  {
+    "id": "linux.chat.spotify",
+    "version": 1,
+    "platforms": ["linux"],
+    "audience": ["everyday", "developer"],
+    "category": "apps",
+    "group": "Chat and media apps",
+    "labels": {
+      "developer": "Spotify cache (com.spotify.client)",
+      "everyday": "Spotify's saved music data"
+    },
+    "description": {
+      "what": "Music and data Spotify keeps on this computer. Songs downloaded for offline listening may be stored here too, so check before cleaning.",
+      "ifCleared": "Spotify streams songs again as you play them. Offline downloads may need to be downloaded again. Playlists and settings aren't touched."
+    },
+    "icon": "music",
+    "risk": "review",
+    "regenerates": true,
+    "detect": {
+      "kind": "fixed",
+      "paths": ["{caches}/spotify"]
+    },
+    "unused": {
+      "basis": "newest-mtime",
+      "minAgeDays": 0
+    },
+    "cleanup": {
+      "method": "delete",
+      "keepRoot": true
+    },
+    "relatedApps": ["spotify"]
+  }
+]

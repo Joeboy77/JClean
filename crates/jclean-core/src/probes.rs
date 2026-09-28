@@ -21,6 +21,9 @@ pub const KNOWN_PROBES: &[&str] = &[
     "tmutil-snapshots",
     "delivery-optimization",
     "component-store",
+    "journal-disk-usage",
+    "snap-disabled",
+    "flatpak-leftovers",
 ];
 
 const PROBE_TIMEOUT: Duration = Duration::from_secs(20);
@@ -36,6 +39,13 @@ pub struct ProbeItem {
     pub bytes: Option<u64>,
     /// Folders the item lives in, if known. Used to avoid double counting.
     pub paths: Vec<PathBuf>,
+    /// Set when the item is one folder (`paths[0]`) that the rule's delete or
+    /// trash method cleans like any other path: the folder it must stay
+    /// inside for the SafetyGuard.
+    pub root: Option<PathBuf>,
+    /// The folder's own modification time, for the guard's changed-since-scan
+    /// check. Only meaningful with `root`.
+    pub own_mtime: i64,
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -83,6 +93,9 @@ impl<'a> Prober<'a> {
             "tmutil-snapshots" => self.tmutil_snapshots(),
             "delivery-optimization" => self.delivery_optimization(),
             "component-store" => self.component_store(),
+            "journal-disk-usage" => self.journal_disk_usage(),
+            "snap-disabled" => self.snap_disabled(inodes, cancel),
+            "flatpak-leftovers" => self.flatpak_leftovers(inodes, cancel),
             other => Err(ProbeError::Unknown(other.to_string())),
         }
     }
@@ -146,6 +159,8 @@ impl<'a> Prober<'a> {
                 name: None,
                 bytes: Some(bytes),
                 paths: Vec::new(),
+                root: None,
+                own_mtime: 0,
             }]);
         }
         Ok(Vec::new())
@@ -199,6 +214,8 @@ impl<'a> Prober<'a> {
             name: Some(format!("{} simulators", paths.len())),
             bytes: Some(bytes),
             paths,
+            root: None,
+            own_mtime: 0,
         }])
     }
 
@@ -211,6 +228,8 @@ impl<'a> Prober<'a> {
                 key: date,
                 bytes: None,
                 paths: Vec::new(),
+                root: None,
+                own_mtime: 0,
             })
             .collect())
     }
@@ -240,6 +259,8 @@ impl Prober<'_> {
                 name: None,
                 bytes: Some(bytes),
                 paths: Vec::new(),
+                root: None,
+                own_mtime: 0,
             })
             .into_iter()
             .collect())
@@ -256,8 +277,152 @@ impl Prober<'_> {
             name: None,
             bytes: None,
             paths: Vec::new(),
+            root: None,
+            own_mtime: 0,
         }])
     }
+}
+
+impl Prober<'_> {
+    /// systemd's journal. Its files belong to the system, so journalctl is
+    /// asked for their size.
+    fn journal_disk_usage(&self) -> Result<Vec<ProbeItem>, ProbeError> {
+        let out = self.call("journalctl", &["--disk-usage"])?;
+        let bytes = parse_journal_usage(&out.stdout).ok_or_else(|| ProbeError::Parse {
+            tool: "journalctl".to_string(),
+            message: format!("unexpected output {:?}", first_line(&out.stdout)),
+        })?;
+        Ok((bytes > 0)
+            .then(|| ProbeItem {
+                key: "journal".to_string(),
+                name: None,
+                bytes: Some(bytes),
+                paths: Vec::new(),
+                root: None,
+                own_mtime: 0,
+            })
+            .into_iter()
+            .collect())
+    }
+
+    /// Snap keeps old revisions of every snap, disabled, after updating.
+    fn snap_disabled(
+        &self,
+        inodes: &InodeSet,
+        cancel: &CancelToken,
+    ) -> Result<Vec<ProbeItem>, ProbeError> {
+        let out = self.call("snap", &["list", "--all"])?;
+        let snaps = self
+            .env
+            .system_path(std::path::Path::new("/var/lib/snapd/snaps"));
+        Ok(parse_disabled_snaps(&out.stdout)
+            .into_iter()
+            .map(|(name, revision)| {
+                let file = snaps.join(format!("{name}_{revision}.snap"));
+                let bytes = measure(&file, &MeasureOptions::default(), inodes, cancel)
+                    .ok()
+                    .map(|m| m.allocated);
+                ProbeItem {
+                    key: format!("{name} {revision}"),
+                    name: Some(format!("{name} (revision {revision})")),
+                    bytes,
+                    paths: vec![file],
+                    root: None,
+                    own_mtime: 0,
+                }
+            })
+            .collect())
+    }
+
+    /// Data Flatpak apps left in ~/.var/app after they were uninstalled.
+    fn flatpak_leftovers(
+        &self,
+        inodes: &InodeSet,
+        cancel: &CancelToken,
+    ) -> Result<Vec<ProbeItem>, ProbeError> {
+        let out = self.call("flatpak", &["list", "--app", "--columns=application"])?;
+        let installed: std::collections::HashSet<&str> =
+            out.stdout.lines().map(str::trim).collect();
+        let root = self.env.home().join(".var/app");
+        let Ok(entries) = std::fs::read_dir(&root) else {
+            return Ok(Vec::new());
+        };
+        let mut items = Vec::new();
+        for entry in entries.filter_map(Result::ok) {
+            let id = entry.file_name().to_string_lossy().into_owned();
+            let is_dir = entry.file_type().is_ok_and(|t| t.is_dir());
+            // App IDs are reverse-DNS names; anything else isn't Flatpak's.
+            let looks_like_id = id.contains('.')
+                && id
+                    .chars()
+                    .all(|c| c.is_ascii_alphanumeric() || matches!(c, '.' | '_' | '-'));
+            if !is_dir || !looks_like_id || installed.contains(id.as_str()) {
+                continue;
+            }
+            let path = entry.path();
+            let Ok(m) = measure(&path, &MeasureOptions::default(), inodes, cancel) else {
+                continue;
+            };
+            items.push(ProbeItem {
+                key: id.clone(),
+                name: Some(id),
+                bytes: Some(m.allocated),
+                paths: vec![path],
+                root: Some(root.clone()),
+                own_mtime: m.own_mtime,
+            });
+        }
+        items.sort_by(|a, b| a.key.cmp(&b.key));
+        Ok(items)
+    }
+}
+
+/// `Archived and active journals take up 3.9G in the file system.`
+/// journalctl's units are powers of 1024.
+pub fn parse_journal_usage(output: &str) -> Option<u64> {
+    let size = output
+        .split_whitespace()
+        .skip_while(|w| *w != "up")
+        .nth(1)?;
+    let unit_len = size
+        .chars()
+        .rev()
+        .take_while(char::is_ascii_alphabetic)
+        .count();
+    let (num, unit) = size.split_at(size.len() - unit_len);
+    let value: f64 = num.parse().ok()?;
+    let mult: f64 = match unit {
+        "" | "B" => 1.0,
+        "K" => 1024.0,
+        "M" => 1024.0 * 1024.0,
+        "G" => 1024.0 * 1024.0 * 1024.0,
+        "T" => 1024.0 * 1024.0 * 1024.0 * 1024.0,
+        _ => return None,
+    };
+    let bytes = (value * mult).round();
+    #[allow(clippy::cast_possible_truncation, clippy::cast_sign_loss)]
+    bytes.is_finite().then(|| bytes.max(0.0) as u64)
+}
+
+/// `(name, revision)` for every row of `snap list --all` marked disabled.
+/// Names and revisions that don't look like snap's are ignored rather than
+/// passed on.
+pub fn parse_disabled_snaps(output: &str) -> Vec<(String, String)> {
+    output
+        .lines()
+        .skip(1)
+        .filter_map(|line| {
+            let cols: Vec<&str> = line.split_whitespace().collect();
+            let (name, revision, notes) = (cols.first()?, cols.get(2)?, cols.last()?);
+            let name_ok = !name.starts_with('-')
+                && name
+                    .chars()
+                    .all(|c| c.is_ascii_lowercase() || c.is_ascii_digit() || c == '-');
+            let revision_ok = !revision.is_empty() && revision.chars().all(|c| c.is_ascii_digit());
+            (notes.split(',').any(|n| n == "disabled") && name_ok && revision_ok)
+                .then(|| ((*name).to_string(), (*revision).to_string()))
+        })
+        .collect()
 }
 
 fn first_line(s: &str) -> Option<&str> {
@@ -317,6 +482,37 @@ mod tests {
         assert_eq!(parse_docker_size("-2.162e+08B (-7%)"), Some(0));
         assert_eq!(parse_docker_size("1.5e+09B"), Some(1_500_000_000));
         assert_eq!(parse_docker_size("lots"), None);
+    }
+
+    #[test]
+    fn parses_journal_usage_in_binary_units() {
+        let out = "Archived and active journals take up 3.9G in the file system.\n";
+        assert_eq!(parse_journal_usage(out), Some(4_187_593_114));
+        assert_eq!(
+            parse_journal_usage("Archived and active journals take up 512.0M in the file system."),
+            Some(536_870_912)
+        );
+        assert_eq!(parse_journal_usage("Journals take up 8B."), None);
+        assert_eq!(parse_journal_usage("No journal files were found."), None);
+    }
+
+    #[test]
+    fn finds_disabled_snap_revisions_and_nothing_odd() {
+        let out = "Name      Version   Rev    Tracking       Publisher   Notes
+core20    20230207  1828   latest/stable  canonical✓  base,disabled
+core20    20240111  2182   latest/stable  canonical✓  base
+firefox   120.0-2   3504   latest/stable  mozilla✓    disabled
+firefox   121.0-1   3600   latest/stable  mozilla✓    -
+--purge   1         12     latest/stable  x           disabled
+evil      1         12;rm  latest/stable  x           disabled
+";
+        assert_eq!(
+            parse_disabled_snaps(out),
+            vec![
+                ("core20".to_string(), "1828".to_string()),
+                ("firefox".to_string(), "3504".to_string()),
+            ]
+        );
     }
 
     #[test]

@@ -368,7 +368,7 @@ impl Scanner<'_> {
                     Ok(found) => {
                         for p in found {
                             probe_paths.extend(p.paths.iter().cloned());
-                            let item = self.probe_item(rule, p);
+                            let item = self.probe_item(rule, p, &guard);
                             on_event(ScanEvent::Item(&item));
                             items.push(item);
                         }
@@ -739,13 +739,43 @@ impl Scanner<'_> {
         }
     }
 
-    fn probe_item(&self, rule: &Rule, p: crate::probes::ProbeItem) -> ScanItem {
-        let (method, blocked) = self.command_method(rule);
+    fn probe_item(
+        &self,
+        rule: &Rule,
+        p: crate::probes::ProbeItem,
+        guard: &SafetyGuard,
+    ) -> ScanItem {
+        // A folder the probe found, cleaned by path through the guard.
+        let by_path = match (&p.root, p.paths.as_slice()) {
+            (Some(root), [path])
+                if matches!(rule.cleanup.method, Method::Delete | Method::Trash) =>
+            {
+                Some((
+                    path.clone(),
+                    vec![Root {
+                        path: root.clone(),
+                        inclusive: false,
+                    }],
+                ))
+            }
+            _ => None,
+        };
+        let (method, blocked) = match &by_path {
+            Some((path, roots)) => (
+                rule.cleanup.method,
+                guard
+                    .check_path(path, roots)
+                    .err()
+                    .map(|reason| Blocked::Safety { reason }),
+            ),
+            None => self.command_method(rule),
+        };
         let cleanable = blocked.is_none() && method != Method::None;
+        let (path, roots) = by_path.map_or((None, Vec::new()), |(p, r)| (Some(p), r));
         ScanItem {
             id: format!("{}:{}", rule.id, p.key),
             rule_id: rule.id.clone(),
-            path: None,
+            path,
             name: p.name,
             key: p.key,
             category: rule.category,
@@ -764,9 +794,9 @@ impl Scanner<'_> {
             may_share_blocks: rule.may_share_blocks,
             snapshot: Snapshot {
                 allocated: p.bytes.unwrap_or(0),
-                own_mtime: 0,
+                own_mtime: p.own_mtime,
             },
-            roots: Vec::new(),
+            roots,
             excluded: Vec::new(),
             tool_paths: p.paths,
         }

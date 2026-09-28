@@ -185,7 +185,7 @@ pub fn build_plan_with(
             .cleanup
             .command
             .as_ref()
-            .is_some_and(|c| c.args.iter().any(|a| a.contains("{item}")));
+            .is_some_and(|c| c.args.iter().any(|a| a.contains("{item")));
         if method == Method::Command && uses_key && !is_safe_argument(&item.key) {
             // A name like `--all` would turn into a flag for the tool.
             skipped.push(skip(
@@ -279,16 +279,28 @@ fn plan_command(
 ) -> Option<PlannedCommand> {
     let cmd = rule.cleanup.command.as_ref()?;
     let program = runner.find_tool(env, &cmd.tool)?;
-    let args = cmd
-        .args
-        .iter()
-        .map(|a| a.replace("{item}", &item.key))
-        .collect();
+    let args = cmd.args.iter().map(|a| substitute(a, &item.key)).collect();
     Some(PlannedCommand { program, args })
 }
 
+/// `{item}` is the probe item's whole key; `{item.0}`, `{item.1}`… are its
+/// space-separated parts, for tools that need two values (a Snap's name and
+/// revision).
+fn substitute(arg: &str, key: &str) -> String {
+    let mut out = arg.replace("{item}", key);
+    for (i, part) in key.split(' ').enumerate() {
+        out = out.replace(&format!("{{item.{i}}}"), part);
+    }
+    out
+}
+
+/// No part of the key may look like a flag or break the argument vector.
 fn is_safe_argument(key: &str) -> bool {
-    !key.is_empty() && !key.starts_with('-') && !key.contains(['\0', '\n'])
+    !key.is_empty()
+        && !key.contains(['\0', '\n'])
+        && key
+            .split(' ')
+            .all(|part| !part.is_empty() && !part.starts_with('-'))
 }
 
 fn label(item: &ScanItem, rule_label: &str) -> String {

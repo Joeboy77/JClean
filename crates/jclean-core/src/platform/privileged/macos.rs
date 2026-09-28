@@ -4,67 +4,17 @@
 use std::path::Path;
 use std::time::Duration;
 
+use super::posix::{line, succeeded};
 use super::{AdminError, PrivilegedError, PrivilegedOp};
 use crate::tools::CommandRunner;
 
-/// Tools that may ever run as administrator.
-const ALLOWED_TOOLS: &[&str] = &["tmutil"];
-
-/// POSIX single-quoting: safe for any bytes except NUL.
-fn shell_quote(s: &str) -> String {
-    format!("'{}'", s.replace('\'', "'\\''"))
+/// Tools that may ever run as administrator, with any arguments.
+fn allowed(name: &str, _args: &[String]) -> bool {
+    name == "tmutil"
 }
 
 fn applescript_string(s: &str) -> String {
     format!("\"{}\"", s.replace('\\', "\\\\").replace('"', "\\\""))
-}
-
-fn clean_text(s: &str) -> bool {
-    !s.chars().any(char::is_control)
-}
-
-/// The shell line for one op, reporting `ok:<n>` or `fail:<n>`.
-fn line(n: usize, op: &PrivilegedOp) -> Result<String, PrivilegedError> {
-    let cmd = match op {
-        PrivilegedOp::Command { program, args } => {
-            let name = program
-                .file_name()
-                .and_then(|n| n.to_str())
-                .unwrap_or_default();
-            let program_str = program.to_str().ok_or(PrivilegedError::UnsafePath)?;
-            if !ALLOWED_TOOLS.contains(&name) || !program_str.starts_with('/') {
-                return Err(PrivilegedError::NotAllowed(name.to_string()));
-            }
-            if !clean_text(program_str) || args.iter().any(|a| !clean_text(a)) {
-                return Err(PrivilegedError::UnsafePath);
-            }
-            std::iter::once(shell_quote(program_str))
-                .chain(args.iter().map(|a| shell_quote(a)))
-                .collect::<Vec<_>>()
-                .join(" ")
-        }
-        PrivilegedOp::Remove(path) => {
-            let p = path.to_str().ok_or(PrivilegedError::UnsafePath)?;
-            if !p.starts_with('/') || !clean_text(p) || path == Path::new("/") {
-                return Err(PrivilegedError::UnsafePath);
-            }
-            format!("/bin/rm -rf -- {}", shell_quote(p))
-        }
-        PrivilegedOp::ClearContents(path) => {
-            let p = path.to_str().ok_or(PrivilegedError::UnsafePath)?;
-            if !p.starts_with('/') || !clean_text(p) || path == Path::new("/") {
-                return Err(PrivilegedError::UnsafePath);
-            }
-            // `find` doesn't follow symlinks, and `rm -rf` removes them as links.
-            format!(
-                "/usr/bin/find {} -mindepth 1 -maxdepth 1 -exec /bin/rm -rf -- {{}} +",
-                shell_quote(p)
-            )
-        }
-    };
-    Ok(format!(
-        "{cmd} >/dev/null 2>&1 && echo ok:{n} || echo fail:{n}"
-    ))
 }
 
 /// The AppleScript for `osascript -e`, running every op after one password
@@ -73,7 +23,7 @@ pub(super) fn script(ops: &[PrivilegedOp], prompt: &str) -> Result<String, Privi
     let lines: Vec<String> = ops
         .iter()
         .enumerate()
-        .map(|(n, op)| line(n, op))
+        .map(|(n, op)| line(n, op, allowed))
         .collect::<Result<_, _>>()?;
     Ok(format!(
         "do shell script {} with prompt {} with administrator privileges",
@@ -110,22 +60,6 @@ pub(super) fn run(
             .trim()
             .to_string(),
     ))
-}
-
-/// Which ops succeeded, from the script's output.
-pub(super) fn succeeded(output: &str, count: usize) -> Vec<bool> {
-    let mut ok = vec![false; count];
-    for line in output.lines() {
-        if let Some(n) = line
-            .trim()
-            .strip_prefix("ok:")
-            .and_then(|n| n.parse::<usize>().ok())
-            && let Some(slot) = ok.get_mut(n)
-        {
-            *slot = true;
-        }
-    }
-    ok
 }
 
 #[cfg(test)]

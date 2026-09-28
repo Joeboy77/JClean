@@ -1,10 +1,12 @@
 //! Administrator operations (spec §7.4), kept to a minimum: one approval per
-//! clean (a password prompt on macOS, a UAC prompt on Windows), built only
+//! clean (a password prompt on macOS and Linux, UAC on Windows), built only
 //! from allowlisted commands and SafetyGuard-verified paths.
 //!
 //! Only [`crate::cleaner`] calls this.
 
+mod linux;
 mod macos;
+mod posix;
 mod windows;
 
 use std::path::PathBuf;
@@ -52,6 +54,8 @@ pub fn run(
 ) -> Result<Vec<bool>, AdminError> {
     if cfg!(windows) {
         windows::run(ops, runner, timeout)
+    } else if cfg!(target_os = "linux") {
+        linux::run(ops, runner, timeout)
     } else {
         macos::run(ops, prompt, runner, timeout)
     }
@@ -63,7 +67,13 @@ pub fn clears_contents_in_one_op() -> bool {
     cfg!(windows)
 }
 
-/// What the approval prompt calls the OS's own refusal, for error messages.
+/// The OS's name, for "… didn't allow part of it to be removed".
 pub fn os_name() -> &'static str {
-    if cfg!(windows) { "Windows" } else { "macOS" }
+    if cfg!(windows) {
+        "Windows"
+    } else if cfg!(target_os = "linux") {
+        "Linux"
+    } else {
+        "macOS"
+    }
 }

@@ -1,0 +1,221 @@
+[
+  {
+    "id": "linux.gradle.caches",
+    "version": 1,
+    "platforms": ["linux"],
+    "audience": ["developer"],
+    "category": "developer",
+    "group": "Package caches",
+    "labels": {
+      "developer": "Gradle caches",
+      "everyday": "Downloaded packages (Gradle)"
+    },
+    "description": {
+      "what": "Dependencies and build outputs Gradle keeps between builds.",
+      "ifCleared": "Gradle downloads them again the next time you install or build. Nothing in your projects changes."
+    },
+    "icon": "package",
+    "risk": "safe",
+    "regenerates": true,
+    "detect": {
+      "kind": "fixed",
+      "paths": ["{home}/.gradle/caches"]
+    },
+    "unused": {
+      "basis": "newest-mtime",
+      "minAgeDays": 0
+    },
+    "cleanup": {
+      "method": "delete"
+    },
+    "relatedApps": ["java"]
+  },
+  {
+    "id": "linux.gradle.wrapper-dists",
+    "version": 1,
+    "platforms": ["linux"],
+    "audience": ["developer"],
+    "category": "developer",
+    "group": "SDKs and runtimes",
+    "labels": {
+      "developer": "Old Gradle wrapper versions",
+      "everyday": "Old versions of Gradle"
+    },
+    "description": {
+      "what": "Gradle versions downloaded by project wrappers. The newest one is kept.",
+      "ifCleared": "A project that needs an old version downloads it again on its next build."
+    },
+    "icon": "hexagon",
+    "risk": "safe",
+    "regenerates": true,
+    "detect": {
+      "kind": "fixed",
+      "paths": ["{home}/.gradle/wrapper/dists/*"]
+    },
+    "unused": {
+      "basis": "newest-mtime",
+      "minAgeDays": 0
+    },
+    "cleanup": {
+      "method": "delete"
+    },
+    "keep": {
+      "newest": 1,
+      "groupBy": "name"
+    }
+  },
+  {
+    "id": "linux.gradle.daemon-logs",
+    "version": 1,
+    "platforms": ["linux"],
+    "audience": ["developer"],
+    "category": "developer",
+    "group": "Logs",
+    "labels": {
+      "developer": "Gradle daemon logs",
+      "everyday": "Build tool logs (Gradle)"
+    },
+    "description": {
+      "what": "Logs written by Gradle's background build process.",
+      "ifCleared": "Gradle starts new logs."
+    },
+    "icon": "scroll-text",
+    "risk": "safe",
+    "regenerates": true,
+    "detect": {
+      "kind": "fixed",
+      "paths": ["{home}/.gradle/daemon"],
+      "eachChild": true
+    },
+    "unused": {
+      "basis": "newest-mtime",
+      "minAgeDays": 0
+    },
+    "cleanup": {
+      "method": "delete"
+    }
+  },
+  {
+    "id": "linux.maven.repository",
+    "version": 1,
+    "platforms": ["linux"],
+    "audience": ["developer"],
+    "category": "developer",
+    "group": "Package caches",
+    "labels": {
+      "developer": "Maven repository (~/.m2)",
+      "everyday": "Downloaded packages (Maven)"
+    },
+    "description": {
+      "what": "Every library Maven has downloaded. May also hold artifacts you installed locally with mvn install.",
+      "ifCleared": "Maven downloads libraries again on the next build. Locally installed artifacts must be rebuilt."
+    },
+    "icon": "package",
+    "risk": "review",
+    "regenerates": true,
+    "detect": {
+      "kind": "fixed",
+      "paths": ["{home}/.m2/repository"]
+    },
+    "unused": {
+      "basis": "newest-mtime",
+      "minAgeDays": 0
+    },
+    "cleanup": {
+      "method": "delete"
+    }
+  },
+  {
+    "id": "linux.maven.project-output",
+    "version": 1,
+    "platforms": ["linux"],
+    "audience": ["developer"],
+    "category": "developer",
+    "group": "Project build folders",
+    "labels": {
+      "developer": "Maven target folders",
+      "everyday": "Build output in old Java projects"
+    },
+    "description": {
+      "what": "Compiled classes and packages Maven writes inside a project.",
+      "ifCleared": "The next build recreates them."
+    },
+    "icon": "folder-output",
+    "risk": "safe",
+    "regenerates": true,
+    "detect": {
+      "kind": "project-artifact",
+      "markers": ["pom.xml"],
+      "folders": ["target"]
+    },
+    "unused": {
+      "basis": "project-activity",
+      "minAgeDays": 0
+    },
+    "cleanup": {
+      "method": "delete"
+    }
+  },
+  {
+    "id": "linux.gradle.project-caches",
+    "version": 1,
+    "platforms": ["linux"],
+    "audience": ["developer"],
+    "category": "developer",
+    "group": "Project build folders",
+    "labels": {
+      "developer": "Gradle project caches (.gradle)",
+      "everyday": "Build caches in old Gradle projects"
+    },
+    "description": {
+      "what": "Caches Gradle keeps inside a project.",
+      "ifCleared": "The next build recreates them."
+    },
+    "icon": "folder-cog",
+    "risk": "safe",
+    "regenerates": true,
+    "detect": {
+      "kind": "project-artifact",
+      "markers": ["build.gradle", "build.gradle.kts"],
+      "folders": [".gradle"]
+    },
+    "unused": {
+      "basis": "project-activity",
+      "minAgeDays": 0
+    },
+    "cleanup": {
+      "method": "delete"
+    }
+  },
+  {
+    "id": "linux.gradle.project-output",
+    "version": 1,
+    "platforms": ["linux"],
+    "audience": ["developer"],
+    "category": "developer",
+    "group": "Project build folders",
+    "labels": {
+      "developer": "Gradle build folders",
+      "everyday": "Build output in old Gradle projects"
+    },
+    "description": {
+      "what": "Output Gradle writes to the build folder. Some projects keep other files here, so check first.",
+      "ifCleared": "The next build recreates it. Anything that wasn't generated by the build is lost."
+    },
+    "icon": "folder-output",
+    "risk": "review",
+    "regenerates": true,
+    "detect": {
+      "kind": "project-artifact",
+      "markers": ["build.gradle", "build.gradle.kts"],
+      "folders": ["build"]
+    },
+    "unused": {
+      "basis": "project-activity",
+      "minAgeDays": 0
+    },
+    "cleanup": {
+      "method": "delete"
+    }
+  }
+]

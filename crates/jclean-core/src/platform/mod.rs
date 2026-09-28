@@ -5,6 +5,7 @@
 //! can be tested on any machine against a fixture root.
 
 pub mod fs;
+mod linux;
 mod macos;
 pub mod privileged;
 mod windows;
@@ -38,7 +39,7 @@ pub fn known_dir(env: &Env, token: &str) -> Option<PathBuf> {
     match env.os() {
         Os::Macos => macos::known_dir(env, token),
         Os::Windows => windows::known_dir(env, token),
-        Os::Linux => None,
+        Os::Linux => linux::known_dir(env, token),
     }
 }
 
@@ -47,10 +48,7 @@ pub fn protected_paths(env: &Env) -> Vec<ProtectedPath> {
     match env.os() {
         Os::Macos => macos::protected_paths(env),
         Os::Windows => windows::protected_paths(env),
-        Os::Linux => vec![ProtectedPath {
-            path: env.root().to_path_buf(),
-            scope: Scope::Exact,
-        }],
+        Os::Linux => linux::protected_paths(env),
     }
 }
 
@@ -59,7 +57,7 @@ pub fn cloud_dirs(env: &Env) -> Vec<PathBuf> {
     match env.os() {
         Os::Macos => macos::cloud_dirs(env),
         Os::Windows => windows::cloud_dirs(env),
-        Os::Linux => Vec::new(),
+        Os::Linux => linux::cloud_dirs(env),
     }
 }
 
@@ -69,7 +67,7 @@ pub fn default_scan_exclusions(env: &Env) -> Vec<PathBuf> {
     match env.os() {
         Os::Macos => macos::default_scan_exclusions(env),
         Os::Windows => windows::default_scan_exclusions(env),
-        Os::Linux => Vec::new(),
+        Os::Linux => linux::default_scan_exclusions(env),
     }
 }
 
@@ -79,7 +77,7 @@ pub fn tool_dirs(env: &Env) -> Vec<PathBuf> {
     match env.os() {
         Os::Macos => macos::tool_dirs(env),
         Os::Windows => windows::tool_dirs(env),
-        Os::Linux => Vec::new(),
+        Os::Linux => linux::tool_dirs(env),
     }
 }
 
@@ -93,7 +91,7 @@ pub fn categorize(
     match env.os() {
         Os::Macos => macos::categorize(env, path, parent),
         Os::Windows => windows::categorize(env, path, parent),
-        Os::Linux => parent,
+        Os::Linux => linux::categorize(env, path, parent),
     }
 }
 
@@ -113,7 +111,7 @@ pub fn app_data_dir(env: &Env) -> PathBuf {
     match env.os() {
         Os::Macos => macos::app_data_dir(env),
         Os::Windows => windows::app_data_dir(env),
-        Os::Linux => env.home().join(".jclean"),
+        Os::Linux => linux::app_data_dir(env),
     }
 }
 
