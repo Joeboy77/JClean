@@ -12,6 +12,7 @@ import { SelectionBar } from "./SelectionBar";
 import { StatusCard } from "./StatusCard";
 import { StorageList } from "./StorageList";
 import { Tabs } from "./Tabs";
+import { isWindows, words } from "../../lib/platform";
 
 interface SidebarProps {
   compact: boolean;
@@ -30,12 +31,12 @@ export const Sidebar = forwardRef<HTMLInputElement, SidebarProps>(function Sideb
   const showResult = useStore((s) => s.phase === "done" && s.summary !== null);
   return (
     <aside
-      className={`relative flex h-full shrink-0 flex-col bg-surface ${
+      className={`jc-sidebar relative flex h-full shrink-0 flex-col bg-surface ${
         compact ? "w-full" : "w-[380px] border-r border-line"
       }`}
     >
-      {/* Clears the traffic lights and drags the window. */}
-      <div data-tauri-drag-region className="h-11 shrink-0" />
+      {/* Clears the traffic lights and drags the window. Windows has its own title bar. */}
+      <div data-tauri-drag-region className={`${isWindows ? "h-3" : "h-11"} shrink-0`} />
       <div className="flex min-h-0 flex-1 flex-col gap-3.5 px-4">
         <StatusCard />
         <DiskFullBanner />
@@ -88,7 +89,7 @@ export const Sidebar = forwardRef<HTMLInputElement, SidebarProps>(function Sideb
         <button
           type="button"
           aria-label="Settings"
-          title="Settings (⌘,)"
+          title={`Settings (${words.settingsShortcut})`}
           onClick={() => {
             openSettings("general");
           }}

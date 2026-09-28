@@ -28,18 +28,31 @@ pub fn apply(app: &AppHandle, engine: &Engine) {
     } else {
         None
     };
+    // Windows tray icons can't show text beside them, so it goes in the tooltip.
+    let tooltip = match (&title, cfg!(windows)) {
+        (Some(free), true) => format!("JClean · {free} free"),
+        _ => "JClean".to_string(),
+    };
     if let Some(tray) = app.tray_by_id(TRAY_ID) {
         let _ = tray.set_menu(Some(menu));
         let _ = tray.set_title(title.as_deref());
+        let _ = tray.set_tooltip(Some(&tooltip));
         return;
     }
-    let Ok(icon) = Image::from_bytes(include_bytes!("../icons/tray.png")) else {
+    // macOS tints a black template icon to match the menu bar; Windows shows
+    // icons as they are, so it gets the colour app icon.
+    let bytes: &[u8] = if cfg!(windows) {
+        include_bytes!("../icons/32x32.png")
+    } else {
+        include_bytes!("../icons/tray.png")
+    };
+    let Ok(icon) = Image::from_bytes(bytes) else {
         return;
     };
     let built = TrayIconBuilder::with_id(TRAY_ID)
         .icon(icon)
-        .icon_as_template(true)
-        .tooltip("JClean")
+        .icon_as_template(!cfg!(windows))
+        .tooltip(&tooltip)
         .menu(&menu)
         .show_menu_on_left_click(true)
         .on_menu_event(|app, event| match event.id().as_ref() {

@@ -1,6 +1,7 @@
 //! Disk capacity for the status card (spec §4.3). On macOS "available" is
 //! `NSURLVolumeAvailableCapacityForImportantUsageKey`, which counts purgeable
-//! space and matches what Finder shows.
+//! space and matches what Finder shows. On Windows it's the system drive's
+//! free space, as File Explorer shows it; Windows has no purgeable space.
 
 use serde::Serialize;
 use specta::Type;
@@ -24,9 +25,75 @@ pub fn main_volume() -> Option<VolumeInfo> {
     macos::main_volume()
 }
 
-#[cfg(not(target_os = "macos"))]
+#[cfg(windows)]
+pub fn main_volume() -> Option<VolumeInfo> {
+    windows::main_volume()
+}
+
+#[cfg(not(any(target_os = "macos", windows)))]
 pub fn main_volume() -> Option<VolumeInfo> {
     None
+}
+
+#[cfg(windows)]
+#[allow(unsafe_code)]
+mod windows {
+    use std::os::windows::ffi::OsStrExt;
+
+    use windows_sys::Win32::Storage::FileSystem::{GetDiskFreeSpaceExW, GetVolumeInformationW};
+
+    use super::VolumeInfo;
+
+    #[allow(clippy::cast_precision_loss)]
+    pub fn main_volume() -> Option<VolumeInfo> {
+        let drive = std::env::var_os("SystemDrive").unwrap_or_else(|| "C:".into());
+        let mut root: Vec<u16> = drive.encode_wide().collect();
+        root.extend("\\".encode_utf16());
+        root.push(0);
+
+        let (mut available, mut total, mut free) = (0u64, 0u64, 0u64);
+        // SAFETY: `root` is NUL-terminated; the out pointers are valid u64s.
+        let ok = unsafe {
+            GetDiskFreeSpaceExW(
+                root.as_ptr(),
+                &raw mut available,
+                &raw mut total,
+                &raw mut free,
+            )
+        };
+        if ok == 0 {
+            return None;
+        }
+
+        let mut label = [0u16; 261];
+        // SAFETY: `root` is NUL-terminated and `label` holds its stated length;
+        // the optional out pointers are null.
+        let named = unsafe {
+            GetVolumeInformationW(
+                root.as_ptr(),
+                label.as_mut_ptr(),
+                261,
+                std::ptr::null_mut(),
+                std::ptr::null_mut(),
+                std::ptr::null_mut(),
+                std::ptr::null_mut(),
+                0,
+            )
+        } != 0;
+        let len = label.iter().position(|&c| c == 0).unwrap_or(0);
+        let letter = drive.to_string_lossy().into_owned();
+        let name = if named && len > 0 {
+            format!("{} ({letter})", String::from_utf16_lossy(&label[..len]))
+        } else {
+            format!("Local Disk ({letter})")
+        };
+        Some(VolumeInfo {
+            name,
+            total: total as f64,
+            available: available as f64,
+            purgeable: 0.0,
+        })
+    }
 }
 
 #[cfg(target_os = "macos")]

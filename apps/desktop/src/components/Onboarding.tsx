@@ -6,14 +6,18 @@ import { fade, spring } from "../lib/motion";
 import { checkFullDiskAccess, openLink, startScan, updateSettings } from "../state/engine";
 import { useStore } from "../state/store";
 import { LogoMark } from "./LogoMark";
+import { hasFullDiskAccessStep, isWindows, words } from "../lib/platform";
 
 type Step = "welcome" | "who" | "access";
+
+/** Windows has no Full Disk Access, so no access screen. */
+const STEPS: Step[] = hasFullDiskAccessStep ? ["welcome", "who", "access"] : ["welcome", "who"];
 
 const CHOICES: { id: Audience; title: string; body: string; icon: LucideIcon }[] = [
   {
     id: "developer",
     title: "I write code",
-    body: "Includes caches from tools like npm, Xcode, Docker and Gradle.",
+    body: `Includes caches from tools like npm, ${isWindows ? "Visual Studio" : "Xcode"}, Docker and Gradle.`,
     icon: CodeXml,
   },
   {
@@ -85,10 +89,11 @@ export function Onboarding() {
                     <LogoMark size={64} />
                   </span>
                   <h1 className="mt-6 text-2xl font-semibold text-text">
-                    See what's filling your Mac, and clear it safely.
+                    See what's filling your {words.computer}, and clear it safely.
                   </h1>
                   <p className="mt-3 text-md text-muted">
-                    No account, nothing leaves your Mac, and nothing is removed until you say so.
+                    No account, nothing leaves your {words.computer}, and nothing is removed until
+                    you say so.
                   </p>
                   <button
                     type="button"
@@ -146,7 +151,8 @@ export function Onboarding() {
                   <button
                     type="button"
                     onClick={() => {
-                      setStep("access");
+                      if (hasFullDiskAccessStep) setStep("access");
+                      else finish();
                     }}
                     className="mt-6 h-10 w-full rounded-control bg-accent-strong font-medium text-white hover:brightness-110"
                   >
@@ -197,7 +203,7 @@ export function Onboarding() {
 
           <div className="mt-6 flex items-center justify-between">
             <ol className="flex gap-1.5" aria-label="Progress">
-              {(["welcome", "who", "access"] as const).map((s) => (
+              {STEPS.map((s) => (
                 <li
                   key={s}
                   aria-current={s === step ? "step" : undefined}
@@ -209,7 +215,7 @@ export function Onboarding() {
               type="button"
               onClick={() => {
                 if (step === "welcome") setStep("who");
-                else if (step === "who") setStep("access");
+                else if (step === "who" && hasFullDiskAccessStep) setStep("access");
                 else finish();
               }}
               className="text-muted hover:text-text"

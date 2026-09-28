@@ -8,6 +8,7 @@ import { startScan } from "../../state/engine";
 import { useStore } from "../../state/store";
 import { LogoMark } from "../LogoMark";
 import { MapArea } from "./MapArea";
+import { words } from "../../lib/platform";
 
 const ZOOMS = [1, 1.5, 2, 3];
 
@@ -152,9 +153,11 @@ export function Canvas() {
                 />
               </svg>
               <div className="text-center">
-                <p className="text-lg font-semibold text-text">See what's filling your Mac</p>
+                <p className="text-lg font-semibold text-text">
+                  See what's filling your {words.computer}
+                </p>
                 <p className="mt-1 text-muted">
-                  JClean only reads file sizes and dates. Nothing leaves your Mac.
+                  JClean only reads file sizes and dates. Nothing leaves your {words.computer}.
                 </p>
               </div>
               <button
@@ -164,7 +167,7 @@ export function Canvas() {
                 }}
                 className="h-9 rounded-control bg-accent-strong px-5 font-medium text-white hover:brightness-110"
               >
-                Scan this Mac
+                Scan this {words.computer}
               </button>
             </motion.div>
           ) : (

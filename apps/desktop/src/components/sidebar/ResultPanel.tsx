@@ -7,6 +7,7 @@ import { emptyTrash, reviewClean } from "../../state/engine";
 import { useStore } from "../../state/store";
 import { AnimatedBytes } from "../ui/AnimatedBytes";
 import { RiskIcon } from "../ui/RiskBadge";
+import { words } from "../../lib/platform";
 
 /** After a clean (spec §5.4): what was freed, the Trash reminder, and
  * anything that couldn't be removed, with a retry (spec §5.5). */
@@ -47,8 +48,8 @@ export function ResultPanel() {
         </p>
         {summary.measuredFreed !== null && summary.measuredFreed > 0 && (
           <p className="mt-1 text-xs text-muted">
-            Your disk's free space went up by {formatBytes(summary.measuredFreed)}. macOS can take a
-            moment to report the rest.
+            Your disk's free space went up by {formatBytes(summary.measuredFreed)}. {words.os} can
+            take a moment to report the rest.
           </p>
         )}
       </div>
@@ -56,10 +57,10 @@ export function ResultPanel() {
       {inTrash > 0 && (
         <div className="rounded-card border border-line p-4">
           <p className="text-text">
-            {formatBytes(inTrash)} is in the Trash. Empty the Trash to free it.
+            {formatBytes(inTrash)} is in the {words.trash}. Empty the {words.trash} to free it.
           </p>
           <p className="mt-1 text-xs text-muted">
-            Until then you can still put those items back from the Trash.
+            Until then you can still put those items back from the {words.trash}.
           </p>
           <button
             type="button"
@@ -72,7 +73,7 @@ export function ResultPanel() {
             }}
             className="mt-3 h-8 rounded-control border border-line bg-raised px-3 text-text hover:border-muted disabled:opacity-50"
           >
-            {trash.state === "working" ? "Emptying…" : "Empty Trash"}
+            {trash.state === "working" ? "Emptying…" : `Empty ${words.trash}`}
           </button>
         </div>
       )}

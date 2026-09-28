@@ -13,6 +13,8 @@ export const commands = {
 	 */
 	devLog: (message: string) => __TAURI_INVOKE<void>("dev_log", { message }),
 	setWindowMode: (mode: WindowMode) => typedError<null, string>(__TAURI_INVOKE("set_window_mode", { mode })),
+	/**  `"mica"` when the window has a translucent backdrop, otherwise nothing. */
+	windowBackdrop: () => __TAURI_INVOKE<string | null>("window_backdrop"),
 	/**
 	 *  Starts a scan on a background thread. Results stream through `on_update`;
 	 *  the call returns immediately.
@@ -48,8 +50,8 @@ export const commands = {
 	 */
 	runClean: (onUpdate: Channel<CleanUpdate>) => typedError<null, string>(__TAURI_INVOKE("run_clean", { onUpdate })),
 	/**
-	 *  Empties the Trash through the same guard and log as any clean: finds
-	 *  what's in `~/.Trash` with the Trash rule and deletes it.
+	 *  Empties the Trash (or Recycle Bin) through the same guard and log as any
+	 *  clean: finds what's in it with the platform's trash rule and deletes it.
 	 */
 	emptyTrash: () => typedError<EmptyTrashResult, string>(__TAURI_INVOKE("empty_trash")),
 	getSettings: () => __TAURI_INVOKE<Settings>("get_settings"),

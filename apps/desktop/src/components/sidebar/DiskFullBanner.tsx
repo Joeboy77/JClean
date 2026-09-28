@@ -2,6 +2,7 @@ import { HardDrive } from "lucide-react";
 import { useMemo } from "react";
 import { formatBytes } from "../../lib/format";
 import { useStore } from "../../state/store";
+import { words } from "../../lib/platform";
 
 /** "Disk nearly full" (spec §5.5): over 90% used. */
 export function DiskFullBanner() {
@@ -28,7 +29,7 @@ export function DiskFullBanner() {
         <p className="mt-0.5 text-xs text-muted">
           {reclaimable > 0
             ? `${formatBytes(reclaimable)} below is safe to clean.`
-            : "macOS and your apps slow down when space runs out. Scan to see what can go."}
+            : `${words.os} and your apps slow down when space runs out. Scan to see what can go.`}
         </p>
       </div>
     </div>

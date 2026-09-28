@@ -9,10 +9,11 @@ import { cancelReview, confirmClean, reviewClean } from "../state/engine";
 import { itemName, ruleLabel } from "../state/selectors";
 import { useStore } from "../state/store";
 import { RiskIcon } from "./ui/RiskBadge";
+import { isWindows, words } from "../lib/platform";
 
 const METHOD_LINE: Record<Method, string> = {
   delete: "Deleted permanently",
-  trash: "Moved to the Trash",
+  trash: `Moved to the ${words.trash}`,
   command: "Cleared by their own tools",
   none: "Not cleaned",
 };
@@ -129,7 +130,8 @@ function Sheet({ plan }: { plan: PlanDto }) {
 
             {plan.byMethod.some((m) => m.method === "trash") && (
               <p className="text-xs text-muted">
-                Items moved to the Trash can be put back. They free space once you empty the Trash.
+                Items moved to the {words.trash} can be put back. They free space once you empty the{" "}
+                {words.trash}.
               </p>
             )}
 
@@ -162,8 +164,10 @@ function Sheet({ plan }: { plan: PlanDto }) {
             )}
             {admin.length > 0 && (
               <p className="text-xs text-muted">
-                {admin.length} {admin.length === 1 ? "item is" : "items are"} owned by macOS. It
-                will ask for your password once when cleaning starts.
+                {admin.length} {admin.length === 1 ? "item is" : "items are"} owned by {words.os}.{" "}
+                {isWindows
+                  ? "Windows will ask you to approve it once when cleaning starts."
+                  : "It will ask for your password once when cleaning starts."}
               </p>
             )}
             {plan.skipped.length > 0 && (

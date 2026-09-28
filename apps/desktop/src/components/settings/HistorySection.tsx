@@ -4,6 +4,7 @@ import { commands, type ActionDto, type CleanupDto } from "../../bindings";
 import { formatBytes } from "../../lib/format";
 import { isLive } from "../../state/engine";
 import { useStore } from "../../state/store";
+import { words } from "../../lib/platform";
 
 function when(secs: number): string {
   return new Date(secs * 1000).toLocaleString(undefined, {
@@ -52,7 +53,9 @@ export function HistorySection() {
   return (
     <div>
       <div className="mb-4 flex items-center justify-between">
-        <p className="text-muted">Every clean is logged on this Mac. Nothing is sent anywhere.</p>
+        <p className="text-muted">
+          Every clean is logged on this {words.computer}. Nothing is sent anywhere.
+        </p>
         <button
           type="button"
           onClick={() => {

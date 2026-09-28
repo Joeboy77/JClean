@@ -288,8 +288,8 @@ pub struct EmptyTrashResult {
     pub note: Option<String>,
 }
 
-/// Empties the Trash through the same guard and log as any clean: finds
-/// what's in `~/.Trash` with the Trash rule and deletes it.
+/// Empties the Trash (or Recycle Bin) through the same guard and log as any
+/// clean: finds what's in it with the platform's trash rule and deletes it.
 #[tauri::command]
 #[specta::specta]
 pub async fn empty_trash(engine: State<'_, Arc<Engine>>) -> Result<EmptyTrashResult, String> {
@@ -308,7 +308,7 @@ pub async fn empty_trash(engine: State<'_, Arc<Engine>>) -> Result<EmptyTrashRes
 fn empty_trash_blocking(engine: &Engine) -> Result<EmptyTrashResult, String> {
     let rule = engine
         .builtin
-        .get("macos.system.trash")
+        .get(jclean_core::platform::trash_rule_id(engine.env.os()))
         .cloned()
         .ok_or("The Trash rule is missing")?;
     let rules = RuleSet::from_rules(vec![rule]).map_err(|e| e.to_string())?;
@@ -322,7 +322,11 @@ fn empty_trash_blocking(engine: &Engine) -> Result<EmptyTrashResult, String> {
     .scan(&opts, &CancelToken::new(), &|_| {});
     if scan.items.is_empty() {
         let note = (scan.unreadable_dirs > 0).then(|| {
-            "JClean couldn't look inside the Trash. Grant Full Disk Access, or empty it from the Dock.".to_string()
+            if cfg!(windows) {
+                "JClean couldn't look inside the Recycle Bin. Empty it from the desktop instead.".to_string()
+            } else {
+                "JClean couldn't look inside the Trash. Grant Full Disk Access, or empty it from the Dock.".to_string()
+            }
         });
         return Ok(EmptyTrashResult {
             freed: 0.0,

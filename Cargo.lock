@@ -2258,6 +2258,7 @@ dependencies = [
  "tauri-plugin-window-state",
  "tauri-specta",
  "tempfile",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]

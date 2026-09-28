@@ -19,6 +19,7 @@ import {
 } from "./ListRows";
 import { openLink } from "../../state/engine";
 import { ROW_HEIGHT } from "./rowHeight";
+import { words } from "../../lib/platform";
 
 const SKELETON: Row[] = Array.from({ length: 8 }, (_, i) => ({
   kind: "skeleton",
@@ -178,7 +179,7 @@ export function StorageList() {
       return <EmptyState title="No matches" body={`Nothing matches “${s.search.trim()}”.`} />;
     return (
       <EmptyState
-        title="Your Mac is tidy"
+        title={`Your ${words.computer} is tidy`}
         body={
           s.volume
             ? `Nothing to clean right now. ${formatBytes(s.volume.available)} free.`

@@ -5,6 +5,7 @@ import { addCustomFolder, importRulePack, pickFolder, removeCustomRule } from ".
 import { useStore } from "../../state/store";
 import { RulesPanel } from "../sidebar/RulesPanel";
 import { Choice, Group } from "./SettingsView";
+import { words } from "../../lib/platform";
 
 type Risk = "safe" | "review" | "caution";
 
@@ -21,7 +22,8 @@ export function RulesSection() {
       <Group title="Your folders">
         <div className="py-3">
           <p className="text-xs text-muted">
-            Folders you add are always moved to the Trash when cleaned, so you can put them back.
+            Folders you add are always moved to the {words.trash} when cleaned, so you can put them
+            back.
           </p>
           <ul className="mt-3 space-y-2">
             {custom.length === 0 && <li className="text-muted">None yet.</li>}

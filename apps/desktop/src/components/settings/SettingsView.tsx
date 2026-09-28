@@ -10,6 +10,7 @@ import { AboutSection, UpdatesSection } from "./AboutSection";
 import { HistorySection } from "./HistorySection";
 import { RulesSection } from "./RulesSection";
 import { ScanningSection } from "./ScanningSection";
+import { isWindows, words } from "../../lib/platform";
 
 const SECTIONS: { id: SettingsSection; label: string }[] = [
   { id: "general", label: "General" },
@@ -134,14 +135,14 @@ function GeneralSection({ s }: { s: Settings }) {
           />
         </Row>
       </Group>
-      <Group title="Menu bar">
+      <Group title={isWindows ? "System tray" : "Menu bar"}>
         <Row
-          title="Show JClean in the menu bar"
+          title={`Show JClean in the ${words.tray}`}
           detail="Free space, a quick scan, and closing the window keeps it there."
         >
           <Switch
             on={s.menuBarIcon}
-            label="Show JClean in the menu bar"
+            label={`Show JClean in the ${words.tray}`}
             onChange={toggle(s, "menuBarIcon")}
           />
         </Row>
@@ -163,13 +164,13 @@ function CleaningSection({ s }: { s: Settings }) {
     <Group>
       <Row
         title="Your own files"
-        detail="Old installers and large files. Moving them to the Trash means you can put them back."
+        detail={`Old installers and large files. Moving them to the ${words.trash} means you can put them back.`}
       >
         <Choice
           label="Your own files"
           value={s.deleteUserFiles ? "delete" : "trash"}
           options={[
-            { id: "trash", label: "Move to Trash" },
+            { id: "trash", label: `Move to ${words.trash}` },
             { id: "delete", label: "Delete" },
           ]}
           onChange={(v) => {

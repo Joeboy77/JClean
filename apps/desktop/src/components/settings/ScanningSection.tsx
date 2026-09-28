@@ -5,6 +5,7 @@ import { pickFolder, updateSettings } from "../../state/engine";
 import { useStore } from "../../state/store";
 import { Switch } from "../ui/Switch";
 import { Group, Row } from "./SettingsView";
+import { words } from "../../lib/platform";
 
 const THRESHOLDS = [30, 60, 90, 180, 365];
 
@@ -71,7 +72,7 @@ export function ScanningSection({ s }: { s: Settings }) {
       <Group title="Folders to skip">
         <FolderList
           folders={s.excludedFolders}
-          empty="None. Library, the Trash and iCloud folders are always skipped when looking for projects."
+          empty={`None. ${words.skippedFolders} are always skipped when looking for projects.`}
           addLabel="Skip a folder"
           onChange={(excludedFolders) => void updateSettings({ excludedFolders })}
         />

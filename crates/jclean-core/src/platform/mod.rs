@@ -117,6 +117,16 @@ pub fn app_data_dir(env: &Env) -> PathBuf {
     }
 }
 
+/// The Windows build number (22000 and up is Windows 11), or `None` on
+/// other systems.
+pub fn windows_build() -> Option<u32> {
+    if !cfg!(windows) {
+        return None;
+    }
+    let version = sysinfo::System::kernel_version()?;
+    version.rsplit('.').next()?.trim().parse().ok()
+}
+
 /// The built-in rule for the Trash (macOS) or Recycle Bin (Windows), which
 /// "Empty Trash" cleans on its own.
 pub fn trash_rule_id(os: Os) -> &'static str {

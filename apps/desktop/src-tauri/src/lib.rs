@@ -60,6 +60,7 @@ pub fn specta_builder() -> Builder<tauri::Wry> {
         app_info,
         dev_log,
         window::set_window_mode,
+        window::window_backdrop,
         engine::start_scan,
         engine::cancel_scan,
         engine::map_level,
@@ -114,10 +115,14 @@ pub fn run() -> Result<(), Box<dyn std::error::Error>> {
         .plugin(tauri_plugin_process::init())
         .manage(updater::PendingUpdate::default())
         .manage(window::LastExpandedWidth::default())
+        .manage(window::Backdrop::default())
         .manage(engine)
         .invoke_handler(builder.invoke_handler())
         .setup(move |app| {
             builder.mount_events(app);
+            if let Some(main) = app.get_webview_window("main") {
+                window::apply_backdrop(&main, &app.state::<window::Backdrop>());
+            }
             tray::refresh(app.handle());
             Ok(())
         })

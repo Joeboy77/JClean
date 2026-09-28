@@ -2,6 +2,16 @@
 @import "@jclean/design/theme.css";
 @import "@jclean/treemap/treemap.css";
 
+/* Windows 11: the sidebar sits on the window's Mica backdrop. Set only once
+   the shell confirms Mica is on, so older Windows keeps a solid window. The
+   map and every sheet above it stay opaque. */
+:root[data-backdrop="mica"] body {
+  background: transparent;
+}
+:root[data-backdrop="mica"] .jc-sidebar {
+  background-color: rgb(31 28 44 / 0.62);
+}
+
 /* Reclaimable part of a capacity-bar segment: brighter, hatched, with a slow
    shimmer after a scan (spec §5.2). Only transform animates. */
 .reclaimable {

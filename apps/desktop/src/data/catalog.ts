@@ -1,13 +1,19 @@
-// The built-in macOS rule catalog, read straight from rules/macos/*.json.
+// The built-in rule catalog for this OS, read straight from rules/<os>/*.json.
 // Used by the browser build and as the starting point in the app, where the
 // engine then supplies the full set (built-in plus custom) over IPC.
 
 import type { Audience, Category, Method, Risk, Rule } from "./types";
+import { isWindows } from "../lib/platform";
 
-const files = import.meta.glob<unknown>("../../../../rules/macos/*.json", {
+const macFiles = import.meta.glob<unknown>("../../../../rules/macos/*.json", {
   eager: true,
   import: "default",
 });
+const windowsFiles = import.meta.glob<unknown>("../../../../rules/windows/*.json", {
+  eager: true,
+  import: "default",
+});
+const files = isWindows ? windowsFiles : macFiles;
 
 type Json = Record<string, unknown>;
 

@@ -37,6 +37,10 @@ export async function init(options: { autoScan: boolean }) {
     commands.fullDiskAccess(),
     commands.cachedScan(),
   ]);
+  // Windows 11 draws the sidebar over Mica; see styles/index.css.
+  void commands.windowBackdrop().then((backdrop) => {
+    if (backdrop) document.documentElement.dataset.backdrop = backdrop;
+  });
   store.setHome(info.home);
   store.setRules(rules);
   store.setSettings(settings);

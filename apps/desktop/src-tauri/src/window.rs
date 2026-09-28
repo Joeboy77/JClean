@@ -57,6 +57,36 @@ pub fn set_window_mode(
     resize_width(&window, width, size.height).map_err(|e| e.to_string())
 }
 
+/// The window's backdrop material, for the UI to match.
+#[derive(Default)]
+pub struct Backdrop(Mutex<Option<String>>);
+
+/// Windows 11 draws the sidebar over Mica (spec §8.3, phase 8). Older
+/// Windows keeps the solid background: the page only turns translucent
+/// once it's told Mica is on.
+pub fn apply_backdrop(window: &WebviewWindow, backdrop: &Backdrop) {
+    if jclean_core::platform::windows_build().is_none_or(|b| b < 22_000) {
+        return;
+    }
+    let effects = tauri::window::EffectsBuilder::new()
+        .effect(tauri::window::Effect::MicaDark)
+        .build();
+    if window.set_effects(effects).is_ok()
+        && window
+            .set_background_color(Some(tauri::window::Color(0, 0, 0, 0)))
+            .is_ok()
+    {
+        *backdrop.0.lock().unwrap_or_else(|p| p.into_inner()) = Some("mica".to_string());
+    }
+}
+
+/// `"mica"` when the window has a translucent backdrop, otherwise nothing.
+#[tauri::command]
+#[specta::specta]
+pub fn window_backdrop(backdrop: State<'_, Backdrop>) -> Option<String> {
+    backdrop.0.lock().unwrap_or_else(|p| p.into_inner()).clone()
+}
+
 #[cfg(target_os = "macos")]
 fn resize_width(window: &WebviewWindow, width: f64, _height: f64) -> tauri::Result<()> {
     let ptr = window.ns_window()? as usize;

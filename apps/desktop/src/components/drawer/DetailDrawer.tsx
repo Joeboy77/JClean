@@ -10,13 +10,14 @@ import { useStore, type DrawerTarget } from "../../state/store";
 import { RISK_COPY } from "../../data/riskCopy";
 import { RiskBadge } from "../ui/RiskBadge";
 import { RuleIcon } from "../ui/RuleIcon";
+import { words } from "../../lib/platform";
 
 function methodCopy(method: Method, command: string | null): string {
   switch (method) {
     case "delete":
       return "Deleted permanently. The space is free right away.";
     case "trash":
-      return "Moved to the Trash, so you can put it back until you empty the Trash.";
+      return `Moved to the ${words.trash}, so you can put it back until you empty the ${words.trash}.`;
     case "command":
       return command ? `Cleared by the tool itself: ${command}` : "Cleared by the tool itself.";
     case "none":
@@ -289,7 +290,7 @@ export function DetailDrawer({ compact }: DetailDrawerProps) {
                   }}
                   className="flex h-8 items-center gap-2 rounded-control border border-line bg-raised px-3 text-text hover:border-muted disabled:opacity-50"
                 >
-                  <FolderOpen size={14} aria-hidden="true" /> Show in Finder
+                  <FolderOpen size={14} aria-hidden="true" /> Show in {words.fileManager}
                 </button>
               </div>
             </div>
