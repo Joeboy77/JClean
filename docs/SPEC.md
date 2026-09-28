@@ -332,7 +332,12 @@ Each file in `rules/<os>/` holds an array of rules for one ecosystem (`node.json
 | `cleanup.command` | Tool name plus argument list. Only built-in rules may use `command` (see §7.4). |
 | `cleanup.requiresAdmin` | Needs administrator approval |
 | `relatedApps` | Bundle IDs / process names that should be closed first (e.g. `com.apple.dt.Xcode`) |
-| `keep` | Optional keep-policy, e.g. `{"newest": 1}` to keep the newest version of each item (IDE versions, simulator runtimes, extension versions) |
+| `keep` | Optional keep-policy, e.g. `{"newest": 1}` to keep the newest version of each item (IDE versions, simulator runtimes, extension versions). `groupBy`: `parent` (all items in one folder) or `name` (name with its version removed, e.g. `PyCharm2024.1`) |
+| `detect.eachChild` / `detect.exclude` | For `fixed`: every entry inside the matched folder is its own item and the folder itself is kept (app caches, DerivedData, Trash). `exclude` lists child-name globs to leave out |
+| `detect.names` / `olderThanDays` / `minBytes` / `recursive` | For `query`: file-name globs, age and size limits. `recursive` queries (large files) only run in a full scan |
+| `cleanup.keepRoot` | Clear the folder's contents but keep the folder |
+| `cleanup.fallback` | Method to use when a `command` tool isn't installed (`delete` or `trash`) |
+| `crossFilesystems` | Opt in to measuring and cleaning across a mount point (off by default) |
 
 Path tokens: `{home}`, `{caches}` (macOS `~/Library/Caches`, Windows `%LOCALAPPDATA%`), `{appSupport}`, `{logs}`, `{temp}`, `{localAppData}`, `{appData}`, `{env:NAME}`. Globs use `globset` syntax.
 

@@ -1,0 +1,168 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://jclean.app/schema/rule.schema.json",
+  "title": "JClean rule file",
+  "description": "An array of detection rules for one ecosystem. See docs/SPEC.md §6.",
+  "type": "array",
+  "items": { "$ref": "#/$defs/rule" },
+  "$defs": {
+    "nonEmpty": { "type": "string", "minLength": 1 },
+    "method": { "enum": ["delete", "trash", "command", "none"] },
+    "pathList": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/$defs/nonEmpty" }
+    },
+    "globList": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/nonEmpty" }
+    },
+    "rule": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "version",
+        "platforms",
+        "audience",
+        "category",
+        "group",
+        "labels",
+        "description",
+        "icon",
+        "risk",
+        "regenerates",
+        "detect",
+        "cleanup"
+      ],
+      "properties": {
+        "id": { "type": "string", "pattern": "^(macos|windows|linux)\\.[a-z0-9-]+\\.[a-z0-9-]+$" },
+        "version": { "type": "integer", "minimum": 1 },
+        "platforms": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": { "enum": ["macos", "windows", "linux"] }
+        },
+        "audience": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": { "enum": ["everyday", "developer"] }
+        },
+        "category": { "enum": ["apps", "developer", "system", "media", "documents", "other"] },
+        "group": { "$ref": "#/$defs/nonEmpty" },
+        "labels": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["developer", "everyday"],
+          "properties": {
+            "developer": { "$ref": "#/$defs/nonEmpty" },
+            "everyday": { "$ref": "#/$defs/nonEmpty" }
+          }
+        },
+        "description": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["what", "ifCleared"],
+          "properties": {
+            "what": { "$ref": "#/$defs/nonEmpty" },
+            "ifCleared": { "$ref": "#/$defs/nonEmpty" }
+          }
+        },
+        "icon": { "$ref": "#/$defs/nonEmpty" },
+        "risk": { "enum": ["safe", "review", "caution", "info"] },
+        "regenerates": { "type": "boolean" },
+        "detect": {
+          "oneOf": [
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["kind", "paths"],
+              "properties": {
+                "kind": { "const": "fixed" },
+                "paths": { "$ref": "#/$defs/pathList" },
+                "eachChild": { "type": "boolean" },
+                "exclude": { "$ref": "#/$defs/globList" }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["kind", "markers", "folders"],
+              "properties": {
+                "kind": { "const": "project-artifact" },
+                "markers": { "$ref": "#/$defs/pathList" },
+                "folders": { "$ref": "#/$defs/pathList" }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["kind", "probe"],
+              "properties": {
+                "kind": { "const": "probe" },
+                "probe": { "$ref": "#/$defs/nonEmpty" }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["kind", "paths"],
+              "properties": {
+                "kind": { "const": "query" },
+                "paths": { "$ref": "#/$defs/pathList" },
+                "names": { "$ref": "#/$defs/globList" },
+                "olderThanDays": { "type": "integer", "minimum": 0 },
+                "minBytes": { "type": "integer", "minimum": 0 },
+                "recursive": { "type": "boolean" }
+              }
+            }
+          ]
+        },
+        "unused": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["basis"],
+          "properties": {
+            "basis": { "enum": ["newest-mtime", "project-activity", "none"] },
+            "minAgeDays": { "type": "integer", "minimum": 0 }
+          }
+        },
+        "cleanup": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["method"],
+          "properties": {
+            "method": { "$ref": "#/$defs/method" },
+            "command": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["tool", "args"],
+              "properties": {
+                "tool": { "type": "string", "pattern": "^[A-Za-z0-9._-]+$" },
+                "args": { "type": "array", "items": { "type": "string" } }
+              }
+            },
+            "fallback": { "$ref": "#/$defs/method" },
+            "requiresAdmin": { "type": "boolean" },
+            "keepRoot": { "type": "boolean" }
+          }
+        },
+        "relatedApps": { "type": "array", "items": { "$ref": "#/$defs/nonEmpty" } },
+        "mayShareBlocks": { "type": "boolean" },
+        "crossFilesystems": { "type": "boolean" },
+        "keep": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["newest"],
+          "properties": {
+            "newest": { "type": "integer", "minimum": 1 },
+            "groupBy": { "enum": ["parent", "name"] }
+          }
+        },
+        "docs": { "type": "string", "format": "uri" }
+      }
+    }
+  }
+}
