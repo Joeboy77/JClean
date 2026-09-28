@@ -1,6 +1,6 @@
 # Releasing JClean
 
-Pushing a tag like `v1.0.0` runs `.github/workflows/release.yml`. It builds the universal macOS app and the Windows x64 installer, signs their update packages, and publishes the release. It also signs and notarizes the app when the Apple secrets are set.
+Pushing a tag like `v1.0.0` runs `.github/workflows/release.yml`. It builds the universal macOS app, the Windows x64 installer and the Linux AppImage and .deb, signs their update packages, and publishes the release. It also signs and notarizes the app when the Apple secrets are set.
 
 ## One-time setup: GitHub secrets
 
@@ -39,10 +39,11 @@ The download site in `apps/web` is static. It reads the latest release (version,
 3. The workflow refuses a tag that doesn't match the version. On success it publishes:
    - `JClean_macos_universal.dmg`, at a stable URL: `https://github.com/Joeboy77/JClean/releases/latest/download/JClean_macos_universal.dmg`
    - `JClean_windows_x64_setup.exe`, at `https://github.com/Joeboy77/JClean/releases/latest/download/JClean_windows_x64_setup.exe`
-   - `SHA256SUMS.txt` for both
-   - `latest.json` and the signed `.app.tar.gz` and `-setup.exe` that the in-app updater uses
+   - `JClean_linux_x86_64.AppImage` and `JClean_linux_amd64.deb`, at the same kind of URL
+   - `SHA256SUMS.txt` for all of them
+   - `latest.json` and the signed update packages the in-app updater uses (the `.app.tar.gz`, the `-setup.exe`, the AppImage and the `.deb`)
 
-The website offers the Windows download as soon as a release includes the installer; until then Windows visitors see "Coming to Windows soon".
+The website offers the Windows and Linux downloads as soon as a release includes them; until then those visitors see "Coming soon".
 
 ## Windows signing
 
@@ -72,6 +73,15 @@ On Windows (10 and 11):
 - [ ] Empty Recycle Bin from the result screen; Explorer shows it empty.
 - [ ] Tray icon is visible on a dark taskbar, with free space in its tooltip.
 - [ ] Update from the previous version through Settings → Updates.
+
+On Linux (Ubuntu with GNOME, and one KDE or Fedora machine):
+
+- [ ] AppImage: runs after `chmod +x` (with `libfuse2t64` on Ubuntu 24.04); .deb: `sudo apt install ./JClean_linux_amd64.deb` pulls in what it needs.
+- [ ] Quick scan finds ~/.cache, the Trash, Flatpak/Snap app caches and developer caches; `XDG_CACHE_HOME` pointing elsewhere is followed.
+- [ ] Administrator cleanup (APT or DNF cache, journal, an old snap revision): one polkit prompt; dismissing it skips those items.
+- [ ] A removed Flatpak app's data in ~/.var/app is listed; an installed app's isn't.
+- [ ] Tray icon shows in the top bar (GNOME needs the AppIndicator extension).
+- [ ] Update from the previous version, both as an AppImage and as a .deb.
 
 ## Measured budgets (spec §15)
 
