@@ -22,6 +22,14 @@ tauri = { version = "2.12", features = [] }
 specta = { version = "=2.0.0-rc.25", features = ["derive"] }
 specta-typescript = "0.0.12"
 tauri-specta = { version = "=2.0.0-rc.25", features = ["derive", "typescript"] }
+# Remembers window size and position (spec §5.1). Official Tauri plugin.
+tauri-plugin-window-state = "2.5"
+
+# Native animated window resize for compact/expanded switching (spec §5.8).
+# Already in the dependency tree through Tauri, so this adds no size.
+[target.'cfg(target_os = "macos")'.dependencies]
+objc2-app-kit = { version = "0.3", default-features = false, features = ["std", "NSResponder", "NSWindow"] }
+objc2-foundation = { version = "0.3", default-features = false, features = ["std", "NSGeometry"] }
 
 [lints]
 workspace = true

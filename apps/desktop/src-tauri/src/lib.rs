@@ -5,6 +5,8 @@ use serde::Serialize;
 use specta::Type;
 use tauri_specta::{Builder, collect_commands};
 
+mod window;
+
 /// Where the generated IPC bindings are written, relative to this crate.
 const BINDINGS_PATH: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../src/bindings.ts");
 
@@ -29,7 +31,7 @@ fn app_info(app: tauri::AppHandle) -> AppInfo {
 /// All commands and events exposed to the frontend. The TypeScript bindings
 /// are generated from this, so frontend and backend can't drift.
 pub fn specta_builder() -> Builder<tauri::Wry> {
-    Builder::<tauri::Wry>::new().commands(collect_commands![app_info])
+    Builder::<tauri::Wry>::new().commands(collect_commands![app_info, window::set_window_mode])
 }
 
 /// Writes `src/bindings.ts` for the frontend.
@@ -52,6 +54,8 @@ pub fn run() -> tauri::Result<()> {
     }
 
     tauri::Builder::default()
+        .plugin(tauri_plugin_window_state::Builder::new().build())
+        .manage(window::LastExpandedWidth::default())
         .invoke_handler(builder.invoke_handler())
         .setup(move |app| {
             builder.mount_events(app);

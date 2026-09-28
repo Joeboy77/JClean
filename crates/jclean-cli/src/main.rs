@@ -7,6 +7,8 @@
 //! jclean-cli scan --root /tmp/jclean-fixture/root --home /tmp/jclean-fixture/root/Users/tester
 //! ```
 
+#![forbid(unsafe_code)]
+
 mod output;
 
 use std::path::{Path, PathBuf};

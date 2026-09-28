@@ -135,7 +135,7 @@ Quality bar: this should feel like a native premium app, not a web page in a win
 | Compact | 380 × 760 (height resizable, min 600) | Sidebar only |
 
 - The collapse/expand button sits in the sidebar filter row (same position as Proton's `>|` icon). Pressing it animates the window width and slides the canvas out (or in). The sidebar never moves or reflows.
-- Resizing the window below 760 px wide switches to compact automatically, and widening past it restores expanded.
+- Resizing the window below 760 px wide switches to compact automatically, and widening past it restores expanded. The window's own minimum width is therefore 380 px; the 1080 px expanded minimum applies when the expand button restores the canvas (it never lands narrower than 1080 px).
 - The last mode, size and position are remembered.
 - macOS: native traffic lights, transparent title bar (`titleBarStyle: Overlay`), and sidebar vibrancy (`NSVisualEffectMaterial.Sidebar`) where supported, falling back to a solid surface.
 

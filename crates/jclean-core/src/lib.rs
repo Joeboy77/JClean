@@ -6,6 +6,8 @@
 //! Deletion happens in exactly one place, [`cleaner::execute`], and every path
 //! passes the [`safety::SafetyGuard`] first.
 
+#![forbid(unsafe_code)]
+
 pub mod cancel;
 pub mod cleaner;
 pub mod disktree;
