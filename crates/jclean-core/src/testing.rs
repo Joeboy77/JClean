@@ -197,18 +197,10 @@ impl Fixture {
     }
 }
 
-/// Windows canonical paths start with `\\?\`, where `/` isn't a separator;
-/// fixtures use the plain `C:\…` form, as the app does.
+/// Plain `C:\\…` paths on Windows, as the app uses (see
+/// [`crate::platform::fs::plain`]).
 pub fn simplify(path: PathBuf) -> PathBuf {
-    if cfg!(windows) {
-        let text = path.to_string_lossy();
-        if let Some(rest) = text.strip_prefix(r"\\?\")
-            && rest.as_bytes().get(1) == Some(&b':')
-        {
-            return PathBuf::from(rest.to_string());
-        }
-    }
-    path
+    crate::platform::fs::plain(path)
 }
 
 /// A relative fixture path with the platform's separators.
@@ -246,6 +238,15 @@ pub fn age_tree(path: &Path, days: u64) -> std::io::Result<()> {
         for entry in fs::read_dir(path)? {
             age_tree(&entry?.path(), days)?;
         }
+    }
+    // Windows won't change a read-only file's dates, so lift the flag briefly.
+    if cfg!(windows) && !meta.is_dir() && meta.permissions().readonly() {
+        let mut writable = meta.permissions();
+        #[allow(clippy::permissions_set_readonly_false)]
+        writable.set_readonly(false);
+        fs::set_permissions(path, writable)?;
+        filetime::set_symlink_file_times(path, time, time)?;
+        return fs::set_permissions(path, meta.permissions());
     }
     filetime::set_symlink_file_times(path, time, time)
 }

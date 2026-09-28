@@ -267,14 +267,18 @@ fn jclean_keep_markers_protect_ancestors_and_descendants() {
 #[test]
 fn unusual_names_are_handled_exactly() {
     let s = setup();
-    for name in [
+    let mut names = vec![
         "with space",
         "ünïcödé-ファイル",
-        "new\nline",
-        "tab\tand;semicolon",
         "-leading-dash",
         "$(touch x)",
-    ] {
+        "semi;colon",
+    ];
+    // Control characters can't be in a Windows file name.
+    if cfg!(unix) {
+        names.extend(["new\nline", "tab\tand;semicolon"]);
+    }
+    for name in names {
         let rel = format!("Library/Caches/{name}");
         s.f.file(&format!("{rel}/data"), 1_000).unwrap();
         let v = check(&s, &s.f.path(&rel), &inside(&s.cache))

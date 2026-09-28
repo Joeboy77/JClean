@@ -45,6 +45,29 @@ pub fn device(_meta: &Metadata) -> u64 {
     0
 }
 
+/// The real path of `path`, resolving `..` and symlinks in it. On Windows the
+/// result is plain `C:\…` rather than `\\?\C:\…`, the form rules, the
+/// environment and protected paths use, so the SafetyGuard compares like
+/// with like. (The standard library adds the long-path prefix itself
+/// whenever a path needs it.)
+pub fn canonicalize(path: &std::path::Path) -> std::io::Result<std::path::PathBuf> {
+    std::fs::canonicalize(path).map(plain)
+}
+
+/// Drops the `\\?\` prefix from a Windows drive path; anything else is
+/// returned as it is.
+pub fn plain(path: std::path::PathBuf) -> std::path::PathBuf {
+    if cfg!(windows) {
+        let text = path.to_string_lossy();
+        if let Some(rest) = text.strip_prefix(r"\\?\")
+            && rest.as_bytes().get(1) == Some(&b':')
+        {
+            return std::path::PathBuf::from(rest.to_string());
+        }
+    }
+    path
+}
+
 /// Modification time as Unix seconds (0 if unavailable).
 pub fn mtime_secs(meta: &Metadata) -> i64 {
     meta.modified().map(crate::time::unix_secs).unwrap_or(0)

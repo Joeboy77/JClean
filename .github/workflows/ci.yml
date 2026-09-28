@@ -93,7 +93,11 @@ jobs:
         shell: bash
         run: |
           set -o pipefail
-          cargo test --workspace --no-fail-fast 2>&1 | tee test-output.txt
+          cargo test --workspace --exclude jclean-desktop --no-fail-fast 2>&1 | tee test-output.txt
+          # A Tauri test binary can't start on Windows without the app's
+          # manifest, and its one test (the IPC bindings) runs on macOS, so
+          # here it only has to compile.
+          cargo test -p jclean-desktop --no-run 2>&1 | tee -a test-output.txt
 
       # Puts failures on the run's summary page, where they're readable
       # without opening the log.

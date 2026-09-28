@@ -139,7 +139,7 @@ impl SafetyGuard {
         // Keep both spellings: `/etc` and `/private/etc` are the same folder on macOS.
         let mut protected = Vec::with_capacity(paths.len() * 2);
         for p in paths {
-            if let Ok(canonical) = fs::canonicalize(&p.path)
+            if let Ok(canonical) = platform::fs::canonicalize(&p.path)
                 && canonical != p.path
             {
                 protected.push(ProtectedPath {
@@ -226,11 +226,11 @@ impl SafetyGuard {
         let (Some(parent), Some(name)) = (path.parent(), path.file_name()) else {
             return Err(Refusal::Protected);
         };
-        let parent = fs::canonicalize(parent).map_err(|_| Refusal::NotFound)?;
+        let parent = platform::fs::canonicalize(parent).map_err(|_| Refusal::NotFound)?;
         let canonical = parent.join(name);
 
         let inside = roots.iter().any(|root| {
-            let Ok(root_path) = fs::canonicalize(&root.path) else {
+            let Ok(root_path) = platform::fs::canonicalize(&root.path) else {
                 return false;
             };
             canonical.starts_with(&root_path) && (canonical != root_path || root.inclusive)
