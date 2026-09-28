@@ -213,7 +213,9 @@ fn write_file(path: &Path, bytes: usize) -> std::io::Result<()> {
     file.sync_all()
 }
 
-fn age_tree(path: &Path, days: u64) -> std::io::Result<()> {
+/// Sets the modification time of `path` and everything under it to `days`
+/// ago, without following symlinks.
+pub fn age_tree(path: &Path, days: u64) -> std::io::Result<()> {
     let when = SystemTime::now() - Duration::from_secs(days * 86_400);
     let time = FileTime::from_system_time(when);
     let meta = fs::symlink_metadata(path)?;

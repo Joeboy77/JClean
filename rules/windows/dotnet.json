@@ -1,0 +1,77 @@
+[
+  {
+    "version": 1,
+    "platforms": ["windows"],
+    "unused": {
+      "basis": "newest-mtime",
+      "minAgeDays": 0
+    },
+    "id": "windows.dotnet.nuget-cache",
+    "audience": ["developer"],
+    "category": "developer",
+    "group": "Package caches",
+    "labels": {
+      "developer": "NuGet caches (global packages, HTTP cache)",
+      "everyday": "Downloaded packages (.NET)"
+    },
+    "description": {
+      "what": "Packages NuGet has downloaded for .NET projects, shared by every project on this PC.",
+      "ifCleared": "Packages are downloaded again the next time a project restores. Nothing in your projects changes."
+    },
+    "icon": "package",
+    "risk": "safe",
+    "regenerates": true,
+    "detect": {
+      "kind": "fixed",
+      "paths": [
+        "{home}/.nuget/packages",
+        "{localAppData}/NuGet/v3-cache",
+        "{localAppData}/NuGet/plugins-cache"
+      ]
+    },
+    "cleanup": {
+      "method": "command",
+      "command": {
+        "tool": "dotnet",
+        "args": ["nuget", "locals", "all", "--clear"]
+      },
+      "fallback": "delete"
+    },
+    "relatedApps": ["devenv.exe", "dotnet.exe", "rider64.exe"],
+    "docs": "https://learn.microsoft.com/nuget/consume-packages/managing-the-global-packages-and-cache-folders"
+  },
+  {
+    "version": 1,
+    "platforms": ["windows"],
+    "unused": {
+      "basis": "newest-mtime",
+      "minAgeDays": 0
+    },
+    "id": "windows.visualstudio.package-cache",
+    "audience": ["developer"],
+    "category": "developer",
+    "group": "SDKs and runtimes",
+    "labels": {
+      "developer": "Visual Studio installer cache (ProgramData\\Microsoft\\VisualStudio\\Packages)",
+      "everyday": "Visual Studio's installer files"
+    },
+    "description": {
+      "what": "Installer packages Visual Studio keeps after installing or updating, so it can repair itself without downloading.",
+      "ifCleared": "Visual Studio keeps working. Repairing or modifying it downloads the packages again. Needs administrator approval."
+    },
+    "icon": "package-open",
+    "risk": "review",
+    "regenerates": true,
+    "detect": {
+      "kind": "fixed",
+      "paths": ["{env:ProgramData}/Microsoft/VisualStudio/Packages"]
+    },
+    "cleanup": {
+      "method": "delete",
+      "requiresAdmin": true,
+      "keepRoot": true
+    },
+    "relatedApps": ["devenv.exe", "setup.exe", "vs_installer.exe"],
+    "docs": "https://learn.microsoft.com/visualstudio/install/disable-or-move-the-package-cache"
+  }
+]

@@ -20,9 +20,9 @@ pub enum Scope {
     Exact,
     /// The path, its ancestors, and everything inside it.
     Subtree,
-    /// Carves a cleanup target out of a protected subtree: what's inside
-    /// this folder may be cleaned, though an ancestor is `Subtree`. The
-    /// folder itself and its ancestors stay protected.
+    /// Carves a cleanup target out of a protected subtree: this folder and
+    /// what's inside it may be cleaned, though an ancestor is `Subtree`.
+    /// Its ancestors stay protected.
     CleanInside,
 }
 

@@ -262,18 +262,20 @@ pub fn protection_for<'a>(
     path: &Path,
     protected: &'a [ProtectedPath],
 ) -> Option<&'a ProtectedPath> {
-    // Strictly inside a carved-out folder: subtrees above that folder don't apply.
+    // In a carved-out folder: subtrees above that folder don't apply.
     let carved = |subtree: &Path| {
         protected.iter().any(|c| {
             c.scope == Scope::CleanInside
                 && path.starts_with(&c.path)
-                && path != c.path
                 && c.path.starts_with(subtree)
         })
     };
-    protected.iter().find(|p| {
-        p.path.starts_with(path)
-            || (p.scope == Scope::Subtree && path.starts_with(&p.path) && !carved(&p.path))
+    protected.iter().find(|p| match p.scope {
+        Scope::Exact => p.path.starts_with(path),
+        Scope::Subtree => {
+            p.path.starts_with(path) || (path.starts_with(&p.path) && !carved(&p.path))
+        }
+        Scope::CleanInside => false,
     })
 }
 

@@ -1,0 +1,145 @@
+[
+  {
+    "id": "windows.chat.slack",
+    "version": 1,
+    "platforms": ["windows"],
+    "audience": ["everyday", "developer"],
+    "category": "apps",
+    "group": "Chat and media apps",
+    "labels": {
+      "developer": "Slack cache",
+      "everyday": "Slack's saved data"
+    },
+    "description": {
+      "what": "Images, files and page data Slack keeps so conversations load faster.",
+      "ifCleared": "The app downloads what it needs again. Your messages, files and settings aren't touched."
+    },
+    "icon": "message-square",
+    "risk": "safe",
+    "regenerates": true,
+    "detect": {
+      "kind": "fixed",
+      "paths": [
+        "{appData}/Slack/Cache",
+        "{appData}/Slack/Code Cache",
+        "{appData}/Slack/GPUCache",
+        "{appData}/Slack/Service Worker/CacheStorage"
+      ]
+    },
+    "unused": {
+      "basis": "newest-mtime",
+      "minAgeDays": 0
+    },
+    "cleanup": {
+      "method": "delete",
+      "keepRoot": true
+    },
+    "relatedApps": ["slack.exe"]
+  },
+  {
+    "id": "windows.chat.discord",
+    "version": 1,
+    "platforms": ["windows"],
+    "audience": ["everyday", "developer"],
+    "category": "apps",
+    "group": "Chat and media apps",
+    "labels": {
+      "developer": "Discord cache",
+      "everyday": "Discord's saved data"
+    },
+    "description": {
+      "what": "Images and page data Discord keeps so chats load faster.",
+      "ifCleared": "The app downloads what it needs again. Your messages, files and settings aren't touched."
+    },
+    "icon": "message-square",
+    "risk": "safe",
+    "regenerates": true,
+    "detect": {
+      "kind": "fixed",
+      "paths": [
+        "{appData}/discord/Cache",
+        "{appData}/discord/Code Cache",
+        "{appData}/discord/GPUCache",
+        "{appData}/discord/Service Worker/CacheStorage"
+      ]
+    },
+    "unused": {
+      "basis": "newest-mtime",
+      "minAgeDays": 0
+    },
+    "cleanup": {
+      "method": "delete",
+      "keepRoot": true
+    },
+    "relatedApps": ["discord.exe"]
+  },
+  {
+    "id": "windows.chat.teams",
+    "version": 1,
+    "platforms": ["windows"],
+    "audience": ["everyday", "developer"],
+    "category": "apps",
+    "group": "Chat and media apps",
+    "labels": {
+      "developer": "Microsoft Teams cache",
+      "everyday": "Teams' saved data"
+    },
+    "description": {
+      "what": "Images and page data Microsoft Teams keeps so chats and meetings load faster.",
+      "ifCleared": "The app downloads what it needs again. Your messages, files and settings aren't touched."
+    },
+    "icon": "message-square",
+    "risk": "safe",
+    "regenerates": true,
+    "detect": {
+      "kind": "fixed",
+      "paths": [
+        "{appData}/Microsoft/Teams/Cache",
+        "{appData}/Microsoft/Teams/Code Cache",
+        "{appData}/Microsoft/Teams/GPUCache",
+        "{appData}/Microsoft/Teams/Service Worker/CacheStorage"
+      ]
+    },
+    "unused": {
+      "basis": "newest-mtime",
+      "minAgeDays": 0
+    },
+    "cleanup": {
+      "method": "delete",
+      "keepRoot": true
+    },
+    "relatedApps": ["teams.exe", "ms-teams.exe"]
+  },
+  {
+    "id": "windows.chat.spotify",
+    "version": 1,
+    "platforms": ["windows"],
+    "audience": ["everyday", "developer"],
+    "category": "apps",
+    "group": "Chat and media apps",
+    "labels": {
+      "developer": "Spotify cache (com.spotify.client)",
+      "everyday": "Spotify's saved music data"
+    },
+    "description": {
+      "what": "Music and data Spotify keeps on this Mac. Songs downloaded for offline listening may be stored here too, so check before cleaning.",
+      "ifCleared": "Spotify streams songs again as you play them. Offline downloads may need to be downloaded again. Playlists and settings aren't touched."
+    },
+    "icon": "music",
+    "risk": "review",
+    "regenerates": true,
+    "detect": {
+      "kind": "fixed",
+      "paths": ["{localAppData}/Spotify/Storage", "{localAppData}/Spotify/Data"]
+    },
+    "unused": {
+      "basis": "newest-mtime",
+      "minAgeDays": 0
+    },
+    "cleanup": {
+      "method": "delete",
+      "keepRoot": true
+    },
+    "relatedApps": ["spotify.exe"]
+  }
+]

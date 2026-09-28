@@ -19,6 +19,8 @@ pub const KNOWN_PROBES: &[&str] = &[
     "docker-volumes",
     "simctl-unavailable",
     "tmutil-snapshots",
+    "delivery-optimization",
+    "component-store",
 ];
 
 const PROBE_TIMEOUT: Duration = Duration::from_secs(20);
@@ -79,6 +81,8 @@ impl<'a> Prober<'a> {
             "docker-volumes" => self.docker("Local Volumes", "volumes"),
             "simctl-unavailable" => self.simctl_unavailable(inodes, cancel),
             "tmutil-snapshots" => self.tmutil_snapshots(),
+            "delivery-optimization" => self.delivery_optimization(),
+            "component-store" => self.component_store(),
             other => Err(ProbeError::Unknown(other.to_string())),
         }
     }
@@ -209,6 +213,50 @@ impl<'a> Prober<'a> {
                 paths: Vec::new(),
             })
             .collect())
+    }
+}
+
+impl Prober<'_> {
+    /// Windows' peer-to-peer update cache. Its folder belongs to a system
+    /// account, so Windows is asked for the size instead.
+    fn delivery_optimization(&self) -> Result<Vec<ProbeItem>, ProbeError> {
+        let out = self.call(
+            "powershell",
+            &[
+                "-NoProfile",
+                "-NonInteractive",
+                "-Command",
+                "(Get-DeliveryOptimizationPerfSnap).CacheSizeBytes",
+            ],
+        )?;
+        let text = first_line(&out.stdout).unwrap_or("0");
+        let bytes: u64 = text.parse().map_err(|_| ProbeError::Parse {
+            tool: "Get-DeliveryOptimizationPerfSnap".to_string(),
+            message: format!("unexpected size {text:?}"),
+        })?;
+        Ok((bytes > 0)
+            .then(|| ProbeItem {
+                key: "cache".to_string(),
+                name: None,
+                bytes: Some(bytes),
+                paths: Vec::new(),
+            })
+            .into_iter()
+            .collect())
+    }
+
+    /// Superseded Windows components. Measuring them needs administrator
+    /// rights, so the item is offered with its size unknown.
+    fn component_store(&self) -> Result<Vec<ProbeItem>, ProbeError> {
+        self.runner
+            .find_tool(self.env, "Dism")
+            .ok_or_else(|| ProbeError::ToolMissing("Dism".to_string()))?;
+        Ok(vec![ProbeItem {
+            key: "component-store".to_string(),
+            name: None,
+            bytes: None,
+            paths: Vec::new(),
+        }])
     }
 }
 

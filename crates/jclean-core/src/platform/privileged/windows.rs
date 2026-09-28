@@ -24,21 +24,27 @@ const CANCELLED: i32 = 1223;
 /// Windows' command-line limit, with room for the launcher itself.
 const MAX_COMMAND_LINE: usize = 30_000;
 
+/// PowerShell commands that may run elevated, word for word.
+const POWERSHELL_COMMANDS: &[&str] = &[
+    // Delivery Optimization cache (spec §8.3).
+    "Delete-DeliveryOptimizationCache -Force",
+    // Windows.old, through Disk Cleanup's "Previous Installations" handler,
+    // which can remove the files Windows protects (spec §8.3).
+    "Set-ItemProperty -LiteralPath 'HKLM:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Explorer\\VolumeCaches\\Previous Installations' -Name StateFlags4242 -Type DWord -Value 2; Start-Process -FilePath cleanmgr.exe -ArgumentList '/sagerun:4242' -Wait",
+];
+
 /// The exact argument lists allowed per tool.
-fn allowed(name: &str, args: &[String]) -> bool {
+pub(crate) fn allowed(name: &str, args: &[String]) -> bool {
     let args: Vec<&str> = args.iter().map(String::as_str).collect();
     match name.to_ascii_lowercase().as_str() {
         // Component store cleanup (spec §8.3).
         "dism.exe" => args == ["/Online", "/Cleanup-Image", "/StartComponentCleanup"],
-        // Delivery Optimization cache (spec §8.3).
-        "powershell.exe" => {
-            args == [
-                "-NoProfile",
-                "-NonInteractive",
-                "-Command",
-                "Delete-DeliveryOptimizationCache -Force",
-            ]
-        }
+        "powershell.exe" => match args.as_slice() {
+            ["-NoProfile", "-NonInteractive", "-Command", command] => {
+                POWERSHELL_COMMANDS.contains(command)
+            }
+            _ => false,
+        },
         _ => false,
     }
 }
@@ -326,6 +332,32 @@ mod tests {
             .unwrap();
         assert_eq!(decode(encoded), script(&ops).unwrap());
         assert!(command.contains("-Verb RunAs"));
+    }
+
+    /// Every administrator command in the Windows rules must be on the
+    /// allowlist, or it would fail when someone tries to clean it.
+    #[test]
+    fn every_windows_admin_command_is_allowlisted() {
+        use crate::env::Os;
+        use crate::rules::{Method, RuleSet};
+
+        let rules = RuleSet::builtin(Os::Windows).unwrap();
+        let mut checked = 0;
+        for rule in rules.rules() {
+            let c = &rule.cleanup;
+            if !(c.requires_admin && c.method == Method::Command) {
+                continue;
+            }
+            let command = c.command.as_ref().unwrap();
+            let exe = format!("{}.exe", command.tool);
+            assert!(
+                allowed(&exe, &command.args),
+                "{} isn't allowlisted",
+                rule.id
+            );
+            checked += 1;
+        }
+        assert_eq!(checked, 3);
     }
 
     #[test]

@@ -1,0 +1,223 @@
+[
+  {
+    "id": "windows.jetbrains.old-caches",
+    "version": 1,
+    "platforms": ["windows"],
+    "audience": ["developer"],
+    "category": "developer",
+    "group": "Editors and IDEs",
+    "labels": {
+      "developer": "JetBrains caches and logs from old versions",
+      "everyday": "Leftovers from old JetBrains IDE versions"
+    },
+    "description": {
+      "what": "Caches and logs from IDE versions you've upgraded from. The newest version of each IDE is kept.",
+      "ifCleared": "Nothing: those versions aren't used anymore."
+    },
+    "icon": "code",
+    "risk": "safe",
+    "regenerates": true,
+    "detect": {
+      "kind": "fixed",
+      "paths": ["{localAppData}/JetBrains/*"]
+    },
+    "unused": {
+      "basis": "newest-mtime",
+      "minAgeDays": 0
+    },
+    "cleanup": {
+      "method": "delete"
+    },
+    "keep": {
+      "newest": 1,
+      "groupBy": "name"
+    }
+  },
+  {
+    "id": "windows.jetbrains.old-settings",
+    "version": 1,
+    "platforms": ["windows"],
+    "audience": ["developer"],
+    "category": "developer",
+    "group": "Editors and IDEs",
+    "labels": {
+      "developer": "JetBrains settings from old versions",
+      "everyday": "Settings from old JetBrains IDE versions"
+    },
+    "description": {
+      "what": "Settings and plugins from IDE versions you've upgraded from. The newest version of each IDE is kept.",
+      "ifCleared": "They move to the Recycle Bin. Old versions of the IDE lose their settings."
+    },
+    "icon": "code",
+    "risk": "review",
+    "regenerates": false,
+    "detect": {
+      "kind": "fixed",
+      "paths": ["{appData}/JetBrains/*"]
+    },
+    "unused": {
+      "basis": "newest-mtime",
+      "minAgeDays": 0
+    },
+    "cleanup": {
+      "method": "trash"
+    },
+    "keep": {
+      "newest": 1,
+      "groupBy": "name"
+    }
+  },
+  {
+    "id": "windows.editors.vscode-caches",
+    "version": 1,
+    "platforms": ["windows"],
+    "audience": ["developer"],
+    "category": "developer",
+    "group": "Editors and IDEs",
+    "labels": {
+      "developer": "VS Code caches and logs",
+      "everyday": "Temporary files from VS Code"
+    },
+    "description": {
+      "what": "Caches, downloaded extension packages and logs VS Code keeps.",
+      "ifCleared": "VS Code rebuilds them. Your settings, extensions and projects aren't touched."
+    },
+    "icon": "code",
+    "risk": "safe",
+    "regenerates": true,
+    "detect": {
+      "kind": "fixed",
+      "paths": [
+        "{appData}/Code/Cache",
+        "{appData}/Code/CachedData",
+        "{appData}/Code/CachedExtensionVSIXs",
+        "{appData}/Code/Code Cache",
+        "{appData}/Code/GPUCache"
+      ]
+    },
+    "unused": {
+      "basis": "newest-mtime",
+      "minAgeDays": 0
+    },
+    "cleanup": {
+      "method": "delete",
+      "keepRoot": true
+    },
+    "relatedApps": ["code.exe"]
+  },
+  {
+    "id": "windows.editors.cursor-caches",
+    "version": 1,
+    "platforms": ["windows"],
+    "audience": ["developer"],
+    "category": "developer",
+    "group": "Editors and IDEs",
+    "labels": {
+      "developer": "Cursor caches and logs",
+      "everyday": "Temporary files from Cursor"
+    },
+    "description": {
+      "what": "Caches, downloaded extension packages and logs Cursor keeps.",
+      "ifCleared": "Cursor rebuilds them. Your settings, extensions and projects aren't touched."
+    },
+    "icon": "code",
+    "risk": "safe",
+    "regenerates": true,
+    "detect": {
+      "kind": "fixed",
+      "paths": [
+        "{appData}/Cursor/Cache",
+        "{appData}/Cursor/CachedData",
+        "{appData}/Cursor/CachedExtensionVSIXs",
+        "{appData}/Cursor/Code Cache",
+        "{appData}/Cursor/GPUCache"
+      ]
+    },
+    "unused": {
+      "basis": "newest-mtime",
+      "minAgeDays": 0
+    },
+    "cleanup": {
+      "method": "delete",
+      "keepRoot": true
+    },
+    "relatedApps": ["cursor.exe"]
+  },
+  {
+    "id": "windows.editors.windsurf-caches",
+    "version": 1,
+    "platforms": ["windows"],
+    "audience": ["developer"],
+    "category": "developer",
+    "group": "Editors and IDEs",
+    "labels": {
+      "developer": "Windsurf caches and logs",
+      "everyday": "Temporary files from Windsurf"
+    },
+    "description": {
+      "what": "Caches, downloaded extension packages and logs Windsurf keeps.",
+      "ifCleared": "Windsurf rebuilds them. Your settings, extensions and projects aren't touched."
+    },
+    "icon": "code",
+    "risk": "safe",
+    "regenerates": true,
+    "detect": {
+      "kind": "fixed",
+      "paths": [
+        "{appData}/Windsurf/Cache",
+        "{appData}/Windsurf/CachedData",
+        "{appData}/Windsurf/CachedExtensionVSIXs",
+        "{appData}/Windsurf/Code Cache",
+        "{appData}/Windsurf/GPUCache"
+      ]
+    },
+    "unused": {
+      "basis": "newest-mtime",
+      "minAgeDays": 0
+    },
+    "cleanup": {
+      "method": "delete",
+      "keepRoot": true
+    },
+    "relatedApps": ["windsurf.exe"]
+  },
+  {
+    "id": "windows.editors.old-extensions",
+    "version": 1,
+    "platforms": ["windows"],
+    "audience": ["developer"],
+    "category": "developer",
+    "group": "Editors and IDEs",
+    "labels": {
+      "developer": "Old editor extension versions",
+      "everyday": "Old versions of editor extensions"
+    },
+    "description": {
+      "what": "Older copies of extensions left behind after updates. The newest version of each is kept.",
+      "ifCleared": "Nothing: the editor uses the newest version."
+    },
+    "icon": "puzzle",
+    "risk": "safe",
+    "regenerates": true,
+    "detect": {
+      "kind": "fixed",
+      "paths": [
+        "{home}/.vscode/extensions/*",
+        "{home}/.cursor/extensions/*",
+        "{home}/.windsurf/extensions/*"
+      ]
+    },
+    "unused": {
+      "basis": "newest-mtime",
+      "minAgeDays": 0
+    },
+    "cleanup": {
+      "method": "delete"
+    },
+    "relatedApps": ["code.exe", "cursor.exe", "windsurf.exe"],
+    "keep": {
+      "newest": 1,
+      "groupBy": "name"
+    }
+  }
+]

@@ -1,0 +1,223 @@
+[
+  {
+    "id": "windows.android.emulators",
+    "version": 1,
+    "platforms": ["windows"],
+    "audience": ["developer"],
+    "category": "developer",
+    "group": "Android",
+    "labels": {
+      "developer": "Android emulators (AVDs)",
+      "everyday": "Simulated Android phones"
+    },
+    "description": {
+      "what": "Each Android emulator and the data on it.",
+      "ifCleared": "The emulator and its data are removed. You can create it again in Android Studio."
+    },
+    "icon": "smartphone",
+    "risk": "review",
+    "regenerates": true,
+    "detect": {
+      "kind": "fixed",
+      "paths": ["{home}/.android/avd/*"]
+    },
+    "unused": {
+      "basis": "newest-mtime",
+      "minAgeDays": 0
+    },
+    "cleanup": {
+      "method": "delete"
+    },
+    "relatedApps": ["qemu-system-x86_64.exe", "emulator.exe"]
+  },
+  {
+    "id": "windows.android.system-images",
+    "version": 1,
+    "platforms": ["windows"],
+    "audience": ["developer"],
+    "category": "developer",
+    "group": "Android",
+    "labels": {
+      "developer": "Android system images",
+      "everyday": "Android versions for emulators"
+    },
+    "description": {
+      "what": "Android versions downloaded to run emulators.",
+      "ifCleared": "Android Studio downloads them again when an emulator needs one."
+    },
+    "icon": "layers",
+    "risk": "review",
+    "regenerates": true,
+    "detect": {
+      "kind": "fixed",
+      "paths": ["{localAppData}/Android/Sdk/system-images/*"]
+    },
+    "unused": {
+      "basis": "newest-mtime",
+      "minAgeDays": 0
+    },
+    "cleanup": {
+      "method": "delete"
+    }
+  },
+  {
+    "id": "windows.android.caches",
+    "version": 1,
+    "platforms": ["windows"],
+    "audience": ["developer"],
+    "category": "developer",
+    "group": "Android",
+    "labels": {
+      "developer": "Android caches",
+      "everyday": "Temporary files from Android tools"
+    },
+    "description": {
+      "what": "Caches the Android tools keep.",
+      "ifCleared": "They're rebuilt as the tools run."
+    },
+    "icon": "folder-cog",
+    "risk": "safe",
+    "regenerates": true,
+    "detect": {
+      "kind": "fixed",
+      "paths": ["{home}/.android/cache"]
+    },
+    "unused": {
+      "basis": "newest-mtime",
+      "minAgeDays": 0
+    },
+    "cleanup": {
+      "method": "delete"
+    }
+  },
+  {
+    "id": "windows.android.old-studio-data",
+    "version": 1,
+    "platforms": ["windows"],
+    "audience": ["developer"],
+    "category": "developer",
+    "group": "Android",
+    "labels": {
+      "developer": "Old Android Studio caches and logs",
+      "everyday": "Leftovers from old Android Studio versions"
+    },
+    "description": {
+      "what": "Caches and logs from Android Studio versions you've upgraded from. The newest is kept.",
+      "ifCleared": "Nothing: those versions aren't used anymore."
+    },
+    "icon": "folder-cog",
+    "risk": "safe",
+    "regenerates": true,
+    "detect": {
+      "kind": "fixed",
+      "paths": ["{localAppData}/Google/AndroidStudio*"]
+    },
+    "unused": {
+      "basis": "newest-mtime",
+      "minAgeDays": 0
+    },
+    "cleanup": {
+      "method": "delete"
+    },
+    "keep": {
+      "newest": 1,
+      "groupBy": "name"
+    }
+  },
+  {
+    "id": "windows.flutter.pub-cache",
+    "version": 1,
+    "platforms": ["windows"],
+    "audience": ["developer"],
+    "category": "developer",
+    "group": "Package caches",
+    "labels": {
+      "developer": "Dart and Flutter pub cache",
+      "everyday": "Downloaded packages (Flutter)"
+    },
+    "description": {
+      "what": "Packages downloaded by Dart and Flutter. Globally activated tools live here too.",
+      "ifCleared": "Packages are downloaded again on the next pub get. Global tools must be activated again."
+    },
+    "icon": "package",
+    "risk": "review",
+    "regenerates": true,
+    "detect": {
+      "kind": "fixed",
+      "paths": ["{localAppData}/Pub/Cache"]
+    },
+    "unused": {
+      "basis": "newest-mtime",
+      "minAgeDays": 0
+    },
+    "cleanup": {
+      "method": "command",
+      "command": {
+        "tool": "dart",
+        "args": ["pub", "cache", "clean", "--force"]
+      }
+    }
+  },
+  {
+    "id": "windows.flutter.project-caches",
+    "version": 1,
+    "platforms": ["windows"],
+    "audience": ["developer"],
+    "category": "developer",
+    "group": "Project build folders",
+    "labels": {
+      "developer": "Dart tool folders (.dart_tool)",
+      "everyday": "Build caches in old Flutter projects"
+    },
+    "description": {
+      "what": "Caches Dart and Flutter keep inside a project.",
+      "ifCleared": "The next pub get or build recreates them."
+    },
+    "icon": "folder-cog",
+    "risk": "safe",
+    "regenerates": true,
+    "detect": {
+      "kind": "project-artifact",
+      "markers": ["pubspec.yaml"],
+      "folders": [".dart_tool"]
+    },
+    "unused": {
+      "basis": "project-activity",
+      "minAgeDays": 0
+    },
+    "cleanup": {
+      "method": "delete"
+    }
+  },
+  {
+    "id": "windows.flutter.project-output",
+    "version": 1,
+    "platforms": ["windows"],
+    "audience": ["developer"],
+    "category": "developer",
+    "group": "Project build folders",
+    "labels": {
+      "developer": "Flutter build folders",
+      "everyday": "Build output in old Flutter projects"
+    },
+    "description": {
+      "what": "Output Flutter writes to the build folder.",
+      "ifCleared": "The next build recreates it."
+    },
+    "icon": "folder-output",
+    "risk": "review",
+    "regenerates": true,
+    "detect": {
+      "kind": "project-artifact",
+      "markers": ["pubspec.yaml"],
+      "folders": ["build"]
+    },
+    "unused": {
+      "basis": "project-activity",
+      "minAgeDays": 0
+    },
+    "cleanup": {
+      "method": "delete"
+    }
+  }
+]

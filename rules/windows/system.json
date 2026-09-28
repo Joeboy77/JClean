@@ -1,0 +1,428 @@
+[
+  {
+    "version": 1,
+    "platforms": ["windows"],
+    "unused": {
+      "basis": "newest-mtime",
+      "minAgeDays": 1
+    },
+    "id": "windows.system.temp",
+    "audience": ["everyday", "developer"],
+    "category": "system",
+    "group": "Temporary files",
+    "labels": {
+      "developer": "Temporary files (%TEMP%)",
+      "everyday": "Temporary files"
+    },
+    "description": {
+      "what": "Files apps and installers create while they work and often forget to remove.",
+      "ifCleared": "Anything an open app is still using is skipped. Everything else is gone for good."
+    },
+    "icon": "clock",
+    "risk": "safe",
+    "regenerates": true,
+    "detect": {
+      "kind": "fixed",
+      "paths": ["{temp}", "{localAppData}/Temp"],
+      "eachChild": true
+    },
+    "cleanup": {
+      "method": "delete"
+    }
+  },
+  {
+    "version": 1,
+    "platforms": ["windows"],
+    "unused": {
+      "basis": "newest-mtime",
+      "minAgeDays": 0
+    },
+    "id": "windows.system.crash-dumps",
+    "audience": ["everyday", "developer"],
+    "category": "system",
+    "group": "Logs",
+    "labels": {
+      "developer": "Crash dumps (%LOCALAPPDATA%\\CrashDumps)",
+      "everyday": "Crash reports"
+    },
+    "description": {
+      "what": "Reports saved when an app quits unexpectedly.",
+      "ifCleared": "Old reports are gone. New ones are saved if an app crashes again."
+    },
+    "icon": "file-warning",
+    "risk": "safe",
+    "regenerates": true,
+    "detect": {
+      "kind": "fixed",
+      "paths": ["{localAppData}/CrashDumps"]
+    },
+    "cleanup": {
+      "method": "delete",
+      "keepRoot": true
+    }
+  },
+  {
+    "version": 1,
+    "platforms": ["windows"],
+    "unused": {
+      "basis": "none"
+    },
+    "id": "windows.system.recycle-bin",
+    "audience": ["everyday", "developer"],
+    "category": "other",
+    "group": "Trash",
+    "labels": {
+      "developer": "Recycle Bin",
+      "everyday": "Recycle Bin"
+    },
+    "description": {
+      "what": "Things you've deleted. They still take up space until the Recycle Bin is emptied.",
+      "ifCleared": "These items are deleted permanently and can't be restored."
+    },
+    "icon": "trash",
+    "risk": "safe",
+    "regenerates": false,
+    "detect": {
+      "kind": "fixed",
+      "paths": ["{env:SystemDrive}/$Recycle.Bin/S-1-5-*"]
+    },
+    "cleanup": {
+      "method": "delete",
+      "keepRoot": true
+    }
+  },
+  {
+    "version": 1,
+    "platforms": ["windows"],
+    "unused": {
+      "basis": "newest-mtime",
+      "minAgeDays": 0
+    },
+    "id": "windows.system.update-downloads",
+    "audience": ["everyday", "developer"],
+    "category": "system",
+    "group": "Windows updates",
+    "labels": {
+      "developer": "Windows Update downloads (SoftwareDistribution\\Download)",
+      "everyday": "Downloaded Windows updates"
+    },
+    "description": {
+      "what": "Update files Windows downloaded before installing them.",
+      "ifCleared": "Updates that are already installed aren't affected. If an update is still waiting to install, Windows downloads it again. Needs administrator approval."
+    },
+    "icon": "download",
+    "risk": "review",
+    "regenerates": true,
+    "detect": {
+      "kind": "fixed",
+      "paths": ["{env:SystemRoot}/SoftwareDistribution/Download"]
+    },
+    "cleanup": {
+      "method": "delete",
+      "requiresAdmin": true,
+      "keepRoot": true
+    },
+    "relatedApps": ["wuauclt.exe", "TiWorker.exe"]
+  },
+  {
+    "version": 1,
+    "platforms": ["windows"],
+    "unused": {
+      "basis": "none"
+    },
+    "id": "windows.system.delivery-optimization",
+    "audience": ["everyday", "developer"],
+    "category": "system",
+    "group": "Windows updates",
+    "labels": {
+      "developer": "Delivery Optimization cache",
+      "everyday": "Shared update files"
+    },
+    "description": {
+      "what": "Update pieces Windows keeps so it can share them with other PCs on your network.",
+      "ifCleared": "Windows cleans this up on its own over time. Clearing it now needs administrator approval."
+    },
+    "icon": "download",
+    "risk": "safe",
+    "regenerates": true,
+    "detect": {
+      "kind": "probe",
+      "probe": "delivery-optimization"
+    },
+    "cleanup": {
+      "method": "command",
+      "requiresAdmin": true,
+      "command": {
+        "tool": "powershell",
+        "args": [
+          "-NoProfile",
+          "-NonInteractive",
+          "-Command",
+          "Delete-DeliveryOptimizationCache -Force"
+        ]
+      }
+    },
+    "docs": "https://learn.microsoft.com/powershell/module/deliveryoptimization/delete-deliveryoptimizationcache"
+  },
+  {
+    "version": 1,
+    "platforms": ["windows"],
+    "unused": {
+      "basis": "none"
+    },
+    "id": "windows.system.component-store",
+    "audience": ["everyday", "developer"],
+    "category": "system",
+    "group": "Windows updates",
+    "labels": {
+      "developer": "Component store cleanup (DISM /StartComponentCleanup)",
+      "everyday": "Old versions of Windows components"
+    },
+    "description": {
+      "what": "Older copies of Windows files that updates have replaced. Windows can't say how much space this frees until it's done.",
+      "ifCleared": "Windows removes the old copies, so updates installed so far can't be uninstalled. It can take several minutes and needs administrator approval."
+    },
+    "icon": "layers",
+    "risk": "review",
+    "regenerates": false,
+    "detect": {
+      "kind": "probe",
+      "probe": "component-store"
+    },
+    "cleanup": {
+      "method": "command",
+      "requiresAdmin": true,
+      "command": {
+        "tool": "Dism",
+        "args": ["/Online", "/Cleanup-Image", "/StartComponentCleanup"]
+      }
+    },
+    "docs": "https://learn.microsoft.com/windows-hardware/manufacture/desktop/clean-up-the-winsxs-folder"
+  },
+  {
+    "version": 1,
+    "platforms": ["windows"],
+    "unused": {
+      "basis": "none"
+    },
+    "id": "windows.system.previous-installation",
+    "audience": ["everyday", "developer"],
+    "category": "system",
+    "group": "Windows updates",
+    "labels": {
+      "developer": "Previous Windows installation (C:\\Windows.old)",
+      "everyday": "Your previous version of Windows"
+    },
+    "description": {
+      "what": "A copy of the Windows you had before the last major upgrade, kept so you can go back.",
+      "ifCleared": "You can no longer go back to your previous version of Windows, and any files left in it are gone. Windows' Disk Cleanup removes it, which can take several minutes and needs administrator approval."
+    },
+    "icon": "history",
+    "risk": "caution",
+    "regenerates": false,
+    "detect": {
+      "kind": "fixed",
+      "paths": ["{env:SystemDrive}/Windows.old"]
+    },
+    "cleanup": {
+      "method": "command",
+      "requiresAdmin": true,
+      "command": {
+        "tool": "powershell",
+        "args": [
+          "-NoProfile",
+          "-NonInteractive",
+          "-Command",
+          "Set-ItemProperty -LiteralPath 'HKLM:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Explorer\\VolumeCaches\\Previous Installations' -Name StateFlags4242 -Type DWord -Value 2; Start-Process -FilePath cleanmgr.exe -ArgumentList '/sagerun:4242' -Wait"
+        ]
+      }
+    }
+  },
+  {
+    "id": "windows.downloads.old-installers",
+    "version": 1,
+    "platforms": ["windows"],
+    "audience": ["everyday", "developer"],
+    "category": "other",
+    "group": "Downloads",
+    "labels": {
+      "developer": "Old installers in Downloads",
+      "everyday": "Old installers in Downloads"
+    },
+    "description": {
+      "what": "Installers, disk images and archives in Downloads that are more than 30 days old. Usually for apps that are already installed.",
+      "ifCleared": "They move to the Recycle Bin, so you can restore them until you empty it."
+    },
+    "icon": "package-open",
+    "risk": "review",
+    "regenerates": false,
+    "detect": {
+      "kind": "query",
+      "paths": ["{home}/Downloads"],
+      "names": ["*.exe", "*.msi", "*.msix", "*.msixbundle", "*.appx", "*.iso", "*.zip"],
+      "olderThanDays": 30
+    },
+    "unused": {
+      "basis": "newest-mtime",
+      "minAgeDays": 30
+    },
+    "cleanup": {
+      "method": "trash"
+    }
+  },
+  {
+    "id": "windows.files.large-files",
+    "version": 1,
+    "platforms": ["windows"],
+    "audience": ["everyday", "developer"],
+    "category": "documents",
+    "group": "Large files",
+    "labels": {
+      "developer": "Large files unchanged for 90+ days",
+      "everyday": "Large files you haven't opened in a while"
+    },
+    "description": {
+      "what": "Files over 1 GB that haven't changed in 90 days. Found by a full scan.",
+      "ifCleared": "They move to the Recycle Bin, so you can put them back until you empty it."
+    },
+    "icon": "file-box",
+    "risk": "review",
+    "regenerates": false,
+    "detect": {
+      "kind": "query",
+      "paths": ["{home}"],
+      "minBytes": 1000000000,
+      "olderThanDays": 90,
+      "recursive": true
+    },
+    "unused": {
+      "basis": "newest-mtime",
+      "minAgeDays": 90
+    },
+    "cleanup": {
+      "method": "trash"
+    }
+  },
+  {
+    "id": "windows.mobile.device-backups",
+    "version": 1,
+    "platforms": ["windows"],
+    "audience": ["everyday", "developer"],
+    "category": "other",
+    "group": "Device backups",
+    "labels": {
+      "developer": "iPhone and iPad backups (MobileSync)",
+      "everyday": "iPhone and iPad backups"
+    },
+    "description": {
+      "what": "Full backups of iPhones and iPads made by iTunes or Apple Devices. Each one can be many gigabytes.",
+      "ifCleared": "The backup moves to the Recycle Bin. Once it's emptied you can't restore that device from it."
+    },
+    "icon": "smartphone",
+    "risk": "caution",
+    "regenerates": false,
+    "detect": {
+      "kind": "fixed",
+      "paths": ["{appData}/Apple Computer/MobileSync/Backup", "{home}/Apple/MobileSync/Backup"],
+      "eachChild": true,
+      "exclude": [".*"]
+    },
+    "unused": {
+      "basis": "newest-mtime",
+      "minAgeDays": 0
+    },
+    "cleanup": {
+      "method": "trash"
+    }
+  },
+  {
+    "version": 1,
+    "platforms": ["windows"],
+    "unused": {
+      "basis": "newest-mtime",
+      "minAgeDays": 0
+    },
+    "id": "windows.system.hibernation-file",
+    "audience": ["everyday", "developer"],
+    "category": "system",
+    "group": "System files",
+    "labels": {
+      "developer": "Hibernation file (hiberfil.sys)",
+      "everyday": "Hibernation file"
+    },
+    "description": {
+      "what": "Where Windows saves what's in memory when the PC hibernates or starts with Fast Startup.",
+      "ifCleared": "JClean never removes this file. If you never hibernate, you can turn hibernation off to free it: run \"powercfg /h off\" in an administrator terminal."
+    },
+    "icon": "hard-drive",
+    "risk": "info",
+    "regenerates": false,
+    "detect": {
+      "kind": "fixed",
+      "paths": ["{env:SystemDrive}/hiberfil.sys"]
+    },
+    "cleanup": {
+      "method": "none"
+    }
+  },
+  {
+    "version": 1,
+    "platforms": ["windows"],
+    "unused": {
+      "basis": "newest-mtime",
+      "minAgeDays": 0
+    },
+    "id": "windows.system.page-file",
+    "audience": ["everyday", "developer"],
+    "category": "system",
+    "group": "System files",
+    "labels": {
+      "developer": "Page file (pagefile.sys, swapfile.sys)",
+      "everyday": "Memory overflow file"
+    },
+    "description": {
+      "what": "Space Windows uses as extra memory when the PC runs low. Windows sizes it automatically.",
+      "ifCleared": "JClean never removes this file. Windows needs it; leave its size on automatic unless you know you need something else."
+    },
+    "icon": "hard-drive",
+    "risk": "info",
+    "regenerates": false,
+    "detect": {
+      "kind": "fixed",
+      "paths": ["{env:SystemDrive}/pagefile.sys", "{env:SystemDrive}/swapfile.sys"]
+    },
+    "cleanup": {
+      "method": "none"
+    }
+  },
+  {
+    "version": 1,
+    "platforms": ["windows"],
+    "unused": {
+      "basis": "newest-mtime",
+      "minAgeDays": 0
+    },
+    "id": "windows.wsl.disk-images",
+    "audience": ["developer"],
+    "category": "developer",
+    "group": "System files",
+    "labels": {
+      "developer": "WSL distribution disks (ext4.vhdx)",
+      "everyday": "Linux (WSL) storage files"
+    },
+    "description": {
+      "what": "The virtual disks of Linux distributions installed with WSL. Deleting files inside Linux doesn't make these files smaller.",
+      "ifCleared": "JClean never removes these files. To reclaim space, run \"wsl --shutdown\", then compact the disk with Optimize-VHD, or \"wsl --manage <distro> --set-sparse true\" on recent Windows."
+    },
+    "icon": "hard-drive",
+    "risk": "info",
+    "regenerates": false,
+    "detect": {
+      "kind": "fixed",
+      "paths": ["{localAppData}/Packages/*/LocalState/ext4.vhdx", "{localAppData}/wsl/*/ext4.vhdx"]
+    },
+    "cleanup": {
+      "method": "none"
+    }
+  }
+]
