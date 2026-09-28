@@ -10,5 +10,9 @@ export default defineConfig({
   output: "static",
   integrations: [react(), sitemap()],
   vite: { plugins: [tailwindcss()] },
-  build: { inlineStylesheets: "always" },
+  // download.html rather than download/index.html: Cloudflare Pages serves
+  // /download directly instead of redirecting to /download/, so links and
+  // canonical URLs never point at a redirect.
+  build: { inlineStylesheets: "always", format: "file" },
+  trailingSlash: "never",
 });
