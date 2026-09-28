@@ -6,6 +6,9 @@ export const REPO = "Joeboy77/JClean";
 export const DMG = "JClean_macos_universal.dmg";
 /** Stable URL: always the newest release's DMG. */
 export const DMG_URL = `https://github.com/${REPO}/releases/latest/download/${DMG}`;
+export const EXE = "JClean_windows_x64_setup.exe";
+/** Stable URL: always the newest release's Windows installer. */
+export const EXE_URL = `https://github.com/${REPO}/releases/latest/download/${EXE}`;
 export const RELEASES_URL = `https://github.com/${REPO}/releases`;
 
 export interface Checksum {
@@ -17,6 +20,8 @@ export interface LatestRelease {
   version: string | null;
   /** Bytes. */
   dmgSize: number | null;
+  /** Bytes; `null` when the latest release has no Windows installer yet. */
+  exeSize: number | null;
   publishedAt: string | null;
   checksums: Checksum[];
 }
@@ -59,10 +64,10 @@ async function latestTag(): Promise<string | null> {
   }
 }
 
-/** The DMG's size from its download headers. */
-async function dmgSize(): Promise<number | null> {
+/** A download's size from its headers; `null` if it doesn't exist. */
+async function downloadSize(url: string): Promise<number | null> {
   try {
-    const res = await fetch(DMG_URL, { method: "HEAD", redirect: "follow" });
+    const res = await fetch(url, { method: "HEAD", redirect: "follow" });
     const length = Number(res.headers.get("content-length"));
     return res.ok && length > 0 ? length : null;
   } catch {
@@ -76,7 +81,10 @@ export function latestRelease(): Promise<LatestRelease> {
   latest ??= (async () => {
     const data = await json(`https://api.github.com/repos/${REPO}/releases/latest`);
     const assets = isRecord(data) && Array.isArray(data.assets) ? data.assets.filter(isRecord) : [];
-    const dmg = assets.find((a) => a.name === DMG);
+    const size = async (name: string, url: string) => {
+      const asset = assets.find((a) => a.name === name);
+      return asset && typeof asset.size === "number" ? asset.size : downloadSize(url);
+    };
     let checksums: Checksum[] = [];
     try {
       const res = await fetch(`https://github.com/${REPO}/releases/latest/download/SHA256SUMS.txt`);
@@ -97,7 +105,8 @@ export function latestRelease(): Promise<LatestRelease> {
       isRecord(data) && typeof data.tag_name === "string" ? data.tag_name : await latestTag();
     return {
       version: tag ? tag.replace(/^v/, "") : null,
-      dmgSize: dmg && typeof dmg.size === "number" ? dmg.size : await dmgSize(),
+      dmgSize: await size(DMG, DMG_URL),
+      exeSize: await size(EXE, EXE_URL),
       publishedAt:
         isRecord(data) && typeof data.published_at === "string" ? data.published_at : null,
       checksums,
@@ -126,6 +135,25 @@ export async function releaseNotes(): Promise<ReleaseNote[]> {
       url: text(r.html_url) || RELEASES_URL,
       html: text(r.body_html),
     }));
+}
+
+export interface Download {
+  url: string;
+  /** e.g. "macOS 12 or later · 8.9 MB" */
+  detail: string;
+}
+
+/** What the download buttons offer. Windows appears once a release has it. */
+export function downloads(r: LatestRelease): { mac: Download; windows: Download | null } {
+  const detail = (base: string, size: number | null) =>
+    [base, size ? formatSize(size) : null].filter(Boolean).join(" · ");
+  return {
+    mac: { url: DMG_URL, detail: detail("macOS 12 or later", r.dmgSize) },
+    windows:
+      r.exeSize === null
+        ? null
+        : { url: EXE_URL, detail: detail("Windows 10 or 11, 64-bit", r.exeSize) },
+  };
 }
 
 /** "8.9 MB", decimal like Finder. */

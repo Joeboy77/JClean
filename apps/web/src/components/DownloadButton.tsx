@@ -1,11 +1,12 @@
 import { useState, useSyncExternalStore } from "react";
+import type { Download } from "../lib/release";
 
 type Platform = "mac" | "windows" | "linux" | "mobile";
 
 interface Props {
-  url: string;
-  /** e.g. "macOS 12 or later · 8.9 MB" */
-  detail: string;
+  mac: Download;
+  /** The Windows installer, once a release has one. */
+  windows: Download | null;
   releasesUrl: string;
   size?: "large" | "normal";
 }
@@ -26,7 +27,19 @@ function detect(): Platform {
 // The device never changes while the page is open.
 const subscribe = () => () => undefined;
 
-export function DownloadButton({ url, detail, releasesUrl, size = "large" }: Props) {
+const downloadIcon = (
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+    <path
+      d="M12 3v12m0 0-5-5m5 5 5-5M5 20h14"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+  </svg>
+);
+
+export function DownloadButton({ mac, windows, releasesUrl, size = "large" }: Props) {
   // Rendered as "mac" on the server and switched after load. Every variant is
   // one button and one short line, so nothing below it moves.
   const platform = useSyncExternalStore(subscribe, detect, () => "mac" as const);
@@ -37,24 +50,23 @@ export function DownloadButton({ url, detail, releasesUrl, size = "large" }: Pro
     big ? "h-12 px-6 text-md" : "h-10 px-5"
   }`;
   const button = `${shape} bg-accent-strong text-white`;
+  const comingSoon = (platform === "windows" && !windows) || platform === "linux";
 
   return (
     <div className="flex flex-col items-center gap-2 sm:items-start">
       {platform === "mac" && (
-        <a href={url} className={button}>
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-            <path
-              d="M12 3v12m0 0-5-5m5 5 5-5M5 20h14"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-          </svg>
+        <a href={mac.url} className={button}>
+          {downloadIcon}
           Download for Mac
         </a>
       )}
-      {(platform === "windows" || platform === "linux") && (
+      {platform === "windows" && windows && (
+        <a href={windows.url} className={button}>
+          {downloadIcon}
+          Download for Windows
+        </a>
+      )}
+      {comingSoon && (
         <a href={releasesUrl} className={`${shape} border border-line bg-raised text-text`}>
           Coming to {platform === "windows" ? "Windows" : "Linux"} soon · Watch on GitHub
         </a>
@@ -73,8 +85,9 @@ export function DownloadButton({ url, detail, releasesUrl, size = "large" }: Pro
         </button>
       )}
       <p className="text-sm text-muted" aria-live="polite">
-        {platform === "mac" && detail}
-        {(platform === "windows" || platform === "linux") && "The Mac version is out now."}
+        {platform === "mac" && mac.detail}
+        {platform === "windows" && windows?.detail}
+        {comingSoon && "The Mac version is out now."}
         {platform === "mobile" && "Open this page on your computer to download."}
       </p>
       <a href="/download" className="text-sm text-accent hover:underline">

@@ -1,6 +1,6 @@
 # Releasing JClean
 
-Pushing a tag like `v1.0.0` runs `.github/workflows/release.yml`. It builds the universal macOS app, signs the update package, and publishes the release. It also signs and notarizes the app when the Apple secrets are set.
+Pushing a tag like `v1.0.0` runs `.github/workflows/release.yml`. It builds the universal macOS app and the Windows x64 installer, signs their update packages, and publishes the release. It also signs and notarizes the app when the Apple secrets are set.
 
 ## One-time setup: GitHub secrets
 
@@ -38,8 +38,15 @@ The download site in `apps/web` is static. It reads the latest release (version,
 2. Tag and push: `git tag v1.0.0 && git push origin v1.0.0`.
 3. The workflow refuses a tag that doesn't match the version. On success it publishes:
    - `JClean_macos_universal.dmg`, at a stable URL: `https://github.com/Joeboy77/JClean/releases/latest/download/JClean_macos_universal.dmg`
-   - `SHA256SUMS.txt`
-   - `latest.json` and the signed `.app.tar.gz` that the in-app updater uses
+   - `JClean_windows_x64_setup.exe`, at `https://github.com/Joeboy77/JClean/releases/latest/download/JClean_windows_x64_setup.exe`
+   - `SHA256SUMS.txt` for both
+   - `latest.json` and the signed `.app.tar.gz` and `-setup.exe` that the in-app updater uses
+
+The website offers the Windows download as soon as a release includes the installer; until then Windows visitors see "Coming to Windows soon".
+
+## Windows signing
+
+The Windows installer isn't code-signed, so SmartScreen shows "Windows protected your PC" until the download builds reputation. The download page and release notes explain **More info → Run anyway**. Before a wide Windows launch, budget for a signing service such as Azure Artifact Signing (spec §14) and add its secrets to the Windows job.
 
 ## Manual checklist (spec §16)
 
@@ -54,6 +61,17 @@ Before announcing a release:
 - [ ] VoiceOver walkthrough: sidebar, list (arrow keys, Space, Enter), map (arrow keys, Enter, Backspace), confirmation sheet, Settings.
 - [ ] Reduced motion (System Settings → Accessibility → Display → Reduce motion): no sweeps, shimmers or sliding; everything still works.
 - [ ] Compact window (below 760 px wide) for every screen.
+
+On Windows (10 and 11):
+
+- [ ] Install from `JClean_windows_x64_setup.exe` through SmartScreen's Run anyway, without administrator rights.
+- [ ] Windows 11: Mica shows behind the sidebar. Windows 10: the window is solid, never see-through.
+- [ ] Quick scan finds Temp, the Recycle Bin, browser caches and developer caches; nothing in OneDrive is downloaded.
+- [ ] Clean something in use (a file open in another app in %TEMP%): it's reported as in use, the rest is cleaned.
+- [ ] Administrator cleanup (Windows Update downloads): one UAC prompt; declining it skips those items.
+- [ ] Empty Recycle Bin from the result screen; Explorer shows it empty.
+- [ ] Tray icon is visible on a dark taskbar, with free space in its tooltip.
+- [ ] Update from the previous version through Settings → Updates.
 
 ## Measured budgets (spec §15)
 

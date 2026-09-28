@@ -2,11 +2,11 @@
 import { DownloadButton } from "../components/DownloadButton";
 import { HeroMap } from "../components/HeroMap";
 import Base from "../layouts/Base.astro";
-import { DMG_URL, RELEASES_URL, REPO, formatSize, latestRelease } from "../lib/release";
+import { RELEASES_URL, REPO, downloads, latestRelease } from "../lib/release";
 import { RULES } from "../lib/rules";
 
 const release = await latestRelease();
-const detail = ["macOS 12 or later", release.dmgSize ? formatSize(release.dmgSize) : null].filter(Boolean).join(" · ");
+const { mac, windows } = downloads(release);
 
 const finds = [
   { title: "Developer caches", body: "npm, Yarn, pnpm, pip, Gradle, Maven, Cargo, Go, Homebrew, CocoaPods and more." },
@@ -21,15 +21,15 @@ const finds = [
 <Base>
   <section class="mx-auto grid max-w-6xl items-center gap-12 px-4 pt-14 pb-10 sm:px-6 lg:grid-cols-[1fr_1.15fr] lg:pt-20">
     <div class="text-center sm:text-left">
-      <p class="text-sm font-medium text-accent">Free and open source · for macOS</p>
+      <p class="text-sm font-medium text-accent">Free and open source · for {windows ? "Mac and Windows" : "macOS"}</p>
       <h1 class="mt-3 text-2xl font-semibold tracking-tight text-text sm:text-[44px] sm:leading-[52px]">
-        See what's filling your Mac, and clear it safely.
+        See what's filling your {windows ? "computer" : "Mac"}, and clear it safely.
       </h1>
       <p class="mt-4 max-w-xl text-md text-muted">
         JClean finds the storage you didn't know you were using: developer caches, old build folders, app leftovers, old installers and logs. It explains each one in plain language and lets you decide what goes.
       </p>
       <div class="mt-8">
-        <DownloadButton client:load url={DMG_URL} detail={detail} releasesUrl={RELEASES_URL} />
+        <DownloadButton client:load mac={mac} windows={windows} releasesUrl={RELEASES_URL} />
       </div>
     </div>
     <HeroMap client:visible />
@@ -100,7 +100,7 @@ const finds = [
   <section class="mx-auto mt-20 max-w-3xl rounded-card border border-line bg-surface px-6 py-10 text-center" aria-labelledby="get">
     <h2 id="get" class="text-xl font-semibold text-text">Get your space back</h2>
     <div class="mt-6 flex justify-center">
-      <DownloadButton client:visible url={DMG_URL} detail={detail} releasesUrl={RELEASES_URL} size="normal" />
+      <DownloadButton client:visible mac={mac} windows={windows} releasesUrl={RELEASES_URL} size="normal" />
     </div>
   </section>
 </Base>
