@@ -59,8 +59,20 @@ jobs:
           tagName: ${{ github.ref_name }}
           releaseName: JClean ${{ github.ref_name }}
           releaseBody: |
-            Download **JClean_macos_universal.dmg** (Apple Silicon and Intel, macOS 12 or later).
-            Checksums are in SHA256SUMS.txt.
+            ## Download
+
+            **[JClean_macos_universal.dmg](https://github.com/Joeboy77/JClean/releases/latest/download/JClean_macos_universal.dmg)**. Works on Apple Silicon and Intel Macs with macOS 12 or later. Checksums are in `SHA256SUMS.txt`.
+
+            ## Opening JClean the first time
+
+            This version isn't notarized by Apple yet, so macOS asks you to confirm once:
+
+            1. Open the DMG and drag **JClean** into **Applications**.
+            2. Open JClean. macOS says it can't verify the app. Click **Done** (not "Move to Trash").
+            3. Open **System Settings → Privacy & Security**, scroll down to "JClean was blocked to protect your Mac", and click **Open Anyway**. Confirm with your password.
+            4. JClean opens. From now on it opens normally.
+
+            JClean is open source, reads only file sizes and dates, and never sends anything off your Mac.
           releaseDraft: true
           prerelease: false
           includeUpdaterJson: true
