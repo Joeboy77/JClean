@@ -1,0 +1,8 @@
+pnpm-lock.yaml
+target/
+dist/
+docs/SPEC.md
+CLAUDE.md
+apps/desktop/src/bindings.ts
+apps/desktop/src-tauri/gen/
+apps/desktop/src-tauri/icons/

@@ -1,0 +1,17 @@
+[package]
+name = "jclean-cli"
+description = "Development and test harness for jclean-core"
+version.workspace = true
+edition.workspace = true
+publish = false
+
+[[bin]]
+name = "jclean-cli"
+path = "src/main.rs"
+
+[dependencies]
+jclean-core.workspace = true
+anyhow.workspace = true
+
+[lints]
+workspace = true

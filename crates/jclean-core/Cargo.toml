@@ -1,0 +1,11 @@
+[package]
+name = "jclean-core"
+description = "Scanner, sizing, rules engine, cleaner and safety guard for JClean"
+version.workspace = true
+edition.workspace = true
+publish = false
+
+[dependencies]
+
+[lints]
+workspace = true
