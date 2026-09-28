@@ -24,6 +24,8 @@
   --caution: #ee6b7e;
   /* Fill behind white text (white on --caution is 3.0:1, on this 5.0:1). */
   --caution-strong: #c93a52;
+  /* Small caution text on tinted panels, where --caution drops below 4.5:1. */
+  --caution-text: #f59aa6;
 
   --cat-apps: #6f9fd8;
   --cat-developer: #9a8ce0;

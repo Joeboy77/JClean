@@ -20,6 +20,7 @@
   --color-review: var(--review);
   --color-caution: var(--caution);
   --color-caution-strong: var(--caution-strong);
+  --color-caution-text: var(--caution-text);
   --color-cat-apps: var(--cat-apps);
   --color-cat-developer: var(--cat-developer);
   --color-cat-system: var(--cat-system);
