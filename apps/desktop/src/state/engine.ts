@@ -51,6 +51,28 @@ export async function init(options: { autoScan: boolean }) {
     store.setNeedsAccess(cached.needsAccess);
   }
   if (options.autoScan && settings.scanOnLaunch) startScan("quick");
+  // Updates are checked quietly a little after launch, never in dev builds.
+  if (!import.meta.env.DEV) {
+    window.setTimeout(() => {
+      void checkForUpdate();
+    }, 10_000);
+  }
+}
+
+/** Looks for a newer version and downloads it in the background (spec §14).
+ * Returns an error message, or null. */
+export async function checkForUpdate(): Promise<string | null> {
+  if (!isLive) return null;
+  const r = await commands.checkForUpdate();
+  if (r.status === "error") return r.error;
+  useStore.getState().setUpdate(r.data);
+  return null;
+}
+
+/** Installs the downloaded update and restarts. */
+export async function installUpdate(): Promise<string | null> {
+  const r = await commands.installUpdate();
+  return r.status === "error" ? r.error : null;
 }
 
 /** Saves a change to Settings and applies it (rules, menu bar, launch at login). */

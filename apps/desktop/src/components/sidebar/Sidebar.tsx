@@ -2,6 +2,7 @@ import { forwardRef } from "react";
 import { useStore } from "../../state/store";
 import { Settings as Gear } from "lucide-react";
 import { AccessBanner } from "./AccessBanner";
+import { DiskFullBanner } from "./DiskFullBanner";
 import { FilterRow } from "./FilterRow";
 import { ModeSwitch } from "./ModeSwitch";
 import { ResultPanel } from "./ResultPanel";
@@ -24,6 +25,7 @@ export const Sidebar = forwardRef<HTMLInputElement, SidebarProps>(function Sideb
 ) {
   const tab = useStore((s) => s.tab);
   const openSettings = useStore((s) => s.openSettings);
+  const update = useStore((s) => s.update);
   const showResult = useStore((s) => s.phase === "done" && s.summary !== null);
   return (
     <aside
@@ -35,6 +37,7 @@ export const Sidebar = forwardRef<HTMLInputElement, SidebarProps>(function Sideb
       <div data-tauri-drag-region className="h-11 shrink-0" />
       <div className="flex min-h-0 flex-1 flex-col gap-3.5 px-4">
         <StatusCard />
+        <DiskFullBanner />
         <AccessBanner />
         {showResult ? (
           <ResultPanel />
@@ -69,6 +72,17 @@ export const Sidebar = forwardRef<HTMLInputElement, SidebarProps>(function Sideb
         <div className="flex-1">
           <ModeSwitch />
         </div>
+        {update && (
+          <button
+            type="button"
+            onClick={() => {
+              openSettings("updates");
+            }}
+            className="h-8 shrink-0 rounded-control bg-accent/15 px-2.5 text-xs font-medium text-accent hover:bg-accent/25"
+          >
+            Update ready
+          </button>
+        )}
         <button
           type="button"
           aria-label="Settings"

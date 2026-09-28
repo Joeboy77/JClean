@@ -87,6 +87,16 @@ export const commands = {
 	historyActions: (cleanupId: number) => typedError<ActionDto[], string>(__TAURI_INVOKE("history_actions", { cleanupId })),
 	/**  Saves the whole deletion log as CSV where the user chooses. */
 	exportHistory: () => typedError<boolean, string>(__TAURI_INVOKE("export_history")),
+	/**
+	 *  Checks for a newer version and downloads it. `None` if JClean is up to
+	 *  date or update checks are off in Settings.
+	 */
+	checkForUpdate: () => typedError<{
+	version: string,
+	notes: string | null,
+} | null, string>(__TAURI_INVOKE("check_for_update")),
+	/**  Installs the downloaded update and restarts JClean. */
+	installUpdate: () => typedError<null, string>(__TAURI_INVOKE("install_update")),
 };
 
 /* Types */
@@ -314,6 +324,11 @@ export type Settings = {
 export type SkippedDto = {
 	itemId: string,
 	reason: string,
+};
+
+export type UpdateInfo = {
+	version: string,
+	notes: string | null,
 };
 
 export type UserMode = "everyday" | "developer";

@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import type { CleanSummary, PlanDto, Settings } from "../bindings";
+import type { CleanSummary, PlanDto, Settings, UpdateInfo } from "../bindings";
 import { RULES_BY_ID } from "../data/catalog";
 import type {
   Audience,
@@ -97,6 +97,8 @@ interface State {
   /** Rules whose locations need Full Disk Access (spec §11). */
   needsAccess: readonly string[];
   settingsOpen: SettingsSection | null;
+  /** A downloaded update waiting for a restart (spec §14). */
+  update: UpdateInfo | null;
 }
 
 interface Actions {
@@ -141,6 +143,7 @@ interface Actions {
   setFullDiskAccess: (granted: boolean) => void;
   setNeedsAccess: (ids: readonly string[]) => void;
   openSettings: (section: SettingsSection | null) => void;
+  setUpdate: (update: UpdateInfo | null) => void;
 }
 
 function toggled<T>(set: ReadonlySet<T>, value: T): Set<T> {
@@ -196,6 +199,7 @@ export const useStore = create<State & Actions>()((set) => ({
   fullDiskAccess: null,
   needsAccess: [],
   settingsOpen: null,
+  update: null,
 
   beginScan: (mode) => {
     set({
@@ -377,5 +381,8 @@ export const useStore = create<State & Actions>()((set) => ({
   },
   openSettings: (settingsOpen) => {
     set({ settingsOpen, drawer: null });
+  },
+  setUpdate: (update) => {
+    set({ update });
   },
 }));
