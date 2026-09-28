@@ -24,6 +24,9 @@
   --color-cat-free: var(--cat-free);
   --color-transparent: transparent;
   --color-current: currentColor;
+  /* Kept for text on accent buttons, switch knobs and dimmed backdrops. */
+  --color-white: #ffffff;
+  --color-black: #000000;
 }
 
 @theme {

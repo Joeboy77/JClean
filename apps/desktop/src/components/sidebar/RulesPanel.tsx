@@ -1,60 +1,46 @@
 import { FolderPlus } from "lucide-react";
 import { useMemo } from "react";
-import { RULES } from "../../data/catalog";
 import type { Rule } from "../../data/types";
 import { ruleLabel, visibleIn } from "../../state/selectors";
+import { toggleRuleEnabled } from "../../state/engine";
 import { useStore } from "../../state/store";
 import { RISK_COPY } from "../../data/riskCopy";
 import { RiskIcon } from "../ui/RiskBadge";
 import { RuleIcon } from "../ui/RuleIcon";
-
-function Toggle({ on, label, onChange }: { on: boolean; label: string; onChange: () => void }) {
-  return (
-    <button
-      type="button"
-      role="switch"
-      aria-checked={on}
-      aria-label={label}
-      onClick={onChange}
-      className={`relative h-5 w-9 shrink-0 rounded-full transition-colors ${on ? "bg-accent" : "bg-line"}`}
-    >
-      <span
-        className={`absolute top-0.5 left-0.5 size-4 rounded-full bg-white shadow transition-transform duration-150 ${
-          on ? "translate-x-4" : ""
-        }`}
-      />
-    </button>
-  );
-}
+import { Switch } from "../ui/Switch";
 
 /** Browse and switch detection rules (spec §5.2). Custom folders and rule
  * packs arrive with Settings in phase 5. */
-export function RulesPanel() {
+export function RulesPanel({ embedded = false }: { embedded?: boolean }) {
   const audience = useStore((s) => s.audience);
   const disabled = useStore((s) => s.disabledRules);
-  const toggleRule = useStore((s) => s.toggleRule);
+  const rules = useStore((s) => s.rules);
+  const openSettings = useStore((s) => s.openSettings);
 
   const groups = useMemo(() => {
     const map = new Map<string, Rule[]>();
-    for (const rule of RULES) {
+    for (const rule of rules.values()) {
       if (!visibleIn(rule, audience)) continue;
       const list = map.get(rule.group) ?? [];
       list.push(rule);
       map.set(rule.group, list);
     }
     return [...map.entries()].sort(([a], [b]) => a.localeCompare(b));
-  }, [audience]);
+  }, [audience, rules]);
 
   return (
-    <div className="scroll-area -mx-2 min-h-0 flex-1 overflow-y-auto px-2 pb-3">
-      <button
-        type="button"
-        disabled
-        title="Adding your own folders arrives with Settings"
-        className="mb-3 flex h-9 w-full items-center justify-center gap-2 rounded-control border border-dashed border-line text-muted disabled:cursor-not-allowed"
-      >
-        <FolderPlus size={15} aria-hidden="true" /> Add a folder
-      </button>
+    <div className={embedded ? "" : "scroll-area -mx-2 min-h-0 flex-1 overflow-y-auto px-2 pb-3"}>
+      {!embedded && (
+        <button
+          type="button"
+          onClick={() => {
+            openSettings("rules");
+          }}
+          className="mb-3 flex h-9 w-full items-center justify-center gap-2 rounded-control border border-dashed border-line text-muted hover:border-muted hover:text-text"
+        >
+          <FolderPlus size={15} aria-hidden="true" /> Add a folder
+        </button>
+      )}
       {groups.map(([group, rules]) => (
         <section key={group} className="mb-3">
           <h3 className="px-2 pb-1 text-xs font-medium tracking-wide text-muted uppercase">
@@ -75,17 +61,24 @@ export function RulesPanel() {
                     <RuleIcon name={rule.icon} size={15} />
                   </span>
                   <span className="min-w-0 flex-1">
-                    <span className="block truncate text-text">{label}</span>
+                    <span className="flex items-center gap-1.5">
+                      <span className="truncate text-text">{label}</span>
+                      {rule.custom && (
+                        <span className="shrink-0 rounded-row bg-accent/15 px-1.5 text-[10px] font-medium text-accent">
+                          Custom
+                        </span>
+                      )}
+                    </span>
                     <span className="flex items-center gap-1 text-xs text-muted">
                       <RiskIcon risk={rule.risk} size={11} />
                       {RISK_COPY[rule.risk].title}
                     </span>
                   </span>
-                  <Toggle
+                  <Switch
                     on={!disabled.has(rule.id)}
                     label={`Detect ${label}`}
                     onChange={() => {
-                      toggleRule(rule.id);
+                      toggleRuleEnabled(rule.id);
                     }}
                   />
                 </li>

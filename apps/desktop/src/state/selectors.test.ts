@@ -28,6 +28,7 @@ function rule(id: string, overrides: Partial<Rule> = {}): Rule {
     command: null,
     audience: ["developer"],
     docs: null,
+    custom: false,
     ...overrides,
   };
 }
@@ -134,6 +135,13 @@ describe("buildRows", () => {
     );
     const rows = buildRows(input(items, { audience: "everyday", rules: withEveryday }));
     expect(rows.map((r) => r.key)).toEqual(["section:info", "group:info:logs"]);
+  });
+
+  it("shows rules that need Full Disk Access instead of hiding them", () => {
+    const rows = buildRows(input(items, { locked: ["npm"] }));
+    expect(rows.filter((r) => r.kind === "locked").map((r) => r.key)).toEqual(["locked:npm"]);
+    const empty = buildRows(input([], { locked: ["npm"] }));
+    expect(empty.map((r) => r.key)).toEqual(["section:safe", "locked:npm"]);
   });
 
   it("hides disabled rules", () => {

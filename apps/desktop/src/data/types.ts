@@ -29,6 +29,8 @@ export interface Rule {
   command: string | null;
   audience: Audience[];
   docs: string | null;
+  /** Added by the user; shows a "Custom" badge (spec §6.4). */
+  custom: boolean;
 }
 
 export interface ProjectRef {

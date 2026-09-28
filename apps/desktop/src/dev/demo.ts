@@ -1,14 +1,28 @@
 // Dev-only scenarios for reviewing UI states without clicking:
-//   VITE_DEMO=scan|full|drawer|review|clean|compact|expanded|fps VITE_MOCK_ROWS=5000 pnpm tauri dev
+//   VITE_DEMO=scan|full|drawer|review|clean|compact|expanded|fps|onboarding|settings:<section> VITE_MOCK_ROWS=5000 pnpm tauri dev
 //   JCLEAN_DEV_ROOT=/tmp/jc VITE_DEMO=clean pnpm tauri dev   (clean a fixture from `jclean-cli fixture /tmp/jc`)
 // Never included in release builds (guarded by import.meta.env.DEV).
 
 import { isTauri } from "@tauri-apps/api/core";
 import { commands } from "../bindings";
-import { confirmClean, reviewClean, startScan } from "../state/engine";
-import { useStore } from "../state/store";
+import { confirmClean, reviewClean, startScan, updateSettings } from "../state/engine";
+import { useStore, type SettingsSection } from "../state/store";
 
 export function runDemo(scenario: string) {
+  // First launch: onboarding shows by itself on a fresh fixture.
+  if (scenario === "onboarding") return;
+  if (scenario.startsWith("settings")) {
+    const section = (scenario.split(":")[1] ?? "general") as SettingsSection;
+    const unsub = useStore.subscribe((s) => {
+      if (s.settings) {
+        unsub();
+        void updateSettings({ onboarded: true }).then(() => {
+          useStore.getState().openSettings(section);
+        });
+      }
+    });
+    return;
+  }
   startScan(scenario === "full" ? "full" : "quick");
   const whenDone = (fn: () => void) => {
     const unsub = useStore.subscribe((s) => {

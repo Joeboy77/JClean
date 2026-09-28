@@ -1,5 +1,7 @@
 import { forwardRef } from "react";
 import { useStore } from "../../state/store";
+import { Settings as Gear } from "lucide-react";
+import { AccessBanner } from "./AccessBanner";
 import { FilterRow } from "./FilterRow";
 import { ModeSwitch } from "./ModeSwitch";
 import { ResultPanel } from "./ResultPanel";
@@ -21,6 +23,7 @@ export const Sidebar = forwardRef<HTMLInputElement, SidebarProps>(function Sideb
   searchRef,
 ) {
   const tab = useStore((s) => s.tab);
+  const openSettings = useStore((s) => s.openSettings);
   const showResult = useStore((s) => s.phase === "done" && s.summary !== null);
   return (
     <aside
@@ -32,6 +35,7 @@ export const Sidebar = forwardRef<HTMLInputElement, SidebarProps>(function Sideb
       <div data-tauri-drag-region className="h-11 shrink-0" />
       <div className="flex min-h-0 flex-1 flex-col gap-3.5 px-4">
         <StatusCard />
+        <AccessBanner />
         {showResult ? (
           <ResultPanel />
         ) : (
@@ -61,8 +65,21 @@ export const Sidebar = forwardRef<HTMLInputElement, SidebarProps>(function Sideb
           </>
         )}
       </div>
-      <footer className="border-t border-line px-4 py-3">
-        <ModeSwitch />
+      <footer className="flex items-center gap-2 border-t border-line px-4 py-3">
+        <div className="flex-1">
+          <ModeSwitch />
+        </div>
+        <button
+          type="button"
+          aria-label="Settings"
+          title="Settings (⌘,)"
+          onClick={() => {
+            openSettings("general");
+          }}
+          className="grid size-8 place-items-center rounded-control border border-line bg-raised text-muted hover:text-text"
+        >
+          <Gear size={15} aria-hidden="true" />
+        </button>
       </footer>
     </aside>
   );

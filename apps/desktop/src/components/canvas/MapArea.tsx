@@ -2,7 +2,6 @@ import { Treemap, type TreemapCell } from "@jclean/treemap";
 import { ChevronRight } from "lucide-react";
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useShallow } from "zustand/react/shallow";
-import { RULES_BY_ID } from "../../data/catalog";
 import type { MapCellView, StorageItem } from "../../data/types";
 import { formatBytes, speakBytes } from "../../lib/format";
 import { registerCell } from "../../lib/cellRegistry";
@@ -43,6 +42,7 @@ export function MapArea() {
       items: st.items,
       audience: st.audience,
       disabledRules: st.disabledRules,
+      rules: st.rules,
       selected: st.selected,
       hasTree: st.hasTree,
       mapView: st.mapView,
@@ -93,14 +93,14 @@ export function MapArea() {
       foundLevel(
         {
           items: s.items,
-          rules: RULES_BY_ID,
+          rules: s.rules,
           audience: s.audience,
           disabledRules: s.disabledRules,
         },
         levelId,
       ) ?? []
     );
-  }, [s.mapView, s.items, s.audience, s.disabledRules, folderCells, levelId]);
+  }, [s.mapView, s.items, s.rules, s.audience, s.disabledRules, folderCells, levelId]);
 
   const itemsById = useMemo(() => new Map(s.items.map((i) => [i.id, i])), [s.items]);
   const hoveredItems = useMemo<StorageItem[]>(

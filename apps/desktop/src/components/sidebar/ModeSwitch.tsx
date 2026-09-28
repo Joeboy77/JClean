@@ -1,6 +1,7 @@
 import { motion } from "motion/react";
 import type { Audience } from "../../data/types";
 import { spring } from "../../lib/motion";
+import { setMode } from "../../state/engine";
 import { useStore } from "../../state/store";
 
 const MODES: { id: Audience; label: string }[] = [
@@ -11,7 +12,6 @@ const MODES: { id: Audience; label: string }[] = [
 /** Changes which rules and labels show. Never changes safety behavior (spec §2). */
 export function ModeSwitch() {
   const audience = useStore((s) => s.audience);
-  const setAudience = useStore((s) => s.setAudience);
   return (
     <div
       role="radiogroup"
@@ -27,7 +27,7 @@ export function ModeSwitch() {
             role="radio"
             aria-checked={on}
             onClick={() => {
-              setAudience(m.id);
+              setMode(m.id);
             }}
             className={`relative flex-1 rounded-[6px] px-3 py-1 text-xs transition-colors ${on ? "text-text" : "text-muted hover:text-text"}`}
           >

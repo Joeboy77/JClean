@@ -20,6 +20,7 @@ function rule(
     command: null,
     audience,
     docs: null,
+    custom: false,
   };
 }
 

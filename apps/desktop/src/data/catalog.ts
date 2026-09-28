@@ -1,6 +1,6 @@
-// The built-in macOS rule catalog, read straight from rules/macos/*.json so
-// labels and descriptions in the UI are always the real ones. From phase 3
-// the engine supplies these over IPC.
+// The built-in macOS rule catalog, read straight from rules/macos/*.json.
+// Used by the browser build and as the starting point in the app, where the
+// engine then supplies the full set (built-in plus custom) over IPC.
 
 import type { Audience, Category, Method, Risk, Rule } from "./types";
 
@@ -39,6 +39,7 @@ function toRule(raw: unknown): Rule | null {
     command: command ? [str(command.tool), ...args].join(" ") : null,
     audience: Array.isArray(raw.audience) ? (raw.audience.map(str) as Audience[]) : [],
     docs: typeof raw.docs === "string" ? raw.docs : null,
+    custom: false,
   };
 }
 

@@ -1,7 +1,6 @@
 import { AnimatePresence, motion } from "motion/react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { PlanDto } from "../bindings";
-import { RULES_BY_ID } from "../data/catalog";
 import { RISK_COPY } from "../data/riskCopy";
 import type { Method } from "../data/types";
 import { formatBytes } from "../lib/format";
@@ -41,13 +40,14 @@ export function ConfirmSheet() {
 function Sheet({ plan }: { plan: PlanDto }) {
   const items = useStore((s) => s.items);
   const audience = useStore((s) => s.audience);
+  const rules = useStore((s) => s.rules);
   const [step, setStep] = useState<"review" | "caution">("review");
   const primaryRef = useRef<HTMLButtonElement>(null);
 
   const byId = useMemo(() => new Map(items.map((i) => [i.id, i])), [items]);
   const label = (id: string) => {
     const item = byId.get(id);
-    const rule = item ? RULES_BY_ID.get(item.ruleId) : undefined;
+    const rule = item ? rules.get(item.ruleId) : undefined;
     if (!item || !rule) return id;
     const name = itemName(item);
     const base = ruleLabel(rule, audience);
@@ -197,7 +197,7 @@ function Sheet({ plan }: { plan: PlanDto }) {
             <ul className="space-y-2.5">
               {caution.map((c) => {
                 const item = byId.get(c.itemId);
-                const rule = item ? RULES_BY_ID.get(item.ruleId) : undefined;
+                const rule = item ? rules.get(item.ruleId) : undefined;
                 return (
                   <li
                     key={c.itemId}

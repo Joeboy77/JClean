@@ -38,6 +38,7 @@ export const commands = {
 	/**  Unix seconds. */
 	savedAt: number,
 	items: ItemDto[],
+	needsAccess: string[],
 } | null>("cached_scan"),
 	/**  Builds the plan for the selected items and keeps it for `run_clean`. */
 	planClean: (itemIds: string[]) => typedError<PlanDto, string>(__TAURI_INVOKE("plan_clean", { itemIds })),
@@ -51,9 +52,54 @@ export const commands = {
 	 *  what's in `~/.Trash` with the Trash rule and deletes it.
 	 */
 	emptyTrash: () => typedError<EmptyTrashResult, string>(__TAURI_INVOKE("empty_trash")),
+	getSettings: () => __TAURI_INVOKE<Settings>("get_settings"),
+	/**  Saves settings and applies them: rules, menu bar icon, launch at login. */
+	saveSettings: (settings: Settings) => typedError<Settings, string>(__TAURI_INVOKE("save_settings", { settings })),
+	/**  Adds a folder chosen in Settings → Rules (spec §6.4). */
+	addCustomFolder: (path: string, name: string, risk: CustomRisk) => typedError<Settings, string>(__TAURI_INVOKE("add_custom_folder", { path, name, risk })),
+	/**
+	 *  Adds a rule pack after checking it against the schema and the custom-rule
+	 *  limits (spec §6.4).
+	 */
+	addRulePack: (name: string, json: string) => typedError<Settings, string>(__TAURI_INVOKE("add_rule_pack", { name, json })),
+	/**  Removes a custom folder or a rule pack by the rule ID it produced. */
+	removeCustomRule: (ruleId: string) => typedError<Settings, string>(__TAURI_INVOKE("remove_custom_rule", { ruleId })),
+	/**  Whether JClean can see folders macOS guards with Full Disk Access. */
+	fullDiskAccess: () => __TAURI_INVOKE<boolean>("full_disk_access"),
+	openLink: (link: Link) => typedError<null, string>(__TAURI_INVOKE("open_link", { link })),
+	/**  Shows a scanned item in Finder. Only paths from the scan can be revealed. */
+	revealItem: (itemId: string) => typedError<null, string>(__TAURI_INVOKE("reveal_item", { itemId })),
+	/**  Asks for a folder, e.g. for a custom rule or a project root. */
+	pickFolder: () => __TAURI_INVOKE<string | null>("pick_folder"),
+	/**
+	 *  Asks for a rule pack (JSON) and reads it. Only this user-chosen file is
+	 *  read, never anything found by a scan.
+	 */
+	pickRulePack: () => typedError<{
+	name: string,
+	text: string,
+} | null, string>(__TAURI_INVOKE("pick_rule_pack")),
+	/**  Every rule in force, built-in and custom. */
+	getRules: () => __TAURI_INVOKE<RuleDto[]>("get_rules"),
+	/**  Past cleanups, newest first (spec §5.4, History). */
+	historyCleanups: () => typedError<CleanupDto[], string>(__TAURI_INVOKE("history_cleanups")),
+	/**  The deletion log of one cleanup (spec §7.5). */
+	historyActions: (cleanupId: number) => typedError<ActionDto[], string>(__TAURI_INVOKE("history_actions", { cleanupId })),
+	/**  Saves the whole deletion log as CSV where the user chooses. */
+	exportHistory: () => typedError<boolean, string>(__TAURI_INVOKE("export_history")),
 };
 
 /* Types */
+export type ActionDto = {
+	time: number,
+	ruleId: string,
+	path: string,
+	method: string,
+	bytes: number,
+	outcome: string,
+	error: string | null,
+};
+
 export type AppInfo = {
 	version: string,
 	coreVersion: string,
@@ -62,10 +108,13 @@ export type AppInfo = {
 	home: string,
 };
 
+export type AudienceDto = "everyday" | "developer";
+
 export type CachedScan = {
 	/**  Unix seconds. */
 	savedAt: number,
 	items: ItemDto[],
+	needsAccess: string[],
 };
 
 export type CategoryDto = "apps" | "developer" | "system" | "media" | "documents" | "other";
@@ -86,6 +135,29 @@ export type CleanUpdate = ({ kind: "started"; total: number }) & { bytes?: never
 outcome: string; bytes: number; reason: string | null; method: MethodDto }) & { total?: never } | {
 	kind: "finished",
 } & CleanSummary;
+
+export type CleanupDto = {
+	id: number,
+	time: number,
+	plannedBytes: number,
+	freedBytes: number | null,
+	dryRun: boolean,
+};
+
+/**  A folder added in Settings → Rules. Always moved to the Trash (spec §6.4). */
+export type CustomFolder = {
+	id: string,
+	name: string,
+	path: string,
+	risk: CustomRisk,
+};
+
+export type CustomRisk = "safe" | "review" | "caution";
+
+export type DescriptionDto = {
+	what: string,
+	ifCleared: string,
+};
 
 export type EmptyTrashResult = {
 	freed: number,
@@ -117,6 +189,16 @@ export type ItemDto = {
 	project: ProjectDto | null,
 };
 
+export type LabelsDto = {
+	developer: string,
+	everyday: string,
+};
+
+/**  The only places JClean links out to. */
+export type Link = 
+/**  System Settings → Privacy & Security → Full Disk Access. */
+"fullDiskAccessSettings" | "repository" | "releases";
+
 export type MapCellDto = {
 	id: string,
 	name: string,
@@ -137,6 +219,11 @@ export type MethodTotalDto = {
 };
 
 export type Mode = "quick" | "full";
+
+export type PickedFile = {
+	name: string,
+	text: string,
+};
 
 /**  What the confirmation sheet shows (spec §5.4). */
 export type PlanDto = {
@@ -170,12 +257,66 @@ export type ProjectDto = {
 
 export type RiskDto = "safe" | "review" | "caution" | "info";
 
-export type ScanUpdate = { kind: "stage"; label: string } | { kind: "progress"; fraction: number } | { kind: "item"; item: ItemDto } | { kind: "finished"; partial: boolean; notes: string[]; hasTree: boolean };
+/**  A rule as the UI shows it (spec §6). */
+export type RuleDto = {
+	id: string,
+	group: string,
+	labels: LabelsDto,
+	description: DescriptionDto,
+	icon: string,
+	category: CategoryDto,
+	risk: RiskDto,
+	regenerates: boolean,
+	method: MethodDto,
+	command: string | null,
+	audience: AudienceDto[],
+	docs: string | null,
+	/**  Added by the user; shows a "Custom" badge (spec §6.4). */
+	custom: boolean,
+};
+
+/**  An imported rule pack, kept as the JSON it came from. */
+export type RulePack = {
+	name: string,
+	json: string,
+};
+
+export type ScanUpdate = { kind: "stage"; label: string } | { kind: "progress"; fraction: number } | { kind: "item"; item: ItemDto } | { kind: "finished"; partial: boolean; notes: string[]; hasTree: boolean; 
+/**  Rules whose locations need Full Disk Access (spec §11). */
+needsAccess: string[] };
+
+export type Settings = {
+	version: number,
+	/**  First-launch onboarding is done (spec §5.9). */
+	onboarded: boolean,
+	mode: UserMode,
+	scanOnLaunch: boolean,
+	menuBarIcon: boolean,
+	/**  Show free space as text next to the menu bar icon. */
+	menuBarFreeSpace: boolean,
+	launchAtLogin: boolean,
+	/**  Where to look for projects and large files. Empty means the home folder. */
+	projectRoots: string[],
+	excludedFolders: string[],
+	/**  30, 60, 90, 180 or 365 (spec §4.4). */
+	inactiveAfterDays: number,
+	includeExternalDrives: boolean,
+	/**  Delete user files that need review instead of moving them to the Trash. */
+	deleteUserFiles: boolean,
+	/**  Ask before cleaning. Always on for caution items. */
+	confirmBeforeCleaning: boolean,
+	disabledRules: string[],
+	customFolders: CustomFolder[],
+	rulePacks: RulePack[],
+	checkForUpdates: boolean,
+};
 
 export type SkippedDto = {
 	itemId: string,
 	reason: string,
 };
+
+export type UserMode = "everyday" | "developer";
 
 export type VolumeInfo = {
 	name: string,

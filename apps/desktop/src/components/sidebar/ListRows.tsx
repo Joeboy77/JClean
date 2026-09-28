@@ -1,4 +1,4 @@
-import { ChevronRight, Info } from "lucide-react";
+import { ChevronRight, Info, Lock } from "lucide-react";
 import { motion } from "motion/react";
 import type { Audience } from "../../data/types";
 import { formatAgo, formatBytes, speakBytes, tildify } from "../../lib/format";
@@ -9,6 +9,7 @@ import {
   ruleLabel,
   type GroupRow,
   type ItemRow,
+  type LockedRow,
   type SectionRow,
 } from "../../state/selectors";
 import { Checkbox } from "../ui/Checkbox";
@@ -223,6 +224,48 @@ export function SkeletonRowView() {
         <span className="skeleton block h-2.5 w-1/3 rounded-full" />
       </span>
       <span className="skeleton h-3 w-12 rounded-full" />
+    </div>
+  );
+}
+
+/** "Needs Full Disk Access" in place of a rule macOS kept from us (spec §11). */
+export function LockedRowView({
+  row,
+  active,
+  audience,
+  onAllow,
+}: {
+  row: LockedRow;
+  active: boolean;
+  audience: Audience;
+  onAllow: () => void;
+}) {
+  return (
+    <div className={rowClass(active)}>
+      <span className="grid size-4 shrink-0 place-items-center text-muted">
+        <Lock size={13} aria-hidden="true" />
+      </span>
+      <span
+        className="grid size-7 shrink-0 place-items-center rounded-row bg-raised opacity-60"
+        style={{ color: `var(--cat-${row.rule.category})` }}
+      >
+        <RuleIcon name={row.rule.icon} size={15} />
+      </span>
+      <span className="min-w-0 flex-1">
+        <span className="block truncate text-muted">{ruleLabel(row.rule, audience)}</span>
+        <span className="block truncate text-xs text-muted">Needs Full Disk Access</span>
+      </span>
+      <button
+        type="button"
+        tabIndex={-1}
+        onClick={(e) => {
+          e.stopPropagation();
+          onAllow();
+        }}
+        className="h-7 shrink-0 rounded-control border border-line bg-raised px-2.5 text-xs text-text hover:border-muted"
+      >
+        Allow
+      </button>
     </div>
   );
 }

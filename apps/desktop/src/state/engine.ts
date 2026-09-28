@@ -2,17 +2,26 @@
 // without Tauri) it falls back to the mock engine.
 
 import { Channel, isTauri } from "@tauri-apps/api/core";
-import { commands, type CleanUpdate, type PlanDto, type ScanUpdate } from "../bindings";
-import { RULES_BY_ID } from "../data/catalog";
+import { listen } from "@tauri-apps/api/event";
+import {
+  commands,
+  type CleanUpdate,
+  type Link,
+  type PlanDto,
+  type ScanUpdate,
+  type Settings,
+} from "../bindings";
 import { MOCK_HOME, MOCK_VOLUME } from "../data/mock";
-import type { MapCellView, StorageItem } from "../data/types";
+import type { Audience, MapCellView, StorageItem } from "../data/types";
 import { itemName, ruleLabel, visibleIn } from "./selectors";
 import * as mock from "./mockEngine";
 import { useStore, type ScanMode } from "./store";
 
 export const isLive = isTauri();
 
-/** Loads the volume, the last scan (shown instantly), then runs a quick scan (spec §4.1, §10). */
+/** Loads settings, the volume and the last scan (shown instantly), then
+ * runs a quick scan (spec §4.1, §10). On first launch, onboarding runs
+ * instead and starts the first scan itself (spec §5.9). */
 export async function init(options: { autoScan: boolean }) {
   const store = useStore.getState();
   if (!isLive) {
@@ -20,15 +29,106 @@ export async function init(options: { autoScan: boolean }) {
     store.setHome(MOCK_HOME);
     return;
   }
-  const [info, volume, cached] = await Promise.all([
+  const [info, volume, settings, rules, fda, cached] = await Promise.all([
     commands.appInfo(),
     commands.volumeInfo(),
+    commands.getSettings(),
+    commands.getRules(),
+    commands.fullDiskAccess(),
     commands.cachedScan(),
   ]);
   store.setHome(info.home);
+  store.setRules(rules);
+  store.setSettings(settings);
+  store.setFullDiskAccess(fda);
   if (volume) store.setVolume(volume);
-  if (cached) store.showCached(cached.items, cached.savedAt);
-  if (options.autoScan) startScan("quick");
+  void listen("tray-quick-scan", () => {
+    startScan("quick");
+  });
+  if (!settings.onboarded) return;
+  if (cached) {
+    store.showCached(cached.items, cached.savedAt);
+    store.setNeedsAccess(cached.needsAccess);
+  }
+  if (options.autoScan && settings.scanOnLaunch) startScan("quick");
+}
+
+/** Saves a change to Settings and applies it (rules, menu bar, launch at login). */
+export async function updateSettings(patch: Partial<Settings>): Promise<string | null> {
+  const store = useStore.getState();
+  const current = store.settings;
+  if (!current) return null;
+  const next: Settings = { ...current, ...patch };
+  store.setSettings(next);
+  if (!isLive) return null;
+  const r = await commands.saveSettings(next);
+  if (r.status === "error") {
+    store.setSettings(current);
+    return r.error;
+  }
+  store.setSettings(r.data);
+  store.setRules(await commands.getRules());
+  return null;
+}
+
+/** Everyday or Developer (spec §2): changes rules and labels, never safety. */
+export function setMode(mode: Audience) {
+  const store = useStore.getState();
+  store.setAudience(mode);
+  void updateSettings({ mode });
+}
+
+/** Switches a rule on or off from the Rules tab or Settings. */
+export function toggleRuleEnabled(ruleId: string) {
+  const store = useStore.getState();
+  store.toggleRule(ruleId);
+  void updateSettings({ disabledRules: [...useStore.getState().disabledRules] });
+}
+
+/** Result of a Settings action that can fail with a message for the user. */
+async function settingsCall(
+  call: Promise<{ status: "ok"; data: Settings } | { status: "error"; error: string }>,
+) {
+  const r = await call;
+  if (r.status === "error") return r.error;
+  useStore.getState().setSettings(r.data);
+  useStore.getState().setRules(await commands.getRules());
+  return null;
+}
+
+export async function pickFolder(): Promise<string | null> {
+  return isLive ? commands.pickFolder() : null;
+}
+
+export function addCustomFolder(path: string, name: string, risk: "safe" | "review" | "caution") {
+  return settingsCall(commands.addCustomFolder(path, name, risk));
+}
+
+export async function importRulePack(): Promise<string | null> {
+  if (!isLive) return null;
+  const picked = await commands.pickRulePack();
+  if (picked.status === "error") return picked.error;
+  if (!picked.data) return null;
+  return settingsCall(commands.addRulePack(picked.data.name, picked.data.text));
+}
+
+export function removeCustomRule(ruleId: string) {
+  return settingsCall(commands.removeCustomRule(ruleId));
+}
+
+export async function checkFullDiskAccess(): Promise<boolean> {
+  if (!isLive) return true;
+  const granted = await commands.fullDiskAccess();
+  useStore.getState().setFullDiskAccess(granted);
+  return granted;
+}
+
+export function openLink(link: Link) {
+  if (isLive) void commands.openLink(link);
+}
+
+export function revealItem(itemId: string) {
+  if (isLive) void commands.revealItem(itemId);
 }
 
 export async function refreshVolume() {
@@ -76,6 +176,7 @@ export function startScan(mode: ScanMode) {
       case "finished":
         flush();
         s.finishScan({ partial: update.partial, notes: update.notes, hasTree: update.hasTree });
+        s.setNeedsAccess(update.needsAccess);
         void refreshVolume();
         break;
     }
@@ -115,7 +216,7 @@ export async function folderLevel(id: string): Promise<MapCellView[]> {
 function labelFor(id: string): string {
   const s = useStore.getState();
   const item = s.items.find((i) => i.id === id);
-  const rule = item ? RULES_BY_ID.get(item.ruleId) : undefined;
+  const rule = item ? s.rules.get(item.ruleId) : undefined;
   if (!item || !rule) return id;
   const name = itemName(item);
   const base = ruleLabel(rule, s.audience);
@@ -128,7 +229,7 @@ export function visibleSelection(): string[] {
   const s = useStore.getState();
   return s.items
     .filter((i) => {
-      const rule = RULES_BY_ID.get(i.ruleId);
+      const rule = s.rules.get(i.ruleId);
       return (
         s.selected.has(i.id) &&
         rule !== undefined &&
@@ -153,7 +254,22 @@ export async function reviewClean(ids: readonly string[] = visibleSelection()) {
     store.failScan(r.error);
     return;
   }
-  store.showPlan(r.data);
+  // With "Ask before cleaning" off, go straight ahead unless something needs
+  // a person's attention: caution items always ask (spec §5.11).
+  const settings = useStore.getState().settings;
+  const plan = r.data;
+  if (
+    settings &&
+    !settings.confirmBeforeCleaning &&
+    !plan.needsSecondConfirmation &&
+    plan.runningApps.length === 0 &&
+    plan.items.length > 0
+  ) {
+    store.setPlanning(false);
+    confirmClean(plan);
+    return;
+  }
+  store.showPlan(plan);
 }
 
 export function cancelReview() {

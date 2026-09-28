@@ -3,6 +3,8 @@ import { useEffect, useRef } from "react";
 import { Canvas } from "./components/canvas/Canvas";
 import { ConfirmSheet } from "./components/ConfirmSheet";
 import { ConnectorLine } from "./components/ConnectorLine";
+import { Onboarding } from "./components/Onboarding";
+import { SettingsView } from "./components/settings/SettingsView";
 import { DetailDrawer } from "./components/drawer/DetailDrawer";
 import { Sidebar } from "./components/sidebar/Sidebar";
 import { useWindowMode } from "./lib/windowMode";
@@ -13,6 +15,8 @@ export function App() {
   const { compact, showCanvas, toggle, onCanvasHidden } = useWindowMode();
   const searchRef = useRef<HTMLInputElement>(null);
   const setTab = useStore((s) => s.setTab);
+  const openSettings = useStore((s) => s.openSettings);
+  const onboarding = useStore((s) => s.settings !== null && !s.settings.onboarded);
 
   // Show the last scan right away, then refresh it (spec §4.1, §10).
   useEffect(() => {
@@ -26,6 +30,12 @@ export function App() {
   // ⌘F focuses search.
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
+      // ⌘, opens Settings, like every Mac app.
+      if ((e.metaKey || e.ctrlKey) && e.key === ",") {
+        e.preventDefault();
+        openSettings("general");
+        return;
+      }
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "f") {
         e.preventDefault();
         setTab("categories");
@@ -36,7 +46,7 @@ export function App() {
     return () => {
       window.removeEventListener("keydown", onKey);
     };
-  }, [setTab]);
+  }, [setTab, openSettings]);
 
   return (
     // Every animation respects the system's reduced-motion setting.
@@ -63,6 +73,8 @@ export function App() {
         </AnimatePresence>
         {showCanvas && <ConnectorLine />}
         <ConfirmSheet />
+        <SettingsView compact={compact} />
+        <AnimatePresence>{onboarding && <Onboarding key="onboarding" />}</AnimatePresence>
       </div>
     </MotionConfig>
   );

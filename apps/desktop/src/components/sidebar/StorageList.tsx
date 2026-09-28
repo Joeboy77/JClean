@@ -1,11 +1,17 @@
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { useMemo, useRef, useState, type KeyboardEvent } from "react";
 import { useShallow } from "zustand/react/shallow";
-import { RULES_BY_ID } from "../../data/catalog";
 import { formatBytes } from "../../lib/format";
 import { buildRows, type GroupRow, type ItemRow, type Row } from "../../state/selectors";
 import { useStore } from "../../state/store";
-import { GroupRowView, ItemRowView, SectionHeader, SkeletonRowView } from "./ListRows";
+import {
+  GroupRowView,
+  ItemRowView,
+  LockedRowView,
+  SectionHeader,
+  SkeletonRowView,
+} from "./ListRows";
+import { openLink } from "../../state/engine";
 import { ROW_HEIGHT } from "./rowHeight";
 
 const SKELETON: Row[] = Array.from({ length: 8 }, (_, i) => ({
@@ -39,6 +45,8 @@ export function StorageList() {
       search: st.search,
       audience: st.audience,
       disabledRules: st.disabledRules,
+      rules: st.rules,
+      locked: st.needsAccess,
       volume: st.volume,
       home: st.home,
       source: st.source,
@@ -56,7 +64,7 @@ export function StorageList() {
 
   const rows = useMemo<Row[]>(() => {
     if (s.phase === "scanning" && s.items.length === 0) return SKELETON;
-    return buildRows({ ...s, rules: RULES_BY_ID });
+    return buildRows(s);
   }, [s]);
 
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -119,6 +127,7 @@ export function StorageList() {
           if (row.kind === "group") openGroup(row);
           else if (row.kind === "item") openItem(row);
           else if (row.kind === "section") actions.toggleSection(row.risk);
+          else if (row.kind === "locked") openLink("fullDiskAccessSettings");
           return true;
         case "ArrowRight":
           if (row.kind === "section" && row.collapsed) actions.toggleSection(row.risk);
@@ -248,6 +257,16 @@ export function StorageList() {
                 />
               )}
               {row.kind === "skeleton" && <SkeletonRowView />}
+              {row.kind === "locked" && (
+                <LockedRowView
+                  row={row}
+                  active={isActive}
+                  audience={s.audience}
+                  onAllow={() => {
+                    openLink("fullDiskAccessSettings");
+                  }}
+                />
+              )}
             </div>
           );
         })}

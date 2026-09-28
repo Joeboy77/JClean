@@ -1,10 +1,12 @@
 import { create } from "zustand";
-import type { CleanSummary, PlanDto } from "../bindings";
+import type { CleanSummary, PlanDto, Settings } from "../bindings";
+import { RULES_BY_ID } from "../data/catalog";
 import type {
   Audience,
   MapView,
   Method,
   Risk,
+  Rule,
   ScanPhase,
   StorageItem,
   Volume,
@@ -12,6 +14,8 @@ import type {
 import { NO_FILTERS, type FilterKey, type Filters } from "./selectors";
 
 export type Tab = "categories" | "rules";
+export type SettingsSection =
+  "general" | "scanning" | "cleaning" | "rules" | "history" | "updates" | "about";
 export type ScanMode = "quick" | "full";
 
 export type DrawerTarget =
@@ -84,6 +88,15 @@ interface State {
   outcomes: readonly ItemOutcome[];
   /** The last clean's result, for the result view. */
   summary: CleanSummary | null;
+  /** Every rule in force, built-in and custom. */
+  rules: ReadonlyMap<string, Rule>;
+  /** `null` until loaded; the browser build never has any. */
+  settings: Settings | null;
+  /** `null` until checked. */
+  fullDiskAccess: boolean | null;
+  /** Rules whose locations need Full Disk Access (spec §11). */
+  needsAccess: readonly string[];
+  settingsOpen: SettingsSection | null;
 }
 
 interface Actions {
@@ -123,6 +136,11 @@ interface Actions {
   recordOutcome: (outcome: ItemOutcome) => void;
   finishCleaning: (summary: CleanSummary) => void;
   dismissResult: () => void;
+  setRules: (rules: readonly Rule[]) => void;
+  setSettings: (settings: Settings) => void;
+  setFullDiskAccess: (granted: boolean) => void;
+  setNeedsAccess: (ids: readonly string[]) => void;
+  openSettings: (section: SettingsSection | null) => void;
 }
 
 function toggled<T>(set: ReadonlySet<T>, value: T): Set<T> {
@@ -173,6 +191,11 @@ export const useStore = create<State & Actions>()((set) => ({
   cleanTotal: 0,
   outcomes: [],
   summary: null,
+  rules: RULES_BY_ID,
+  settings: null,
+  fullDiskAccess: null,
+  needsAccess: [],
+  settingsOpen: null,
 
   beginScan: (mode) => {
     set({
@@ -339,5 +362,20 @@ export const useStore = create<State & Actions>()((set) => ({
   },
   dismissResult: () => {
     set({ phase: "results", summary: null, outcomes: [] });
+  },
+  setRules: (rules) => {
+    set({ rules: new Map(rules.map((r) => [r.id, r])) });
+  },
+  setSettings: (settings) => {
+    set({ settings, audience: settings.mode, disabledRules: new Set(settings.disabledRules) });
+  },
+  setFullDiskAccess: (fullDiskAccess) => {
+    set({ fullDiskAccess });
+  },
+  setNeedsAccess: (needsAccess) => {
+    set({ needsAccess });
+  },
+  openSettings: (settingsOpen) => {
+    set({ settingsOpen, drawer: null });
   },
 }));

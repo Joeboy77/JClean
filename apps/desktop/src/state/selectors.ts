@@ -132,7 +132,14 @@ export interface SkeletonRow {
   key: string;
 }
 
-export type Row = SectionRow | GroupRow | ItemRow | SkeletonRow;
+/** A rule whose folders macOS kept from us (spec §11). */
+export interface LockedRow {
+  kind: "locked";
+  key: string;
+  rule: Rule;
+}
+
+export type Row = SectionRow | GroupRow | ItemRow | SkeletonRow | LockedRow;
 
 export interface ListInput {
   items: readonly StorageItem[];
@@ -145,6 +152,8 @@ export interface ListInput {
   expanded: ReadonlySet<string>;
   collapsed: ReadonlySet<Risk>;
   disabledRules: ReadonlySet<string>;
+  /** Rules that need Full Disk Access to be measured. */
+  locked?: readonly string[];
 }
 
 export function groupKey(risk: Risk, ruleId: string): string {
@@ -166,9 +175,25 @@ export function buildRows(input: ListInput): Row[] {
     bySection.set(item.risk, section);
   }
 
+  const lockedByRisk = new Map<Risk, Rule[]>();
+  for (const id of input.locked ?? []) {
+    const rule = rules.get(id);
+    if (
+      !rule ||
+      disabledRules.has(id) ||
+      !visibleIn(rule, audience) ||
+      filters.safeOnly ||
+      search.trim()
+    )
+      continue;
+    lockedByRisk.set(rule.risk, [...(lockedByRisk.get(rule.risk) ?? []), rule]);
+  }
+
   const rows: Row[] = [];
   for (const risk of RISKS) {
-    const section = bySection.get(risk);
+    const locked = lockedByRisk.get(risk) ?? [];
+    const section =
+      bySection.get(risk) ?? (locked.length ? new Map<string, StorageItem[]>() : undefined);
     if (!section) continue;
     const groups: GroupRow[] = [];
     for (const [ruleId, items] of section) {
@@ -207,6 +232,7 @@ export function buildRows(input: ListInput): Row[] {
       collapsed: isCollapsed,
     });
     if (isCollapsed) continue;
+    for (const rule of locked) rows.push({ kind: "locked", key: `locked:${rule.id}`, rule });
     for (const group of groups) {
       rows.push(group);
       if (group.expandable && group.expanded) {

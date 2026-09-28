@@ -1,11 +1,11 @@
 import { FolderOpen, X } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import { RULES_BY_ID } from "../../data/catalog";
 import type { Method, Rule, StorageItem } from "../../data/types";
 import { formatAgo, formatBytes, tildify } from "../../lib/format";
 import { fade, spring } from "../../lib/motion";
 import { itemName, ruleLabel } from "../../state/selectors";
+import { revealItem } from "../../state/engine";
 import { useStore, type DrawerTarget } from "../../state/store";
 import { RISK_COPY } from "../../data/riskCopy";
 import { RiskBadge } from "../ui/RiskBadge";
@@ -32,17 +32,18 @@ interface Resolved {
 }
 
 function resolve(
+  rules: ReadonlyMap<string, Rule>,
   target: DrawerTarget,
   items: readonly StorageItem[],
   audience: "everyday" | "developer",
 ): Resolved | null {
   if (target.kind === "item") {
     const item = items.find((i) => i.id === target.id);
-    const rule = item && RULES_BY_ID.get(item.ruleId);
+    const rule = item && rules.get(item.ruleId);
     if (!item || !rule) return null;
     return { rule, items: [item], title: itemName(item), subtitle: ruleLabel(rule, audience) };
   }
-  const rule = RULES_BY_ID.get(target.ruleId);
+  const rule = rules.get(target.ruleId);
   if (!rule) return null;
   const list = items
     .filter((i) => i.ruleId === rule.id && i.risk === target.risk)
@@ -124,10 +125,11 @@ export function DetailDrawer({ compact }: DetailDrawerProps) {
   const items = useStore((s) => s.items);
   const audience = useStore((s) => s.audience);
   const close = useStore((s) => s.closeDrawer);
+  const rules = useStore((s) => s.rules);
   const home = useStore((s) => s.home);
   const resolved = useMemo(
-    () => (target ? resolve(target, items, audience) : null),
-    [target, items, audience],
+    () => (target ? resolve(rules, target, items, audience) : null),
+    [rules, target, items, audience],
   );
   const closeRef = useRef<HTMLButtonElement>(null);
 
@@ -249,9 +251,12 @@ export function DetailDrawer({ compact }: DetailDrawerProps) {
               <div className="flex flex-wrap gap-2 pt-1">
                 <button
                   type="button"
-                  disabled
-                  title="Available once JClean scans your Mac for real"
-                  className="flex h-8 items-center gap-2 rounded-control border border-line bg-raised px-3 text-text disabled:opacity-50"
+                  disabled={!resolved.items.some((i) => i.path)}
+                  onClick={() => {
+                    const first = resolved.items.find((i) => i.path);
+                    if (first) revealItem(first.id);
+                  }}
+                  className="flex h-8 items-center gap-2 rounded-control border border-line bg-raised px-3 text-text hover:border-muted disabled:opacity-50"
                 >
                   <FolderOpen size={14} aria-hidden="true" /> Show in Finder
                 </button>
