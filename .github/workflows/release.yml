@@ -1,7 +1,7 @@
 name: Release
 
-# Pushing a tag like v1.0.0 builds the Mac and Windows apps, signs their
-# update packages, and publishes a release (spec §14).
+# Pushing a tag like v1.0.0 builds the Mac, Windows and Linux apps, signs
+# their update packages, and publishes a release (spec §14).
 on:
   push:
     tags: ["v*"]
@@ -82,6 +82,7 @@ jobs:
 
             - **Mac: [JClean_macos_universal.dmg](https://github.com/Joeboy77/JClean/releases/latest/download/JClean_macos_universal.dmg)**. Apple Silicon and Intel, macOS 12 or later.
             - **Windows: [JClean_windows_x64_setup.exe](https://github.com/Joeboy77/JClean/releases/latest/download/JClean_windows_x64_setup.exe)**. Windows 10 or 11, 64-bit. Installs for your account only, no administrator needed.
+            - **Linux: [JClean_linux_x86_64.AppImage](https://github.com/Joeboy77/JClean/releases/latest/download/JClean_linux_x86_64.AppImage)** for any distribution (make it executable, then run it), or **[JClean_linux_amd64.deb](https://github.com/Joeboy77/JClean/releases/latest/download/JClean_linux_amd64.deb)** for Ubuntu, Debian and Mint. 64-bit.
 
             Checksums are in `SHA256SUMS.txt`.
 
@@ -156,9 +157,56 @@ jobs:
           cp "$(ls target/release/bundle/nsis/*-setup.exe | head -n 1)" JClean_windows_x64_setup.exe
           gh release upload "$GITHUB_REF_NAME" JClean_windows_x64_setup.exe --clobber
 
+  # After Windows, for the same reason: one job at a time updates latest.json.
+  linux:
+    name: Linux x64 build
+    needs: [macos, windows]
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: System libraries
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libayatana-appindicator3-dev librsvg2-dev libxdo-dev libssl-dev
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - uses: Swatinem/rust-cache@v2
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      # Adds the AppImage and .deb, and their update packages, to the draft.
+      - name: Build and upload (draft)
+        uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+        with:
+          projectPath: apps/desktop
+          releaseId: ${{ needs.macos.outputs.release-id }}
+          includeUpdaterJson: true
+
+      - name: Upload the Linux packages under their stable names
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          cp "$(ls target/release/bundle/appimage/*.AppImage | head -n 1)" JClean_linux_x86_64.AppImage
+          cp "$(ls target/release/bundle/deb/*.deb | head -n 1)" JClean_linux_amd64.deb
+          gh release upload "$GITHUB_REF_NAME" JClean_linux_x86_64.AppImage JClean_linux_amd64.deb --clobber
+
   publish:
     name: Checksums and publish
-    needs: [macos, windows]
+    needs: [macos, windows, linux]
     runs-on: ubuntu-latest
     steps:
       - name: Checksums, then publish
@@ -166,8 +214,9 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GH_REPO: ${{ github.repository }}
         run: |
-          gh release download "$GITHUB_REF_NAME" -p JClean_macos_universal.dmg -p JClean_windows_x64_setup.exe
-          sha256sum JClean_macos_universal.dmg JClean_windows_x64_setup.exe > SHA256SUMS.txt
+          files="JClean_macos_universal.dmg JClean_windows_x64_setup.exe JClean_linux_x86_64.AppImage JClean_linux_amd64.deb"
+          for f in $files; do gh release download "$GITHUB_REF_NAME" -p "$f"; done
+          sha256sum $files > SHA256SUMS.txt
           cat SHA256SUMS.txt
           gh release upload "$GITHUB_REF_NAME" SHA256SUMS.txt --clobber
           gh release edit "$GITHUB_REF_NAME" --draft=false --latest
