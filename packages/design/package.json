@@ -1,0 +1,13 @@
+{
+  "name": "@jclean/design",
+  "private": true,
+  "version": "1.0.0",
+  "license": "MIT",
+  "description": "JClean's design tokens, fonts and Tailwind theme, shared by the app and the website",
+  "exports": {
+    "./theme.css": "./theme.css",
+    "./tokens.css": "./tokens.css",
+    "./fonts.css": "./fonts.css",
+    "./fonts/*": "./fonts/*"
+  }
+}

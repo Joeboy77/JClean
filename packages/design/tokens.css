@@ -15,9 +15,15 @@
   --text: #ece9f7;
   --text-muted: #9d97b5;
   --accent: #8b6cff;
+  /* Fill behind white text: white on --accent is 3.7:1, on this 5.0:1 (WCAG AA). */
+  --accent-strong: #7152f0;
+  /* Small accent text on tinted panels, where --accent drops below 4.5:1. */
+  --accent-text: #b09dff;
   --safe: #4ccb9f;
   --review: #edb548;
   --caution: #ee6b7e;
+  /* Fill behind white text (white on --caution is 3.0:1, on this 5.0:1). */
+  --caution-strong: #c93a52;
 
   --cat-apps: #6f9fd8;
   --cat-developer: #9a8ce0;
