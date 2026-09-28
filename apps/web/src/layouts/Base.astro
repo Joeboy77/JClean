@@ -1,7 +1,7 @@
 ---
 import AmbientMap from "../components/AmbientMap.astro";
 import Logo from "../components/Logo.astro";
-import { REPO } from "../lib/release";
+import { DMG_URL, REPO, RELEASES_URL, latestRelease } from "../lib/release";
 import "../styles/global.css";
 // Preloaded so text is laid out once, in the right font (spec §12.3: no layout shift).
 import sansUrl from "@jclean/design/fonts/instrument-sans-latin-wght-normal.woff2?url";
@@ -16,7 +16,30 @@ const {
 } = Astro.props;
 const fullTitle = title ? `${title} · JClean` : "JClean: see what's filling your computer, and clear it safely";
 const canonical = new URL(Astro.url.pathname, Astro.site);
-const ogImage = new URL("/og.png", Astro.site);
+// JPEG: WhatsApp and some chat apps skip previews over roughly 300 KB.
+const ogImage = new URL("/og.jpg", Astro.site);
+const ogAlt =
+  "JClean: see what's filling your computer, and clear it safely. Free and open source for Mac, Windows and Linux.";
+const release = await latestRelease();
+// Tells search engines this is a free app for all three systems.
+const structured = {
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  name: "JClean",
+  description,
+  url: new URL("/", Astro.site).href,
+  image: ogImage.href,
+  applicationCategory: "UtilitiesApplication",
+  operatingSystem: "macOS 12+, Windows 10, Windows 11, Linux",
+  ...(release.version ? { softwareVersion: release.version } : {}),
+  downloadUrl: new URL("/download", Astro.site).href,
+  installUrl: DMG_URL,
+  releaseNotes: RELEASES_URL,
+  license: "https://opensource.org/license/mit",
+  isAccessibleForFree: true,
+  offers: { "@type": "Offer", price: "0", priceCurrency: "USD" },
+  sameAs: [`https://github.com/${REPO}`],
+};
 const nav = [
   { href: "/download", label: "Download" },
   { href: "/safety", label: "Safety" },
@@ -35,7 +58,11 @@ const path = Astro.url.pathname.replace(/\/$/, "");
     <meta name="description" content={description} />
     <link rel="canonical" href={canonical} />
     <link rel="preload" href={sansUrl} as="font" type="font/woff2" crossorigin />
+    <link rel="icon" href="/favicon.ico" sizes="any" />
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="icon" href="/favicon-32.png" type="image/png" sizes="32x32" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <link rel="manifest" href="/site.webmanifest" />
     <meta name="theme-color" content="#16141f" />
     <meta name="color-scheme" content="dark" />
     <meta property="og:type" content="website" />
@@ -43,10 +70,21 @@ const path = Astro.url.pathname.replace(/\/$/, "");
     <meta property="og:title" content={fullTitle} />
     <meta property="og:description" content={description} />
     <meta property="og:url" content={canonical} />
+    <meta property="og:locale" content="en_US" />
     <meta property="og:image" content={ogImage} />
+    <meta property="og:image:secure_url" content={ogImage} />
+    <meta property="og:image:type" content="image/jpeg" />
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content={ogAlt} />
     <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content={fullTitle} />
+    <meta name="twitter:description" content={description} />
+    <meta name="twitter:image" content={ogImage} />
+    <meta name="twitter:image:alt" content={ogAlt} />
+    <meta name="application-name" content="JClean" />
+    <meta name="apple-mobile-web-app-title" content="JClean" />
+    <script type="application/ld+json" set:html={JSON.stringify(structured)} />
   </head>
   <body class="min-h-screen bg-bg text-text">
     <AmbientMap />

@@ -10,7 +10,7 @@ const others = [windows && "Windows", linux && "Linux"].filter(Boolean);
 
 <Base
   title="Download"
-  description={`Download JClean for ${["Mac", ...others].join(", ")}: free and open source. How to open it the first time, checksums and system requirements.`}
+  description={`Download JClean for ${others.length ? `Mac, ${others.join(" and ")}` : "Mac"}: free and open source. How to open it the first time, checksums and system requirements.`}
 >
   <section class="mx-auto max-w-4xl px-4 pt-14 sm:px-6">
     <h1 class="text-2xl font-semibold text-text">Download JClean</h1>
@@ -24,7 +24,7 @@ const others = [windows && "Windows", linux && "Linux"].filter(Boolean);
     </div>
   </section>
 
-  <section class="mx-auto mt-14 max-w-4xl px-4 sm:px-6" aria-labelledby="first">
+  <section id="install-mac" class="mx-auto mt-14 max-w-4xl scroll-mt-20 px-4 sm:px-6" aria-labelledby="first">
     <div class="rounded-card border-2 border-review/50 bg-review/10 p-6 sm:p-8">
       <h2 id="first" class="flex items-center gap-2 text-xl font-semibold text-text">
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true" class="text-review">
@@ -108,7 +108,7 @@ const others = [windows && "Windows", linux && "Linux"].filter(Boolean);
 
   {
     windows && (
-      <section class="mx-auto mt-14 max-w-4xl px-4 sm:px-6" aria-labelledby="windows-first">
+      <section id="install-windows" class="mx-auto mt-14 max-w-4xl scroll-mt-20 px-4 sm:px-6" aria-labelledby="windows-first">
         <div class="rounded-card border-2 border-review/50 bg-review/10 p-6 sm:p-8">
           <h2 id="windows-first" class="flex items-center gap-2 text-xl font-semibold text-text">
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true" class="text-review">
@@ -169,6 +169,12 @@ const others = [windows && "Windows", linux && "Linux"].filter(Boolean);
               </p>
             </li>
           </ol>
+          <div class="mt-8 rounded-control border border-line bg-bg p-4">
+            <p class="font-medium text-text">"Smart App Control blocked an app that may be unsafe"?</p>
+            <p class="mt-1 text-sm text-muted">
+              Some new Windows 11 PCs have Smart App Control on, which blocks every app that isn't code-signed and has no Run anyway button. JClean's installer will be signed in a future version. Until then it can only be installed with Smart App Control off (Windows Security → App &amp; browser control → Smart App Control). On most versions of Windows 11 it can't be turned back on without reinstalling Windows, so only do this if you're comfortable with that.
+            </p>
+          </div>
         </div>
       </section>
     )
@@ -176,25 +182,90 @@ const others = [windows && "Windows", linux && "Linux"].filter(Boolean);
 
   {
     linux && (
-      <section class="mx-auto mt-14 max-w-4xl px-4 sm:px-6" aria-labelledby="linux-first">
+      <section id="install-linux" class="mx-auto mt-14 max-w-4xl scroll-mt-20 px-4 sm:px-6" aria-labelledby="linux-first">
         <div class="rounded-card border border-line bg-surface p-6 sm:p-8">
           <h2 id="linux-first" class="text-xl font-semibold text-text">Installing on Linux</h2>
-          <div class="mt-6 grid gap-8 sm:grid-cols-2">
-            <div class="min-w-0">
-              <p class="text-sm font-medium text-accent-text">AppImage (any distribution)</p>
-              <p class="mt-1 text-text">Make it executable, then open it. It updates itself from Settings → Updates.</p>
-              <pre class="mt-3 overflow-x-auto rounded-control border border-line bg-bg p-3 font-mono text-xs text-text">chmod +x JClean_linux_x86_64.AppImage
-./JClean_linux_x86_64.AppImage</pre>
-              <p class="mt-2 text-sm text-muted">
-                On Ubuntu 22.04 or later, AppImages need FUSE 2 first: <code class="font-mono text-text">sudo apt install libfuse2t64</code> (<code class="font-mono text-text">libfuse2</code> on 22.04).
-              </p>
-            </div>
-            <div class="min-w-0">
-              <p class="text-sm font-medium text-accent-text">.deb (Ubuntu, Debian, Mint)</p>
-              <p class="mt-1 text-text">Install it with apt, which also adds what it needs. JClean appears in your apps.</p>
-              <pre class="mt-3 overflow-x-auto rounded-control border border-line bg-bg p-3 font-mono text-xs text-text">sudo apt install ./JClean_linux_amd64.deb</pre>
-            </div>
-          </div>
+          <p class="mt-3 text-text">
+            Pick one: the <strong>.deb</strong> for Ubuntu, Debian, Mint and Pop!_OS, or the <strong>AppImage</strong> for any other distribution. Both update themselves from Settings → Updates.
+          </p>
+
+          <h3 class="mt-8 text-md font-semibold text-text">.deb (Ubuntu, Debian, Mint, Pop!_OS)</h3>
+          <ol class="mt-4 space-y-6">
+            <li class="grid gap-4 sm:grid-cols-[1fr_1fr] sm:items-center">
+              <div class="min-w-0">
+                <p class="text-sm font-medium text-accent-text">Step 1</p>
+                <p class="mt-1 text-md text-text">
+                  Open your <strong>Downloads</strong> folder in Files, right-click an empty spot and choose <strong>Open in Terminal</strong>.
+                </p>
+              </div>
+              <div class="min-w-0">
+                <p class="text-sm text-muted">Double-clicking the .deb may open App Center, which can't always install downloaded packages. The terminal always works.</p>
+              </div>
+            </li>
+            <li class="grid gap-4 sm:grid-cols-[1fr_1fr] sm:items-center">
+              <div class="min-w-0">
+                <p class="text-sm font-medium text-accent-text">Step 2</p>
+                <p class="mt-1 text-md text-text">Install it with apt and enter your password. apt also installs anything JClean needs.</p>
+              </div>
+              <div class="min-w-0"><pre class="mt-3 overflow-x-auto rounded-control border border-line bg-bg p-3 font-mono text-xs text-text">sudo apt install ./JClean_linux_amd64.deb</pre></div>
+            </li>
+            <li class="grid gap-4 sm:grid-cols-[1fr_1fr] sm:items-center">
+              <div class="min-w-0">
+                <p class="text-sm font-medium text-accent-text">Step 3</p>
+                <p class="mt-1 text-md text-text">Open <strong>JClean</strong> from your apps. That's it.</p>
+              </div>
+            </li>
+          </ol>
+
+          <h3 class="mt-10 text-md font-semibold text-text">AppImage (any distribution)</h3>
+          <ol class="mt-4 space-y-6">
+            <li class="grid gap-4 sm:grid-cols-[1fr_1fr] sm:items-center">
+              <div class="min-w-0">
+                <p class="text-sm font-medium text-accent-text">Step 1</p>
+                <p class="mt-1 text-md text-text">
+                  Install FUSE 2, which AppImages need and newer systems leave out. Without it, nothing happens when you open the file.
+                </p>
+              </div>
+              <div class="min-w-0">
+                <pre class="mt-3 overflow-x-auto rounded-control border border-line bg-bg p-3 font-mono text-xs text-text"># Ubuntu 24.04 and newer
+sudo apt install libfuse2t64
+
+# Ubuntu 22.04, Debian, Mint
+sudo apt install libfuse2
+
+# Fedora
+sudo dnf install fuse-libs</pre>
+              </div>
+            </li>
+            <li class="grid gap-4 sm:grid-cols-[1fr_1fr] sm:items-center">
+              <div class="min-w-0">
+                <p class="text-sm font-medium text-accent-text">Step 2</p>
+                <p class="mt-1 text-md text-text">
+                  Allow it to run: right-click <strong>JClean_linux_x86_64.AppImage</strong>, choose <strong>Properties</strong>, and turn on <strong>Executable as Program</strong>.
+                </p>
+                <p class="mt-2 text-sm text-muted">Or in a terminal: <code class="font-mono text-text">chmod +x JClean_linux_x86_64.AppImage</code></p>
+              </div>
+              <div class="min-w-0 rounded-control border border-line bg-bg p-5" aria-hidden="true">
+                <p class="text-xs font-medium text-muted">JClean_linux_x86_64.AppImage · Properties</p>
+                <div class="mt-3 flex items-center justify-between gap-3 rounded-row border border-line bg-surface p-3">
+                  <p class="text-xs text-text">Executable as Program</p>
+                  <span class="relative inline-block h-5 w-9 rounded-full bg-accent-strong ring-2 ring-accent/50">
+                    <span class="absolute top-0.5 right-0.5 size-4 rounded-full bg-white"></span>
+                  </span>
+                </div>
+              </div>
+            </li>
+            <li class="grid gap-4 sm:grid-cols-[1fr_1fr] sm:items-center">
+              <div class="min-w-0">
+                <p class="text-sm font-medium text-accent-text">Step 3</p>
+                <p class="mt-1 text-md text-text">Double-click it to open JClean. Keep the file somewhere permanent, like a folder called Applications in your home.</p>
+              </div>
+            </li>
+          </ol>
+
+          <p class="mt-8 text-sm text-muted">
+            <strong class="text-text">Tray icon on GNOME:</strong> it needs the AppIndicator extension. Ubuntu includes it; on Fedora, install <em>AppIndicator and KStatusNotifierItem Support</em> from Extension Manager.
+          </p>
         </div>
       </section>
     )

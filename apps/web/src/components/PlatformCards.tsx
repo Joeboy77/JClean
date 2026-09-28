@@ -90,6 +90,12 @@ export function PlatformCards({ mac, windows, linux, releasesUrl }: Props) {
                       Or the {card.download.alternative.label}
                     </a>
                   )}
+                  <a
+                    href={`#install-${card.id}`}
+                    className="mt-1 block text-xs text-accent-text hover:underline"
+                  >
+                    How to install on {card.name}
+                  </a>
                 </>
               ) : (
                 <>

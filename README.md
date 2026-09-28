@@ -42,6 +42,8 @@ JClean isn't notarized by Apple or code-signed for Windows yet, so each system a
 
 If SmartScreen says it _protected your PC_, click **More info**, then **Run anyway**. The installer puts JClean in your account only, so it doesn't need an administrator.
 
+If **Smart App Control** blocks it instead (some new Windows 11 PCs), there's no Run anyway button yet. See the [download page](https://jclean.pages.dev/download#install-windows) for what that means.
+
 **Linux**
 
 ```sh

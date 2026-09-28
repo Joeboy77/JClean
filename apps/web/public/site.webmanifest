@@ -1,0 +1,13 @@
+{
+  "name": "JClean",
+  "short_name": "JClean",
+  "description": "See what's filling your computer, and clear it safely. Free and open source for Mac, Windows and Linux.",
+  "start_url": "/",
+  "display": "browser",
+  "background_color": "#16141f",
+  "theme_color": "#16141f",
+  "icons": [
+    { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}
