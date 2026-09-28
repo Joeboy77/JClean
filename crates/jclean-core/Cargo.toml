@@ -5,7 +5,28 @@ version.workspace = true
 edition.workspace = true
 publish = false
 
+[features]
+# Fixture homes for tests and `jclean-cli fixture`. Never used by the app.
+test-support = ["dep:filetime"]
+
 [dependencies]
+serde.workspace = true
+serde_json.workspace = true
+thiserror.workspace = true
+globset = { version = "0.4", default-features = false }
+jsonschema = { version = "0.58", default-features = false }
+rayon = "1.12"
+rusqlite = { version = "0.40", features = ["bundled"] }
+sysinfo = { version = "0.39", default-features = false, features = ["system"] }
+trash = { version = "5.2", default-features = false }
+filetime = { version = "0.2", optional = true }
+
+[dev-dependencies]
+# Enables `testing` (fixture homes) for this crate's own integration tests.
+jclean-core = { path = ".", features = ["test-support"] }
+filetime = "0.2"
+proptest = "1.11"
+tempfile = "3.27"
 
 [lints]
 workspace = true
