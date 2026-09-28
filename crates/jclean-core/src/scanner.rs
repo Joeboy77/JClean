@@ -48,6 +48,8 @@ pub struct ScanOptions {
     pub quick_project_depth: usize,
     /// "Now", as Unix seconds. Injectable so tests are deterministic.
     pub now: i64,
+    /// Rules switched off in Settings.
+    pub disabled_rules: HashSet<String>,
 }
 
 impl ScanOptions {
@@ -61,6 +63,7 @@ impl ScanOptions {
             run_probes: true,
             quick_project_depth: 6,
             now: now_secs(),
+            disabled_rules: HashSet::new(),
         }
     }
 }
@@ -144,6 +147,10 @@ pub struct ScanResult {
     pub notes: Vec<ScanNote>,
     /// Folders that couldn't be read (usually missing Full Disk Access).
     pub unreadable_dirs: u64,
+    /// Rules whose locations macOS kept from us, so the UI can show a
+    /// "Needs Full Disk Access" row instead of nothing (spec §11).
+    #[serde(default)]
+    pub needs_access: Vec<String>,
     /// Results are partial.
     pub cancelled: bool,
     /// Full scan only: the disk map of the scan roots.
@@ -202,7 +209,11 @@ impl Scanner<'_> {
     ) -> ScanResult {
         let started_at = now_secs();
         let env = self.env;
-        let active: Vec<&Rule> = self.rules.active(env.os(), opts.audience).collect();
+        let active: Vec<&Rule> = self
+            .rules
+            .active(env.os(), opts.audience)
+            .filter(|r| !opts.disabled_rules.contains(&r.id))
+            .collect();
         let guard = SafetyGuard::new(env);
         let mut notes = Vec::new();
         let mut unreadable = 0;
@@ -260,8 +271,9 @@ impl Scanner<'_> {
 
         on_event(ScanEvent::Stage("Finding storage"));
         let mut candidates: Vec<Candidate<'_>> = Vec::new();
+        let mut denied: Vec<String> = Vec::new();
         for rule in &active {
-            if let Err(err) = self.resolve_rule(rule, opts, &mut candidates) {
+            if let Err(err) = self.resolve_rule(rule, opts, &mut candidates, &mut denied) {
                 notes.push(ScanNote {
                     rule_id: Some(rule.id.clone()),
                     message: err,
@@ -372,6 +384,7 @@ impl Scanner<'_> {
         let total = candidates.len();
         let done = AtomicUsize::new(0);
         let found = Mutex::new(Vec::with_capacity(total));
+        let denied = Mutex::new(denied);
         let unreadable_total = AtomicUsize::new(0);
         // Known locations first so results show up fast; project folders,
         // usually the bulk of the files, come second.
@@ -388,6 +401,15 @@ impl Scanner<'_> {
                 };
                 match measure(&c.path, &opts_m, &inodes, cancel) {
                     Ok(m) => {
+                        // Exists, but nothing inside could be listed: kept from us.
+                        if m.is_dir
+                            && m.files == 0
+                            && m.unreadable_dirs > 0
+                            && let Ok(mut d) = denied.lock()
+                            && !d.contains(&c.rule.id)
+                        {
+                            d.push(c.rule.id.clone());
+                        }
                         unreadable_total.fetch_add(
                             usize::try_from(m.unreadable_dirs).unwrap_or(usize::MAX),
                             Ordering::Relaxed,
@@ -421,6 +443,11 @@ impl Scanner<'_> {
             });
         }
 
+        let mut needs_access = denied.into_inner().unwrap_or_default();
+        // A rule that found something anyway isn't shown as blocked.
+        needs_access.retain(|id| !items.iter().any(|i| &i.rule_id == id));
+        needs_access.sort();
+
         ScanResult {
             mode: opts.mode,
             started_at,
@@ -429,6 +456,7 @@ impl Scanner<'_> {
             projects,
             notes,
             unreadable_dirs: unreadable,
+            needs_access,
             cancelled: cancel.is_cancelled(),
             tree,
         }
@@ -440,7 +468,13 @@ impl Scanner<'_> {
         rule: &'r Rule,
         opts: &ScanOptions,
         out: &mut Vec<Candidate<'r>>,
+        denied: &mut Vec<String>,
     ) -> Result<(), String> {
+        let mut note_denied = |e: &std::io::Error| {
+            if e.kind() == std::io::ErrorKind::PermissionDenied && !denied.contains(&rule.id) {
+                denied.push(rule.id.clone());
+            }
+        };
         match &rule.detect {
             Detect::Fixed {
                 paths: patterns,
@@ -462,8 +496,12 @@ impl Scanner<'_> {
                     let inclusive = literal == resolved;
                     for matched in paths::expand(&resolved).map_err(|e| e.to_string())? {
                         if *each_child {
-                            let Ok(entries) = fs::read_dir(&matched) else {
-                                continue;
+                            let entries = match fs::read_dir(&matched) {
+                                Ok(entries) => entries,
+                                Err(e) => {
+                                    note_denied(&e);
+                                    continue;
+                                }
                             };
                             let specificity = matched.components().count();
                             for entry in entries.filter_map(Result::ok) {
@@ -533,8 +571,12 @@ impl Scanner<'_> {
                         continue;
                     };
                     for dir in paths::expand(&resolved).map_err(|e| e.to_string())? {
-                        let Ok(entries) = fs::read_dir(&dir) else {
-                            continue;
+                        let entries = match fs::read_dir(&dir) {
+                            Ok(entries) => entries,
+                            Err(e) => {
+                                note_denied(&e);
+                                continue;
+                            }
                         };
                         for entry in entries.filter_map(Result::ok) {
                             let Ok(meta) = entry.metadata() else { continue };

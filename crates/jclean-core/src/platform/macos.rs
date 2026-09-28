@@ -170,3 +170,21 @@ pub(super) fn categorize(env: &Env, path: &Path, parent: Category) -> Category {
         _ => parent,
     }
 }
+
+/// Folders macOS guards with Full Disk Access; the first that exists decides.
+const FDA_PROBES: &[&str] = &[
+    "Library/Safari",
+    "Library/Mail",
+    "Library/Containers/com.apple.stocks",
+];
+
+pub(super) fn has_full_disk_access(env: &Env) -> bool {
+    for probe in FDA_PROBES {
+        let path = env.home().join(probe);
+        if std::fs::symlink_metadata(&path).is_ok() {
+            return std::fs::read_dir(&path).is_ok();
+        }
+    }
+    // None of the guarded folders exist, so nothing is being hidden from us.
+    true
+}

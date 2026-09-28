@@ -85,6 +85,15 @@ pub fn categorize(
     }
 }
 
+/// Whether JClean has Full Disk Access (spec §11): tries to list a folder
+/// macOS only shows to apps that have it. Lists names only; opens no file.
+pub fn has_full_disk_access(env: &Env) -> bool {
+    match env.os() {
+        Os::Macos => macos::has_full_disk_access(env),
+        Os::Windows | Os::Linux => true,
+    }
+}
+
 /// `~/Library/Application Support/app.jclean` on macOS (spec §10).
 pub fn app_data_dir(env: &Env) -> PathBuf {
     match env.os() {

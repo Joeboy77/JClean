@@ -429,3 +429,61 @@ fn read_only_files_are_removed() {
             .exists()
     );
 }
+
+#[test]
+fn deleting_user_files_is_opt_in_and_never_applies_to_caution_items() {
+    use jclean_core::planner::{PlanOptions, build_plan_with};
+    let w = world();
+    w.f.file(
+        "Library/Application Support/MobileSync/Backup/abc123/Manifest.db",
+        50_000,
+    )
+    .unwrap();
+    w.f.age("Library/Application Support/MobileSync", 100)
+        .unwrap();
+    let runner = FakeRunner::none();
+    let result = scan(&w, &runner);
+    let dmg = id(
+        "macos.downloads.old-installers",
+        &w.f.path("Downloads/Setup.dmg"),
+    );
+    let backup = id(
+        "macos.mobile.device-backups",
+        &w.f.path("Library/Application Support/MobileSync/Backup/abc123"),
+    );
+    let ids = vec![dmg.clone(), backup.clone()];
+    let method = |plan: &CleanPlan, id: &str| {
+        plan.items
+            .iter()
+            .find(|i| i.item_id == id)
+            .map(|i| i.method)
+    };
+
+    let default = build_plan_with(
+        &result,
+        &w.rules,
+        &ids,
+        &w.f.env(),
+        &runner,
+        PlanOptions::default(),
+    );
+    assert_eq!(method(&default, &dmg), Some(Method::Trash));
+
+    let delete = build_plan_with(
+        &result,
+        &w.rules,
+        &ids,
+        &w.f.env(),
+        &runner,
+        PlanOptions {
+            delete_user_files: true,
+        },
+    );
+    assert_eq!(method(&delete, &dmg), Some(Method::Delete));
+    assert_eq!(
+        method(&delete, &backup),
+        Some(Method::Trash),
+        "caution items always go to the Trash"
+    );
+    assert!(delete.needs_second_confirmation);
+}

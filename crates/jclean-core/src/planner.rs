@@ -114,12 +114,31 @@ pub struct CleanPlan {
     pub related_apps: Vec<String>,
 }
 
+/// Choices from Settings that change how items are cleaned (spec §5.11).
+#[derive(Debug, Clone, Copy, Default)]
+pub struct PlanOptions {
+    /// Delete user files that need review permanently instead of moving them
+    /// to the Trash. Caution items and custom folders always go to the Trash.
+    pub delete_user_files: bool,
+}
+
 pub fn build_plan(
     scan: &ScanResult,
     rules: &RuleSet,
     selected: &[String],
     env: &Env,
     runner: &dyn CommandRunner,
+) -> CleanPlan {
+    build_plan_with(scan, rules, selected, env, runner, PlanOptions::default())
+}
+
+pub fn build_plan_with(
+    scan: &ScanResult,
+    rules: &RuleSet,
+    selected: &[String],
+    env: &Env,
+    runner: &dyn CommandRunner,
+    options: PlanOptions,
 ) -> CleanPlan {
     let mut items = Vec::new();
     let mut skipped = Vec::new();
@@ -151,8 +170,14 @@ pub fn build_plan(
         }
 
         let mut method = item.method;
-        // Custom rules can only ever move to the Trash (spec §6.4).
-        if rule.source == RuleSource::Custom {
+        if options.delete_user_files && method == Method::Trash && item.risk == Risk::Review {
+            method = Method::Delete;
+        }
+        // Custom rules can only ever move to the Trash (spec §6.4), and caution
+        // items are never deleted permanently (spec §7.3).
+        if rule.source == RuleSource::Custom
+            || item.risk == Risk::Caution && method == Method::Delete
+        {
             method = Method::Trash;
         }
         let mut command = None;

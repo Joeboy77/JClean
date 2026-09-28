@@ -184,3 +184,49 @@ fn probes_named_in_rules_exist() {
         }
     }
 }
+
+#[test]
+fn custom_folders_become_trash_only_rules_and_protected_paths_are_refused() {
+    let env = Env::new("/fx/Users/me", "/fx", Os::Macos);
+    let ok = rules::custom_folder_rule(
+        "Old Renders",
+        "Old renders",
+        std::path::Path::new("/fx/Users/me/Movies/Renders"),
+        rules::Risk::Review,
+        &env,
+    )
+    .unwrap();
+    assert_eq!(ok.id, "macos.custom.old-renders");
+    assert_eq!(ok.cleanup.method, Method::Trash);
+    assert_eq!(ok.source, RuleSource::Custom);
+
+    for bad in [
+        "/fx/Users/me",
+        "/fx/Users/me/Documents",
+        "/fx/Users/me/.ssh",
+        "/fx/System/Library",
+        "relative",
+    ] {
+        assert!(
+            rules::custom_folder_rule(
+                "x",
+                "x",
+                std::path::Path::new(bad),
+                rules::Risk::Review,
+                &env
+            )
+            .is_err(),
+            "{bad} must be refused"
+        );
+    }
+    assert!(
+        rules::custom_folder_rule(
+            "x",
+            "x",
+            std::path::Path::new("/fx/Users/me/Movies/R"),
+            rules::Risk::Info,
+            &env
+        )
+        .is_err()
+    );
+}

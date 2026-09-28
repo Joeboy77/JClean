@@ -138,6 +138,81 @@ pub fn load_custom(file: &str, json: &str, env: &Env) -> Result<Vec<Rule>, RuleE
     Ok(rules)
 }
 
+/// A folder the user added in Settings → Rules (spec §6.4): always moved to
+/// the Trash, never a protected path, marked "Custom".
+pub fn custom_folder_rule(
+    id: &str,
+    name: &str,
+    path: &std::path::Path,
+    risk: Risk,
+    env: &Env,
+) -> Result<Rule, RuleError> {
+    let slug: String = id
+        .chars()
+        .map(|c| {
+            if c.is_ascii_alphanumeric() {
+                c.to_ascii_lowercase()
+            } else {
+                '-'
+            }
+        })
+        .collect();
+    let rule = Rule {
+        id: format!("{}.custom.{slug}", env.os().as_str()),
+        version: 1,
+        platforms: vec![env.os()],
+        audience: vec![Audience::Everyday, Audience::Developer],
+        category: Category::Other,
+        group: "Custom folders".to_string(),
+        labels: Labels {
+            developer: name.to_string(),
+            everyday: name.to_string(),
+        },
+        description: Description {
+            what: format!("A folder you added: {}", path.display()),
+            if_cleared: "It moves to the Trash, so you can put it back until you empty the Trash."
+                .to_string(),
+        },
+        icon: "folder".to_string(),
+        risk,
+        regenerates: false,
+        detect: Detect::Fixed {
+            paths: vec![path.display().to_string()],
+            each_child: false,
+            exclude: Vec::new(),
+        },
+        unused: Unused::default(),
+        cleanup: Cleanup {
+            method: Method::Trash,
+            command: None,
+            fallback: None,
+            requires_admin: false,
+            keep_root: false,
+        },
+        related_apps: Vec::new(),
+        may_share_blocks: false,
+        cross_filesystems: false,
+        keep: None,
+        docs: None,
+        source: RuleSource::Custom,
+    };
+    if risk == Risk::Info || !path.is_absolute() {
+        return Err(invalid(
+            &rule,
+            "pick a folder, and a risk of safe, review or caution",
+        ));
+    }
+    validate(&rule)?;
+    let protected = crate::platform::protected_paths(env);
+    if crate::safety::protection_for(path, &protected).is_some() {
+        return Err(invalid(
+            &rule,
+            format!("{} is protected and can't be cleaned", path.display()),
+        ));
+    }
+    Ok(rule)
+}
+
 pub fn schema() -> &'static serde_json::Value {
     static SCHEMA: OnceLock<serde_json::Value> = OnceLock::new();
     SCHEMA.get_or_init(|| serde_json::from_str(SCHEMA_JSON).unwrap_or(serde_json::Value::Null))

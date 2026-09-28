@@ -408,6 +408,66 @@ fn full_scan_maps_the_disk_and_finds_unclaimed_large_files() {
         "macos.downloads.old-installers",
         &f.path("Downloads/Setup.dmg")
     ));
+
+    // The folder map: one level at a time, with what's reclaimable inside each folder.
+    let env = f.env();
+    let top = jclean_core::map::children(&result, &env, "").expect("top level");
+    let code = top.iter().find(|c| c.name == "code").expect("code folder");
+    assert!(code.has_children && code.reclaimable > 5_000_000);
+    let library = top
+        .iter()
+        .find(|c| c.name == "Library")
+        .expect("Library folder");
+    assert_eq!(library.category, rules::Category::System);
+    let inside = jclean_core::map::children(&result, &env, &code.id).expect("inside code");
+    let old_site = inside
+        .iter()
+        .find(|c| c.name == "old-site")
+        .expect("project folder");
+    assert!(old_site.reclaimable > 0);
+    let nm = jclean_core::map::children(&result, &env, &old_site.id)
+        .expect("inside the project")
+        .into_iter()
+        .find(|c| c.name == "node_modules")
+        .expect("node_modules cell");
+    assert!(
+        nm.item_id.is_some(),
+        "a cell that is exactly one item links to it"
+    );
+    assert!(jclean_core::map::children(&result, &env, "fs:/nowhere").is_none());
+}
+
+#[cfg(unix)]
+#[test]
+fn locations_macos_keeps_from_us_are_reported_not_hidden() {
+    use std::os::unix::fs::PermissionsExt;
+    let tmp = tempfile::tempdir().unwrap();
+    let f = Fixture::standard(tmp.path()).unwrap();
+    let trash = f.path(".Trash");
+    // What missing Full Disk Access looks like: the folder exists but can't be listed.
+    std::fs::set_permissions(&trash, std::fs::Permissions::from_mode(0o000)).unwrap();
+    let rules = RuleSet::builtin(Os::Macos).unwrap();
+    let result = scan(
+        &f,
+        &rules,
+        ScanMode::Quick,
+        Audience::Everyday,
+        &FakeRunner::none(),
+    );
+    std::fs::set_permissions(&trash, std::fs::Permissions::from_mode(0o755)).unwrap();
+
+    assert!(
+        result
+            .needs_access
+            .contains(&"macos.system.trash".to_string()),
+        "{:?}",
+        result.needs_access
+    );
+    assert!(
+        !result
+            .needs_access
+            .contains(&"macos.system.app-caches".to_string())
+    );
 }
 
 #[test]
