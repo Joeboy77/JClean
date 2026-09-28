@@ -30,9 +30,45 @@ pub fn main_volume() -> Option<VolumeInfo> {
     windows::main_volume()
 }
 
-#[cfg(not(any(target_os = "macos", windows)))]
+#[cfg(target_os = "linux")]
+pub fn main_volume() -> Option<VolumeInfo> {
+    linux::main_volume()
+}
+
+#[cfg(not(any(target_os = "macos", target_os = "linux", windows)))]
 pub fn main_volume() -> Option<VolumeInfo> {
     None
+}
+
+/// The filesystem the home folder is on: it's often its own partition on
+/// Linux, and it's what a scan measures.
+#[cfg(target_os = "linux")]
+#[allow(unsafe_code)]
+mod linux {
+    use std::ffi::CString;
+    use std::os::unix::ffi::OsStrExt;
+
+    use super::VolumeInfo;
+
+    #[allow(clippy::cast_precision_loss)]
+    pub fn main_volume() -> Option<VolumeInfo> {
+        let home = std::env::var_os("HOME").unwrap_or_else(|| "/".into());
+        let path = CString::new(home.as_bytes()).ok()?;
+        // SAFETY: an all-zero statvfs is a valid value to fill in.
+        let mut stat: libc::statvfs = unsafe { std::mem::zeroed() };
+        // SAFETY: `path` is NUL-terminated and `stat` is a valid out pointer.
+        if unsafe { libc::statvfs(path.as_ptr(), &raw mut stat) } != 0 {
+            return None;
+        }
+        let block = stat.f_frsize as f64;
+        Some(VolumeInfo {
+            name: "Main disk".to_string(),
+            total: stat.f_blocks as f64 * block,
+            // What an ordinary user can still write (excludes root's reserve).
+            available: stat.f_bavail as f64 * block,
+            purgeable: 0.0,
+        })
+    }
 }
 
 #[cfg(windows)]

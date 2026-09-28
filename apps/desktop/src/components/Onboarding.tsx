@@ -6,7 +6,7 @@ import { fade, spring } from "../lib/motion";
 import { checkFullDiskAccess, openLink, startScan, updateSettings } from "../state/engine";
 import { useStore } from "../state/store";
 import { LogoMark } from "./LogoMark";
-import { hasFullDiskAccessStep, isWindows, words } from "../lib/platform";
+import { hasFullDiskAccessStep, words } from "../lib/platform";
 
 type Step = "welcome" | "who" | "access";
 
@@ -17,7 +17,7 @@ const CHOICES: { id: Audience; title: string; body: string; icon: LucideIcon }[]
   {
     id: "developer",
     title: "I write code",
-    body: `Includes caches from tools like npm, ${isWindows ? "Visual Studio" : "Xcode"}, Docker and Gradle.`,
+    body: `Includes caches from tools like ${words.devTools}.`,
     icon: CodeXml,
   },
   {

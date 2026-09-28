@@ -324,6 +324,8 @@ fn empty_trash_blocking(engine: &Engine) -> Result<EmptyTrashResult, String> {
         let note = (scan.unreadable_dirs > 0).then(|| {
             if cfg!(windows) {
                 "JClean couldn't look inside the Recycle Bin. Empty it from the desktop instead.".to_string()
+            } else if cfg!(target_os = "linux") {
+                "JClean couldn't look inside the Trash. Empty it from your file manager instead.".to_string()
             } else {
                 "JClean couldn't look inside the Trash. Grant Full Disk Access, or empty it from the Dock.".to_string()
             }

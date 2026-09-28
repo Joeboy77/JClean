@@ -10,7 +10,7 @@ import { AboutSection, UpdatesSection } from "./AboutSection";
 import { HistorySection } from "./HistorySection";
 import { RulesSection } from "./RulesSection";
 import { ScanningSection } from "./ScanningSection";
-import { isWindows, words } from "../../lib/platform";
+import { isMac, words } from "../../lib/platform";
 
 const SECTIONS: { id: SettingsSection; label: string }[] = [
   { id: "general", label: "General" },
@@ -135,7 +135,7 @@ function GeneralSection({ s }: { s: Settings }) {
           />
         </Row>
       </Group>
-      <Group title={isWindows ? "System tray" : "Menu bar"}>
+      <Group title={isMac ? "Menu bar" : "System tray"}>
         <Row
           title={`Show JClean in the ${words.tray}`}
           detail="Free space, a quick scan, and closing the window keeps it there."

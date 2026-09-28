@@ -12,7 +12,7 @@ import { SelectionBar } from "./SelectionBar";
 import { StatusCard } from "./StatusCard";
 import { StorageList } from "./StorageList";
 import { Tabs } from "./Tabs";
-import { isWindows, words } from "../../lib/platform";
+import { hasOverlayTitleBar, words } from "../../lib/platform";
 
 interface SidebarProps {
   compact: boolean;
@@ -35,8 +35,8 @@ export const Sidebar = forwardRef<HTMLInputElement, SidebarProps>(function Sideb
         compact ? "w-full" : "w-[380px] border-r border-line"
       }`}
     >
-      {/* Clears the traffic lights and drags the window. Windows has its own title bar. */}
-      <div data-tauri-drag-region className={`${isWindows ? "h-3" : "h-11"} shrink-0`} />
+      {/* Clears the traffic lights and drags the window. Windows and Linux have their own title bar. */}
+      <div data-tauri-drag-region className={`${hasOverlayTitleBar ? "h-11" : "h-3"} shrink-0`} />
       <div className="flex min-h-0 flex-1 flex-col gap-3.5 px-4">
         <StatusCard />
         <DiskFullBanner />

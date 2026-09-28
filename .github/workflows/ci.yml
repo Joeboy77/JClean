@@ -107,3 +107,48 @@ jobs:
         run: |
           summary=$(grep -E -A6 "panicked at|^error(\[E[0-9]+\])?:" test-output.txt | head -120 | sed ':a;N;$!ba;s/%/%25/g;s/\r//g;s/\n/%0A/g')
           echo "::error title=Rust test failures on Windows::${summary}"
+
+  linux:
+    name: Rust lint and test (Linux)
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+
+      # What Tauri needs to build on Linux, plus the tray's indicator library.
+      - name: System libraries
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libayatana-appindicator3-dev librsvg2-dev libxdo-dev libssl-dev
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy
+
+      - uses: Swatinem/rust-cache@v2
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Frontend build
+        run: pnpm --filter desktop build
+
+      - name: Rust lint
+        run: cargo clippy --all-targets -- -D warnings
+
+      - name: Rust tests
+        run: |
+          set -o pipefail
+          cargo test --workspace --no-fail-fast 2>&1 | tee test-output.txt
+
+      - name: Summarize test failures
+        if: failure()
+        run: |
+          summary=$(grep -E -A6 "panicked at|^error(\[E[0-9]+\])?:" test-output.txt | head -120 | sed ':a;N;$!ba;s/%/%25/g;s/\r//g;s/\n/%0A/g')
+          echo "::error title=Rust test failures on Linux::${summary}"

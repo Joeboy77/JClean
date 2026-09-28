@@ -39,9 +39,9 @@ pub fn apply(app: &AppHandle, engine: &Engine) {
         let _ = tray.set_tooltip(Some(&tooltip));
         return;
     }
-    // macOS tints a black template icon to match the menu bar; Windows shows
-    // icons as they are, so it gets the colour app icon.
-    let bytes: &[u8] = if cfg!(windows) {
+    // macOS tints a black template icon to match the menu bar; Windows and
+    // Linux show icons as they are, so they get the colour app icon.
+    let bytes: &[u8] = if cfg!(not(target_os = "macos")) {
         include_bytes!("../icons/32x32.png")
     } else {
         include_bytes!("../icons/tray.png")
@@ -51,7 +51,7 @@ pub fn apply(app: &AppHandle, engine: &Engine) {
     };
     let built = TrayIconBuilder::with_id(TRAY_ID)
         .icon(icon)
-        .icon_as_template(!cfg!(windows))
+        .icon_as_template(cfg!(target_os = "macos"))
         .tooltip(&tooltip)
         .menu(&menu)
         .show_menu_on_left_click(true)

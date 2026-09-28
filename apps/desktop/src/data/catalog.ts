@@ -3,7 +3,7 @@
 // engine then supplies the full set (built-in plus custom) over IPC.
 
 import type { Audience, Category, Method, Risk, Rule } from "./types";
-import { isWindows } from "../lib/platform";
+import { platform } from "../lib/platform";
 
 const macFiles = import.meta.glob<unknown>("../../../../rules/macos/*.json", {
   eager: true,
@@ -13,7 +13,11 @@ const windowsFiles = import.meta.glob<unknown>("../../../../rules/windows/*.json
   eager: true,
   import: "default",
 });
-const files = isWindows ? windowsFiles : macFiles;
+const linuxFiles = import.meta.glob<unknown>("../../../../rules/linux/*.json", {
+  eager: true,
+  import: "default",
+});
+const files = { mac: macFiles, windows: windowsFiles, linux: linuxFiles }[platform];
 
 type Json = Record<string, unknown>;
 
