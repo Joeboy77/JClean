@@ -3,8 +3,10 @@ resolver = "3"
 members = ["crates/jclean-core", "crates/jclean-cli", "apps/desktop/src-tauri"]
 
 [workspace.package]
-version = "0.1.0"
+version = "1.0.0"
 edition = "2024"
+license = "MIT"
+repository = "https://github.com/Joeboy77/JClean"
 
 [workspace.dependencies]
 jclean-core = { path = "crates/jclean-core" }

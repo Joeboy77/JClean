@@ -2208,7 +2208,7 @@ dependencies = [
 
 [[package]]
 name = "jclean-cli"
-version = "0.1.0"
+version = "1.0.0"
 dependencies = [
  "anyhow",
  "clap",
@@ -2218,7 +2218,7 @@ dependencies = [
 
 [[package]]
 name = "jclean-core"
-version = "0.1.0"
+version = "1.0.0"
 dependencies = [
  "filetime",
  "globset",
@@ -2237,7 +2237,7 @@ dependencies = [
 
 [[package]]
 name = "jclean-desktop"
-version = "0.1.0"
+version = "1.0.0"
 dependencies = [
  "jclean-core",
  "objc2",

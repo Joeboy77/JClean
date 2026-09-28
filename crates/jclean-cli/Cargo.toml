@@ -3,6 +3,7 @@ name = "jclean-cli"
 description = "Development and test harness for jclean-core"
 version.workspace = true
 edition.workspace = true
+license.workspace = true
 publish = false
 
 [[bin]]
