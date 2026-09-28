@@ -7,13 +7,16 @@ use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::{Arc, Mutex};
 
 use jclean_core::cancel::CancelToken;
+use jclean_core::cleaner::{SystemTrash, Trasher};
 use jclean_core::env::Env;
+use jclean_core::history::History;
 use jclean_core::map::{self, MapCell};
+use jclean_core::planner::CleanPlan;
 use jclean_core::platform;
 use jclean_core::rules::{Audience, Category, Method, Risk, RuleSet};
 use jclean_core::scanner::{ScanEvent, ScanItem, ScanMode, ScanOptions, ScanResult, Scanner};
 use jclean_core::time::now_secs;
-use jclean_core::tools::SystemRunner;
+use jclean_core::tools::{CommandRunner, SystemRunner};
 use serde::{Deserialize, Serialize};
 use specta::Type;
 use tauri::State;
@@ -21,30 +24,112 @@ use tauri::ipc::Channel;
 
 /// Engine state shared by the commands.
 pub struct Engine {
-    env: Env,
-    rules: RuleSet,
-    last: Mutex<Option<Arc<ScanResult>>>,
+    pub(crate) env: Env,
+    pub(crate) rules: RuleSet,
+    pub(crate) last: Mutex<Option<Arc<ScanResult>>>,
     cancel: Mutex<Option<CancelToken>>,
+    /// The deletion log and scan history (spec §7.5, §10). `None` if the
+    /// database couldn't be opened; cleaning then refuses to run.
+    pub(crate) history: Option<History>,
+    pub(crate) last_scan_id: Mutex<Option<i64>>,
+    /// The plan shown in the confirmation sheet, run on confirm.
+    pub(crate) plan: Mutex<Option<CleanPlan>>,
+    pub(crate) runner: Arc<dyn CommandRunner>,
+    pub(crate) trasher: Arc<dyn Trasher>,
 }
 
 impl Engine {
     pub fn new() -> Result<Self, String> {
-        let env = Env::from_system().map_err(|e| e.to_string())?;
+        let (env, runner, trasher) = environment()?;
         let rules = RuleSet::builtin(env.os()).map_err(|e| e.to_string())?;
+        let history = History::open(&platform::app_data_dir(&env).join("history.sqlite")).ok();
+        if let Some(h) = &history {
+            let _ = h.prune(now_secs());
+        }
         Ok(Self {
             env,
             rules,
             last: Mutex::new(None),
             cancel: Mutex::new(None),
+            history,
+            last_scan_id: Mutex::new(None),
+            plan: Mutex::new(None),
+            runner,
+            trasher,
         })
     }
 
-    fn cache_path(&self) -> PathBuf {
+    pub(crate) fn cache_path(&self) -> PathBuf {
         platform::app_data_dir(&self.env).join("last-scan.json")
     }
 }
 
-fn lock<T>(m: &Mutex<T>) -> std::sync::MutexGuard<'_, T> {
+type Environment = (Env, Arc<dyn CommandRunner>, Arc<dyn Trasher>);
+
+/// The real machine. In dev builds, `JCLEAN_DEV_ROOT=<dir>` points the app at
+/// a fixture made by `jclean-cli fixture <dir>` instead, so cleaning can be
+/// tried end to end without touching real files: no tools run, and the
+/// Trash is the fixture's own.
+fn environment() -> Result<Environment, String> {
+    #[cfg(debug_assertions)]
+    if let Some(dir) = std::env::var_os("JCLEAN_DEV_ROOT") {
+        let root =
+            std::fs::canonicalize(PathBuf::from(dir).join("root")).map_err(|e| e.to_string())?;
+        let env = Env::new(
+            root.join("Users/tester"),
+            &root,
+            jclean_core::env::Os::current(),
+        );
+        let trash = FixtureTrash(env.home().join(".Trash"));
+        return Ok((env, Arc::new(NoTools), Arc::new(trash)));
+    }
+    let env = Env::from_system().map_err(|e| e.to_string())?;
+    Ok((env, Arc::new(SystemRunner), Arc::new(SystemTrash)))
+}
+
+/// Dev fixtures have no tools, and real ones must never run against them.
+#[cfg(debug_assertions)]
+struct NoTools;
+
+#[cfg(debug_assertions)]
+impl CommandRunner for NoTools {
+    fn run(
+        &self,
+        program: &std::path::Path,
+        _args: &[String],
+        _timeout: std::time::Duration,
+    ) -> Result<jclean_core::tools::CommandOutput, jclean_core::tools::CommandError> {
+        Err(jclean_core::tools::CommandError::Spawn {
+            program: program.display().to_string(),
+            source: std::io::Error::other("tools are disabled for dev fixtures"),
+        })
+    }
+
+    fn find_tool(&self, _env: &Env, _name: &str) -> Option<PathBuf> {
+        None
+    }
+}
+
+/// Moves items into the fixture's own `.Trash`, never the real one.
+#[cfg(debug_assertions)]
+struct FixtureTrash(PathBuf);
+
+#[cfg(debug_assertions)]
+impl Trasher for FixtureTrash {
+    fn trash(&self, path: &std::path::Path) -> Result<(), String> {
+        let name = path.file_name().ok_or("no file name")?;
+        std::fs::create_dir_all(&self.0).map_err(|e| e.to_string())?;
+        let mut dest = self.0.join(name);
+        let mut n = 1;
+        while dest.exists() {
+            dest = self.0.join(format!("{} {n}", name.to_string_lossy()));
+            n += 1;
+        }
+        std::fs::rename(path, dest).map_err(|e| e.to_string())
+    }
+}
+
+pub(crate) fn lock<T>(m: &Mutex<T>) -> std::sync::MutexGuard<'_, T> {
     m.lock().unwrap_or_else(|p| p.into_inner())
 }
 
@@ -153,7 +238,7 @@ pub struct ItemDto {
 }
 
 #[allow(clippy::cast_precision_loss)]
-fn item_dto(item: &ScanItem) -> ItemDto {
+pub(crate) fn item_dto(item: &ScanItem) -> ItemDto {
     ItemDto {
         id: item.id.clone(),
         rule_id: item.rule_id.clone(),
@@ -272,11 +357,10 @@ pub fn start_scan(
             };
             // Always scan everything; Everyday mode filters in the UI so switching is instant.
             let opts = ScanOptions::new(mode, Audience::Developer);
-            let runner = SystemRunner;
             let scanner = Scanner {
                 env: &engine.env,
                 rules: &engine.rules,
-                runner: &runner,
+                runner: engine.runner.as_ref(),
             };
             let last_percent = AtomicUsize::new(usize::MAX);
             let result = scanner.scan(&opts, &cancel, &|event| {
@@ -310,6 +394,25 @@ pub fn start_scan(
             let result = Arc::new(result);
             if !result.cancelled {
                 save_cache(&engine, &result);
+                if let Some(h) = &engine.history {
+                    let total = result.items.iter().map(|i| i.bytes).sum();
+                    let mode = if result.mode == ScanMode::Full {
+                        "full"
+                    } else {
+                        "quick"
+                    };
+                    let id = h
+                        .record_scan(
+                            result.started_at,
+                            result.finished_at,
+                            mode,
+                            total,
+                            result.reclaimable(),
+                            result.items.len(),
+                        )
+                        .ok();
+                    *lock(&engine.last_scan_id) = id;
+                }
             }
             *lock(&engine.last) = Some(result);
             let _ = on_update.send(finished);
@@ -368,7 +471,7 @@ pub fn cached_scan(engine: State<'_, Arc<Engine>>) -> Option<CachedScan> {
 
 /// Saves the scan without its folder tree, which can be large and is only
 /// useful while fresh.
-fn save_cache(engine: &Engine, result: &ScanResult) {
+pub(crate) fn save_cache(engine: &Engine, result: &ScanResult) {
     let mut scan = result.clone();
     scan.tree.clear();
     let file = CacheFile {

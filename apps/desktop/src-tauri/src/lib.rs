@@ -5,6 +5,7 @@ use serde::Serialize;
 use specta::Type;
 use tauri_specta::{Builder, collect_commands};
 
+mod clean;
 mod engine;
 mod volume;
 mod window;
@@ -58,6 +59,9 @@ pub fn specta_builder() -> Builder<tauri::Wry> {
         engine::map_level,
         engine::volume_info,
         engine::cached_scan,
+        clean::plan_clean,
+        clean::run_clean,
+        clean::empty_trash,
     ])
 }
 
