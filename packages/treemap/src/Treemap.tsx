@@ -26,6 +26,9 @@ export interface TreemapCell {
   drillable?: boolean;
   /** Read by VoiceOver: "npm cache, 6.1 gigabytes, safe to clean". */
   ariaLabel?: string;
+  /** Keeps its place in the layout but isn't drawn yet, so cells revealed
+   * one by one appear in their final spots instead of pushing others around. */
+  hidden?: boolean;
 }
 
 export interface TreemapProps {
@@ -131,7 +134,8 @@ const Cell = memo(function Cell({
       }}
     >
       {small && (
-        <span className="jc-cell-label">
+        // The button's aria-label already says this, in words ("gigabytes").
+        <span className="jc-cell-label" aria-hidden="true">
           <span className="jc-cell-name">{label}</span>
           {big && formatValue && <span className="jc-cell-value">{formatValue(value)}</span>}
         </span>
@@ -166,8 +170,9 @@ export function Treemap({
     [sizes, width, height, gap],
   );
   const byId = useMemo(() => new Map(cells.map((c) => [c.id, c])), [cells]);
+  const shown = useMemo(() => rects.filter((r) => byId.get(r.id)?.hidden !== true), [rects, byId]);
   const [focusId, setFocusId] = useState<string | null>(null);
-  const current = focusId && byId.has(focusId) ? focusId : (rects[0]?.id ?? null);
+  const current = focusId && shown.some((r) => r.id === focusId) ? focusId : (shown[0]?.id ?? null);
 
   // Latest callbacks, read through refs so `handlers` never changes.
   const latest = useRef({ onActivate, onHover, cellRef });
@@ -207,7 +212,7 @@ export function Treemap({
     } as const;
     const d = dir[e.key as keyof typeof dir] as (typeof dir)[keyof typeof dir] | undefined;
     if (d) {
-      move(neighbour(rects, current, d));
+      move(neighbour(shown, current, d));
       e.preventDefault();
     } else if ((e.key === "Backspace" || e.key === "Escape") && onBack) {
       onBack();
@@ -224,7 +229,7 @@ export function Treemap({
       style={{ position: "relative", width, height }}
     >
       <AnimatePresence initial={false}>
-        {rects.map((r) => {
+        {shown.map((r) => {
           const cell = byId.get(r.id);
           if (!cell) return null;
           return (
